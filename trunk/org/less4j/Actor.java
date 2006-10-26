@@ -60,12 +60,55 @@ import org.json.simple.JSONValue; // Yet, all is well that ends well.
 /**
  * <p>This Actor class provides simple implementations in Java 1.4.2 of  
  * practical interfaces between LDAP, SQL and the JSON object model in a 
- * RESTfull application of the web.</p>
+ * RESTfull application of the web. It supports a "full-stack" framework, 
+ * starting with no-nonsense logging and a cross-plateform protocol of 
+ * identification and authorization in time, ending with a general audit 
+ * that can track any paths of user interaction.</p>
  * 
- * <p>It supports a "full-stack" framework, starting with no-nonsense logging
- * and a cross-plateform protocol of identification and authorization in time, 
- * ending with a general audit that can track any paths of user interaction.
- * </p>
+ * <h3>Table of Content</h3>
+ * 
+ * <ol>
+ * <li>
+ * logOut, 
+ * logError, 
+ * logError
+ * </li>
+ * <li>
+ * notAuthorized, 
+ * authorize,
+ * audit 
+ * </li>
+ * <li>
+ * httpIdempotent,
+ * httpURL,
+ * rest200Ok, 
+ * rest302Redirect,
+ * json200Ok
+ * </li>
+ * <li>
+ * sqlOpen,
+ * sqlClose,
+ * sqlQuery, 
+ * sqlUpdate,
+ * </li>
+ * <li>
+ * ldapOpen,
+ * ldapClose,
+ * ldapResolve, 
+ * ldapUpdate, 
+ * ldapCreate
+ * </li>
+ * </ol>
+ * 
+ * <h3>Usage</h3>
+ * 
+ * <p>...
+ * 
+ * <pre>\/* control hello to the world of foobar employee *\/
+ *
+ * </pre>
+ * 
+ * ..</p>
  * 
  * @author Laurent Szyster
  * @version 0.1.0
@@ -74,8 +117,7 @@ public class Actor extends Simple {
     
     public static final String TEST = "Test";
     
-    public static final String 
-    less4j = "less4j";
+    public static final String less4j = "less4j";
     
     /**
      * <p>Sixteen Kilobytes (16384 8-bit bytes) represent 3,4 pages of
@@ -106,46 +148,29 @@ public class Actor extends Simple {
      * web 2.0 browsers (IE6, Firefox, etc ...) and java runtime
      * environments. Also the defacto standard for JSON encoding.</p>
      */
-    private static final 
-    String less4jCharacterSet = "UTF-8";
+    private static final String less4jCharacterSet = "UTF-8";
     
-    private static final 
-    String less4jTrue = "true";
-    private static final 
-    String less4jTest = "less4j.test";
+    private static final String less4jTrue = "true";
+    private static final String less4jTest = "less4j.test";
 
-    private static final 
-    String less4jDigestName = "D1IRTD";
-    private static final 
-    String less4jDigestDelimiter = ":";
-    private static final 
-    byte[] less4jDigestDelimiterBytes = new byte[]{':'};
-    private static final 
-    String less4jDigestSalt = "less4j.digest.salt";
-    private static final 
-    String less4jDigestTimeout = "less4j.digest.timeout";
-    private static final 
-    String less4jDigestedSalt = "less4j.digested.salt";
+    private static final String less4jDigestName = "D1IRTD";
+    private static final String less4jDigestDelimiter = ":";
+    private static final byte[] less4jDigestDelimiterBytes = new byte[]{':'};
+    private static final String less4jDigestSalt = "less4j.digest.salt";
+    private static final String less4jDigestTimeout = "less4j.digest.timeout";
+    private static final String less4jDigestedSalt = "less4j.digested.salt";
     
-    private static final 
-    String less4jJDBCDriver = "less4j.jdbc.driver";
-    private static final 
-    String less4jJDBCDataSource = "less4j.jdbc.datasource";
-    private static final 
-    String less4jJDBCURL = "less4j.jdbc.url";
-    private static final 
-    String less4jJDBCUsername = "less4j.jdbc.username";
-    private static final 
-    String less4jJDBCPassword = "less4j.jdbc.password";
+    private static final String less4jJDBCDriver = "less4j.jdbc.driver";
+    private static final String less4jJDBCDataSource = "less4j.jdbc.datasource";
+    private static final String less4jJDBCURL = "less4j.jdbc.url";
+    private static final String less4jJDBCUsername = "less4j.jdbc.username";
+    private static final String less4jJDBCPassword = "less4j.jdbc.password";
     
     private static final 
     String less4jLDAPCtxFactory = "com.sun.jndi.ldap.LdapCtxFactory"; 
-    private static final 
-    String less4jLDAPSecurity = "simple"; 
-    private static final 
-    String less4jLDAPURL = "less4j.ldap.url";
-    private static final 
-    String less4jLDAPPrincipal = "less4j.ldap.principal";
+    private static final String less4jLDAPSecurity = "simple"; 
+    private static final String less4jLDAPURL = "less4j.ldap.url";
+    private static final String less4jLDAPPrincipal = "less4j.ldap.principal";
     private static final 
     String less4jLDAPCredentials = "less4j.ldap.credentials";
 
@@ -241,7 +266,8 @@ public class Actor extends Simple {
         }
     
     /**
-     * Initialize a new Actor to handle an HTTP request and response.
+     * Initialize a new Actor to handle an HTTP request and response, 
+     * set the Actor's audit digest salt and actions map.
      * 
      * @param conf the controller's configuration HashMap
      * @param req the HTTP request to handle 
@@ -389,7 +415,9 @@ public class Actor extends Simple {
     
     /**
      * <p>Test wether this controller's configuration actually supports 
-     * this Actor class at runtime, wether or not:</p> 
+     * this Actor class at runtime</p>
+     * 
+     * <p>For this class, test wether:</p> 
      * 
      * <ol>
      * <li>the actor instances has salt to digest a cookie and audit of
@@ -403,7 +431,8 @@ public class Actor extends Simple {
      * variable, something that cannot be relied upon without testing
      * it each time the J2EE container initialize it.</p>
      * 
-     * <p><em>Everything you don't test does not work.</em></p>
+     * <p>Application developers that extend the namespace of less4j's 
+     * configuration and the Actor class must overload this method.</p>
      * 
      * @param controller
      * @return true if the test was successfull, false otherwise
@@ -439,6 +468,19 @@ public class Actor extends Simple {
     
     private static final int less4jCookieMaxAge = 86400; 
     
+    /**
+     * Literally "digest a cookie": transform the D1IRTD cookie sent with
+     * the request into a new cookie to send with the response.
+     * 
+     * <p>The format
+     * 
+     * <blockquote>
+     * <pre>Cookie: D1IRTD=Digest:Identity:Roles:Time:digesteD; </pre>
+     * </blockquote>
+     * 
+     * </p>
+     *
+     */
     private void digestCookie() {
         String timeString = Long.toString(time);
         SHA1 md = new SHA1();
@@ -468,7 +510,27 @@ public class Actor extends Simple {
     }
     
     /**
-     * ...
+     * <p>Try to collect a D1IRTD cookie in the request and test it and its 
+     * digest against the timeout and the secret(s) set by configuration for 
+     * this actor's controller. Digest a new cookie and returns false only 
+     * if a the digested cookie is still valid in time and bears the  
+     * signature of this servlet.</p> 
+     * 
+     * <p>There are three benefits to expect from D1RTD cookies for
+     * J2EE public applications:</p>
+     * 
+     * <ol>
+     * <li>Remove the weight of statefull sessions in the J2EE container.</li>
+     * <li>Distribute the load of authorization on a cluster of servers 
+     * without adding more contention and latency.</li>
+     * <li>Trace multiple interaction paths of each users.</li>
+     * <li>Audit impersonation exploit by a man-in-the-middle.</li>
+     * </ol>
+     * 
+     * <p>Note that it does <em>not</em> prevent cookie theft but it
+     * does the only next-best actually possible for a public network
+     * application: detect cookie theft ASAP.</p>
+     * 
      * 
      * @return true if the request failed to be authenticated
      */
@@ -534,8 +596,24 @@ public class Actor extends Simple {
         }
     }
     
-    public void authorize() {
-        if (salt != null) digestCookie();
+    /**
+     * <p>Set the Actor's <code>identity</code> and grant <code>rights</code>
+     * digested into an HTTP cookie named <code>D1RTD</code>, like this:
+     * 
+     * <blockquote>
+     * <pre>Cookie: D1IRTD=Digest:Identity:Rights:Time:digesteD; </pre>
+     * </blockquote>
+     * 
+     * that authenticate a one-time digest for the next invokation of
+     * the controller's action.</p>
+     * 
+     * @param id
+     * @param granted
+     */
+    public void authorize(String id, String granted) {
+        identity = id;
+        rights = granted;
+        digestCookie();
     }
     
     private static final String less4jAudit = "AUDIT: ";
@@ -588,17 +666,21 @@ public class Actor extends Simple {
      * <p>Test wether an HTTP request is idempotent or not, ie: wether it is a 
      * GET request for a resource (cachable) like
      * 
+     * <blockquote>
      * <pre>/resource</pre>
+     * </blockquote>
      * 
      * or a GET request for an action as
      * 
+     * <blockquote>
      * <pre>/resource?action</pre>
+     * </blockquote>
      * 
      * wich is not cacheable.</p>
      * 
      * @return true if the request is idempotent, false otherwise
      */
-    public boolean isIdempotent () {
+    public boolean httpIdempotent () {
         return (request.getQueryString() == null);
         }
     
@@ -787,11 +869,6 @@ public class Actor extends Simple {
     
     private static final 
     String less4jHTTPLocation = "Location";
-    private static final
-    String less4jREST302 = (
-        "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
-        "<rest302Redirect/>"
-        );
     
     /**
      * Try to send a 302 Redirect HTTP response to a location and set the
@@ -803,11 +880,11 @@ public class Actor extends Simple {
      * type and character set encoding.</p> 
      *
      * @param location to redirect to
-     * @param type the Content-Type of the response 
      * @param body an of bytes with the response body 
+     * @param type the Content-Type of the response 
      *
      */
-    public void rest302Redirect (String location, String type, byte[] body) {
+    public void rest302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
         response.addHeader(less4jHTTPLocation, httpURL(location));
         response.setContentType(type);
@@ -822,12 +899,18 @@ public class Actor extends Simple {
         }
     }
     
+    private static final
+    String less4jREST302 = (
+        "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
+        "<rest302Redirect/>"
+        );
+    
     /**
      * <p>Try to send a 302 HTTP Redirect response to the a relative or
      * absolute location with the XML string 
      * 
      * <blockquote>
-     * <pre>&lt;rest302Redirect&gt;</pre>
+     * <pre>&lt;rest302Redirect/&gt;</pre>
      * </blockquote>
      * 
      * as body.</p>
@@ -848,7 +931,7 @@ public class Actor extends Simple {
      */
     public void rest302Redirect(String location) {
         rest302Redirect(
-            location, less4jXMLContentType, less4jREST302.getBytes()
+            location, less4jREST302.getBytes(), less4jXMLContentType
             );
     }
     

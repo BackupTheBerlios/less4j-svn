@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServlet;
  * for each request and response.</p>
  * 
  * @author Laurent Szyster
+ * @version 0.1.0
  *
  */
 public class Controller extends HttpServlet {
