@@ -25,28 +25,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
 /**
- * <h3>An HTTP Servlet Controller</h3>
- * 
- * <p>The less4j's Controller extends javax's HttpServlet to provide a 
- * practical API for configuration of its so typical applications:
-
- * <blockquote>
- * <pre>GET /resource
- * GET /resource?action
- * ...
- * GET /resource?action
- * POST /resource</pre> 
- * </blockquote>
- *  
- * a statefull transaction that starts when the user access a resource,
- * then interact with it and finally commits all interactions. It's your
- * run-of-the-mill data input screen, an airline ticketing, etc ...</p>
- * 
- * <p>Applications derive their action controllers from this servlet and 
- * override the methods <code>doGet</code> and <code>doPost</code>
+ * <p>Applications derive their action servlets from this Controller
+ * class, overriding the methods <code>doGet</code> and <code>doPost</code>
  * to implement control of a web 2.0 view of SQL relational database(s) 
- * and LDAPA metadata directory(ies), using one <code>Actor</code> instances 
- * for each request and response.</p> 
+ * and LDAP directory(ies), using one <code>Actor</code> instances 
+ * for each request and response.</p>
  * 
  * @author Laurent Szyster
  *
@@ -73,10 +56,6 @@ public class Controller extends HttpServlet {
     /**
      * Clone the controller's configuration HashMap.
      * 
-     * Note that this is a point of "low contention" where speed has been
-     * once again traded for memory in order not to induce waite state in
-     * the application and more contention.
-     * 
      * @return a new Actor, a thread-safe place for instance variables
      */
     public HashMap getConfiguration() {
@@ -97,8 +76,12 @@ public class Controller extends HttpServlet {
         setConfiguration(config);
         Actor $ = new Actor (configuration);
         if (!$.testConfiguration(this)) {
-            throw new ServletException("less4j configuration failed");
+            throw new ServletException(
+                "less4j configuration failed at runtime"
+            );
         }
     }
+    
+    /* here comes your application */
     
 }

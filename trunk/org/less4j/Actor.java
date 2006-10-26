@@ -85,14 +85,14 @@ public class Actor extends Simple {
      * user every few seconds.</p>
      * 
      * <p>Also, 16KB happens to be the defacto standard buffer size
-     * for TCP peers and networks. Which makes anything smaller 
-     * than this limit a better candidate for the lowest possible
-     * network latency.</p>
+     * for TCP peers and networks since it's the maximum UDP datagram size
+     * in use. Which makes anything smaller than this limit a better candidate 
+     * for the lowest possible IP network latency.</p>
      * 
-     * <p>Sixteen KB buffers can hold more than 65 thousand concurrent 
+     * <p>Finally, sixteen KB buffers can hold more than 65 thousand concurrent
      * responses in one GB of RAM, a figure between one and two orders of 
      * magnitude smaller than what you can reasonably expect from a J2EE 
-     * container on commodity hardware.</p>
+     * container running some commodity hardware.</p>
      * 
      * <p>So, that sweet sixteen spot is also a safe general maximum for a 
      * web 2.0 application controller that needs to keep lean on RAM and
@@ -286,14 +286,16 @@ public class Actor extends Simple {
      * <p>Write a categorized message to STDERR, as:
      * 
      * <blockquote>
-     *  <code>category: message</code>
+     * <pre>category: message</pre>
      * </blockquote>
 
      * <p>Again, you should use a log-posprocessor to add audit information 
      * to your logs. Or apply Resin:
      * 
+     * <blockquote>
      * <pre><a href="http://wiki.caucho.com/Stderr-log"
      *   >http://wiki.caucho.com/Stderr-log</a></pre>
+     * </blockquote>
      * 
      * Audit logs may inform about a completed transaction, an aborted
      * action, a authorization failure or any hazardous event for which
@@ -327,9 +329,11 @@ public class Actor extends Simple {
      * 
      * Also, if test is false, log the JSON object of this actor.</p>
      * 
-     * <strong>Usage:</strong>
+     * <p><strong>Usage:</strong>
      * 
-     *  <code>try {...} catch (Exception e) {logError (e);}</code>
+     * <blockquote>
+     * <pre>try {...} catch (Exception e) {logError (e);}</pre>
+     * </blockquote>
      *     
      * <p>The purpose is to give debuggers a usefull "slice" of the stack
      * trace: which error, where it occurred and what caused it. In its
@@ -346,7 +350,9 @@ public class Actor extends Simple {
      * image of the application context without confidential information: 
      * the entire JSON object model but none of the server's configuration.
      * 
-     *  <pre>StackTrace: error | thrower.called 123 | catcher.calling 12 {...}</pre>
+     * <blockquote>
+     * <pre>StackTrace: error | thrower.called 123 | catcher.calling 12 {...}</pre>
+     * </blockquote>
      *
      * This is what the helpdesk needs and it still fits on one line.</p>
      *
@@ -378,22 +384,26 @@ public class Actor extends Simple {
         }
         System.err.println(sb.toString());
     }
+    
+    private static final int less4jJDBCTimeout = 15;
+    
     /**
-     * <p>"<em>Everything you don't test does not work.</em>"</p>
+     * <p>Test wether this controller's configuration actually supports 
+     * this Actor class at runtime, wether or not:</p> 
      * 
-     * <p>Test that the controller's configuration is working, ie that: 
-     * 
-     * </ol>
-     * <li>the actor instances will have some salt to digest
+     * <ol>
+     * <li>the actor instances has salt to digest a cookie and audit of
      * identification, authorizations, time and the response digested
      * previously</li>
      * <li>the configured JDBC driver or DataSource is available.</li>
-     * <li>and the LDAP server is also accessible if one is configured.</li>
+     * <li>the LDAP server is also accessible, if one is configured.</li>
      * </ol>
      * 
-     * By definition a servlet configuration is a runtime environment
+     * <p>By definition a servlet configuration is a runtime environment
      * variable, something that cannot be relied upon without testing
      * it each time the J2EE container initialize it.</p>
+     * 
+     * <p><em>Everything you don't test does not work.</em></p>
      * 
      * @param controller
      * @return true if the test was successfull, false otherwise
@@ -405,6 +415,10 @@ public class Actor extends Simple {
         }
         String dbn;
         try {
+            if (DriverManager.getLoginTimeout() < less4jJDBCTimeout)
+                DriverManager.setLoginTimeout(less4jJDBCTimeout);
+            if (DriverManager.getLogWriter() != null)
+                DriverManager.setLogWriter(null);
             dbn = (String) configuration.get(less4jJDBCDriver);
             if (dbn != null) {
                 Class.forName(dbn);
@@ -1511,66 +1525,8 @@ public class Actor extends Simple {
     
     public boolean ldapUpdate (String dn, JSONObject object) {
         return ldapUpdate(dn, object, object.keySet().iterator());
-        }
-        
+    }
+    
+    /* that's all folks */
+    
 }
-
-/*
- * This class provides a convenient API to implement the doGet and doPost 
- * interfaces of Java's HttpServlet in the framework of a MVC web application 
- * where the Model is defined in SQL and/or LDAP; where the view is HTML and 
- * CSS; and where the controler is a stateless web services that uses JSON.
- * 
- * Here's the flow:
- * 
- *     GET /transaction HTTP/1.X 
- * 
- * returns an HTML page with links to CSS stylesheet(s), JavaScript source
- * files(s) and in which are embedded User Interaction controlers. Those UI 
- * controlers are then requesting actions from the transaction controler,
- * either using idempotent method and request like
- * 
- *     GET /transaction/idempotent HTTP/1.X
- * 
- * to retrieve and maybe cache data, or transient requests like
- * 
- *     GET /transaction?action=save HTTP/1.X 
- * 
- * to set transaction save points, or transient method like 
- * 
- *     POST /transaction HTTP/1.X 
- * 
- * to commit a transaction. 
- * 
- * The transaction controler can answer with or without a body, using: 
- * 
- *     200 Ok HTTP/1.X
- * 
- * to return a JSON object and let the user decide what's next or
- * 
- *     302 Redirect HTTP/1.X
- * 
- * to continue the flow by moving to another state in or out of the
- * current transaction.
- * 
- * That's it.
- * 
- * And yes, failure is not an option ...
- * 
- * Note that this is an "allmost-share-nothing" implementation. To resolve
- * an application context, an LDAP connection is required each time. But
- * it's up to the architect to minimize the number of context resolution in
- * his design, using Cookies and/or JSON headers to hold it between peers.
- * 
- * If your SQL or LDAP servers appear to be bottlenecks, partition and
- * distribute your application on more distinct servers. 
- */
- 
-
-/*
- * TODO: ? add support for HTTP/RMI/JMS clients, but then, this is preciserly
- *       what the Java VM is so bad at (concurrency and wait state demand
- *       asynchrony ;-).  
- *       
- */
-
