@@ -70,7 +70,7 @@ import org.json.simple.JSONValue; // Yet, all is well that ends well.
  * <ol>
  * <li>
  * logOut, 
- * logError, 
+ * logInfo, 
  * logError
  * </li>
  * <li>
