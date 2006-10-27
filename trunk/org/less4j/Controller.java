@@ -31,6 +31,84 @@ import javax.servlet.http.HttpServlet;
  * and LDAP directory(ies), using one <code>Actor</code> instances 
  * for each request and response.</p>
  * 
+ * <h3>Usage</h3>
+ * 
+ * <h4>REST</h4>
+ * 
+ * <p>...</p>
+ * 
+ * <blockquote>
+ * <pre>class World extends Controller {
+ *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) { 
+ *        (new Actor(getConfiguration()), req, res)).rest200Ok(
+ *            "<World/>", 600
+ *            );
+ *    }
+ *}</pre>
+ * </blockquote>
+ * 
+ * <h4>JSON</h4>
+ * 
+ * <p>As part of a Web 2.0 framework, less4j controllers expect one kind
+ * of REST request and three kinds of JSON requests: for a resource, an
+ * action or a transaction.</p>
+ * 
+ * <p>The request for globals of the JavaScript client state and the request
+ * for stateless interactions with the server use the GET method of HTTP:
+ * 
+ * <blockquote>
+ * <pre>class HelloWorld extends Controller {
+ *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
+ *        Actor $ = new Actor(getConfiguration()), req, res));
+ *        <strong>if ($.httpIdempotent()) {
+ *            if $.restMatch($.identity) {
+ *                $.rest200Ok("{}", "application/json", 600);
+ *            else {
+ *                </strong>$.rest200Ok("<World/>", 600);<strong>
+ *            }
+ *        } else if $.hasAction("hello") {
+ *            $.json200Ok(new Object[]{"hello", $.getAction("hello"})
+ *        } else {
+ *            $.rest302Redirect();
+ *        }</strong>
+ *    }
+ *}</pre>
+ * </blockquote>
+ * 
+ * Application controllers don't need and should not handle more than two 
+ * HTTP response states: 200 Ok and 302 Redirect. Failure is not an option
+ * on this side.</p>
+ * 
+ * <h4>d'irtd</h4>
+ * 
+ * <p>That bizarre acronym stands for: Digest Identity Roles Time Digested,
+ * a simple relation to chain authentic signatures of an original digest
+ * back to their source, auditing user interactions and effectively tracking 
+ * impersonation fraud attempts:
+ * 
+ * <blockquote>
+ * <pre>class SafeHelloWorld extends Controller {
+ *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
+ *        Actor $ = new Actor(getConfiguration()), req, res));
+ *        <strong>if $.notAuthorized() {
+ *            $.rest302Redirect("?login")
+ *        } else</strong> if ($.httpIdempotent()) {
+ *            $.rest200Ok("{}", "application/json", 600);
+ *        } else if $.hasAction("hello") {
+ *            $.json200Ok(new Object[]{"hello", $.getAction("hello"})
+ *        } else if $.hasAction("login") {
+ *            $.rest200Ok()
+ *        } else {
+ *            $.rest302Redirect();
+ *        }
+ *    }
+ *}</pre>
+ * </blockquote>
+
+ * ...</p>
+ * 
+ * <p>The POST method is used to commit a controlled transaction:</p>
+ * 
  * @author Laurent Szyster
  * @version 0.1.0
  *

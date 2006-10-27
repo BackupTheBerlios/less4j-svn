@@ -100,16 +100,6 @@ import org.json.simple.JSONValue; // Yet, all is well that ends well.
  * </li>
  * </ol>
  * 
- * <h3>Usage</h3>
- * 
- * <p>...
- * 
- * <pre>\/* control hello to the world of foobar employee *\/
- *
- * </pre>
- * 
- * ..</p>
- * 
  * @author Laurent Szyster
  * @version 0.1.0
  */
@@ -142,6 +132,20 @@ public class Actor extends Simple {
      */
     public static final int
     less4jLimit = 16384; // can't configure this!
+    
+    /**
+     * The number of rows to fetch at once from a JDBC connection,
+     * set by default to fit 66 lines of 72 characters, one dense page
+     * at once only or a few detailed pages at once if the controller 
+     * allows wider queries than simple table filters.
+     * 
+     * <p>I did not choose 66 and 72, but it's an industry standard that
+     * fits and looks well a broad kind of typography. Eventually, all 
+     * J2EE application views must be printable (not printed, but fitting
+     * a broad typography and layout for network consoles and printers).</p>
+     */
+    public static final int
+    less4jFetch = 66; // can't configure this!
     
     /**
      * <p>The default charset encoding in less4j, something supported by
