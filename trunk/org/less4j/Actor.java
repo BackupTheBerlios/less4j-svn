@@ -22,6 +22,8 @@ import java.util.Hashtable; // (comes to haunt us back from InitialDirContext)
 import java.util.ArrayList; // ... unsynchronized list, at last too ...
 import java.util.Iterator; // ... what took you so long Sunny?
 
+import java.util.regex.Pattern; // no comments.
+
 import java.net.URLEncoder; // Java was there this one since 1.0!
 
 import java.io.IOException; // synchronously, of course ...
@@ -67,38 +69,87 @@ import org.json.simple.JSONValue; // Yet, all is well that ends well.
  * 
  * <h3>Table of Content</h3>
  * 
- * <ol>
- * <li>
- * logOut, 
- * logInfo, 
- * logError
- * </li>
- * <li>
- * notAuthorized, 
- * authorize,
- * audit 
- * </li>
- * <li>
- * httpIdempotent,
- * httpURL,
- * rest200Ok, 
- * rest302Redirect,
- * json200Ok
- * </li>
- * <li>
- * sqlOpen,
- * sqlClose,
- * sqlQuery, 
- * sqlUpdate,
- * </li>
- * <li>
- * ldapOpen,
- * ldapClose,
- * ldapResolve, 
- * ldapUpdate, 
- * ldapCreate
- * </li>
- * </ol>
+ * <p>The actor members and methods are grouped by aspects of its
+ * applications as follow:</p>
+ * 
+ * <dl>
+ * <di><dt>Runtime Environment:
+ * <code>time</code>,
+ * <code>test</code>, 
+ * <code>logOut</code>, 
+ * <code>logInfo</code>, 
+ * <code>logError</code>.
+ * </dt><dd>
+ * Time, runtime environment, standard output and error. The basics, and
+ * just that. No fancy logging formats and long stack traces, the bare
+ * minimum for all actor: STDOUT and STDERR, a compact exception trace
+ * and unconstrained logging categories for information.
+ * <dd></di>
+ * <di><dt>Configuration:
+ * <code>configuration</code>, 
+ * <code>testConfiguration</code>, 
+ * <code>request</code>,
+ * <code>response</code>.
+ * </dt><dd>
+ * Because "everything you don't test does not work", there are two
+ * Actor constructors. One for instances that test a controller's 
+ * configuration and one for instances that will be apply it on an 
+ * HTTP transaction.
+ * </dd></di>
+ * <di><dt>Security:
+ * <code>identity</code>,
+ * <code>roles</code>,
+ * <code>digest</code>,
+ * <code>digested</code>,
+ * <code>notAuthorized</code>, 
+ * <code>authorize</code>,
+ * <code>audit</code>.
+ * </dt><dd>
+ * Identification, authorization and audit of the user agent, without
+ * the woes of <code>HttpServletSession</code>. A practical implementation
+ * of a simple protocol based on HTTP cookies and SHA1 digest, cross
+ * plateform and designed to let the weight of persistent sessions be
+ * distributed ... on the clients. Eventually, it also provides an effective
+ * audit follow the multiple paths of interactions of a single user and
+ * detect fraud attemps.
+ * </dd></di>
+ * <di><dt>REST:
+ * <code>httpURL</code>,
+ * <code>httpIdempotent</code>,
+ * <code>actions</code>,
+ * <code>rest200Ok</code>, 
+ * <code>rest302Redirect</code>.
+ * </dt><dd>
+ * ...
+ * </dd></di>
+ * <di><dt>JSON:
+ * <code>json</code>,
+ * <code>jsonGET</code>,
+ * <code>jsonPOST</code>,
+ * <code>json200Ok</code>.
+ * </dt><dd>
+ * ...
+ * </dd></di>
+ * <di><dt>SQL:
+ * <code>sql</code>,
+ * <code>sqlOpen</code>,
+ * <code>sqlClose</code>,
+ * <code>sqlQuery</code>, 
+ * <code>sqlUpdate</code>.
+ * </dt><dd>
+ * ...
+ * </dd></di>
+ * <di><dt>LDAP:
+ * <code>ldap</code>,
+ * <code>ldapOpen</code>,
+ * <code>ldapClose</code>,
+ * <code>ldapResolve</code>, 
+ * <code>ldapUpdate</code>, 
+ * <code>ldapCreate</code>
+ * </dt><dd>
+ * ...
+ * </dd></di>
+ * </dl>
  * 
  * @author Laurent Szyster
  * @version 0.1.0
@@ -124,11 +175,14 @@ public class Actor extends Simple {
      * <p>Finally, sixteen KB buffers can hold more than 65 thousand concurrent
      * responses in one GB of RAM, a figure between one and two orders of 
      * magnitude smaller than what you can reasonably expect from a J2EE 
-     * container running some commodity hardware.</p>
+     * container running some commodity hardware. At an average speed of
+     * 0.5 millisecond per concurrent request/response 16KB buffers sums
+     * up to 36MBps, less than 1Gbps.</p>
      * 
      * <p>So, that sweet sixteen spot is also a safe general maximum for a 
      * web 2.0 application controller that needs to keep lean on RAM and
-     * wants the fastest possible network.</p>
+     * wants the fastest possible network and the smallest possible
+     * imbalance between input and output.</p>
      */
     public static final int
     less4jLimit = 16384; // can't configure this!
@@ -143,6 +197,9 @@ public class Actor extends Simple {
      * fits and looks well a broad kind of typography. Eventually, all 
      * J2EE application views must be printable (not printed, but fitting
      * a broad typography and layout for network consoles and printers).</p>
+     * 
+     * <p>Note that this is not a limit on the number of rows selected,
+     * that's something to set in the SQL statements or its arguments.</p>
      */
     public static final int
     less4jFetch = 66; // can't configure this!
@@ -239,9 +296,9 @@ public class Actor extends Simple {
     public String digest = null; // this digest
     
     /**
-     * An immutable Map of the HTTP request's query string.
+     * An HashMap of the validated HTTP request's query string.
      */
-    public Map actions = null;
+    public HashMap actions = null;
     
     /**
      * The JSON object associated with the Actor's request and/or response.
@@ -285,19 +342,64 @@ public class Actor extends Simple {
         salt = ((String) configuration.get(less4jDigestSalt)).getBytes();
         request = req;
         response = res;
-        actions = request.getParameterMap();
+    }
+
+    public boolean httpActions() {
+        actions = new HashMap(request.getParameterMap());
+        return ! actions.isEmpty();
     }
 
     /**
+     * Validate the request's actions Map against a HashMap of type caster 
+     * from String and regular expression patterns. Other control limits are 
+     * best expressed in Java, usually to compute numbers and not process 
+     * text.
+     * 
+     * @param types_and_patterns a map of action names and valid type
+     *        caster and regular expressions
+     * @return true if there is at least one valid action
+     */
+    public boolean httpActions(HashMap types_and_patterns) {
+        Object[] tp;
+        String name;
+        String value;
+        HashMap validated = new HashMap();
+        Map query = request.getParameterMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            tp = (Object[]) types_and_patterns.get(name);
+            if (tp != null) {
+                value = (String) query.get(name);
+                if (tp[1] == null) {
+                    validated.put(name, cast((Integer) tp[0], value));
+                } else if (((Pattern) tp[1]).matcher(value).matches()) {
+                    if (tp[0] != null) {
+                        validated.put(name, cast((Integer) tp[0], value));
+                    } else {
+                        validated.put(name, value);
+                    }
+                }
+            }
+        }
+        actions = validated;
+        return ! actions.isEmpty();
+    }
+    
+    /**
      * <p>Write a message to STDOUT, as one line: 
      * 
+     * <blockquote>
      * <pre>message</pre>
+     * </blockquote>
      *     
      * If you cannot apply Resin's excellent configuration of STDOUT for
      * your web applications:
      * 
+     * <blockquote>
      * <pre><a href="http://wiki.caucho.com/Stdout-log"
      *   >http://wiki.caucho.com/Stdout-log</a></pre>
+     * </blockquote>
      * 
      * use multilog or any other log post-processor to add timestamp and
      * other usefull audit information. From outside your application, where 
@@ -318,7 +420,7 @@ public class Actor extends Simple {
      * <blockquote>
      * <pre>category: message</pre>
      * </blockquote>
-
+     *
      * <p>Again, you should use a log-posprocessor to add audit information 
      * to your logs. Or apply Resin:
      * 
@@ -355,7 +457,9 @@ public class Actor extends Simple {
      * <p>Write a compact stack trace to STDERR in the "StackTrace" category,
      * in one line, like:
      * 
-     *  <pre>StackTrace: error | thrower.called 123 | catcher.calling 12</pre>
+     * <blockquote>
+     * <pre>StackTrace: error | thrower.called 123 | catcher.calling 12</pre>
+     * </blockquote>
      * 
      * Also, if test is false, log the JSON object of this actor.</p>
      * 
@@ -476,13 +580,13 @@ public class Actor extends Simple {
      * Literally "digest a cookie": transform the D1IRTD cookie sent with
      * the request into a new cookie to send with the response.
      * 
-     * <p>The format
+     * <p>The cookie value is a formatted string made as follow
      * 
      * <blockquote>
-     * <pre>Cookie: D1IRTD=Digest:Identity:Roles:Time:digesteD; </pre>
+     * <pre>Cookie: D1IRTD=<strong>digest:identity:roles:time:digested</strong>; </pre>
      * </blockquote>
      * 
-     * </p>
+     * ...</p>
      *
      */
     private void digestCookie() {
@@ -605,37 +709,40 @@ public class Actor extends Simple {
      * digested into an HTTP cookie named <code>D1RTD</code>, like this:
      * 
      * <blockquote>
-     * <pre>Cookie: D1IRTD=Digest:Identity:Rights:Time:digesteD; </pre>
+     * <pre>Cookie: D1IRTD=digest:identity:roles:time:digested; </pre>
      * </blockquote>
      * 
      * that authenticate a one-time digest for the next invokation of
      * the controller's action.</p>
      * 
-     * @param id
-     * @param granted
+     * @param identity
+     * @param roles
      */
-    public void authorize(String id, String granted) {
-        identity = id;
-        rights = granted;
+    public void authorize(String identity, String roles) {
+        this.identity = identity;
+        this.rights = roles;
         digestCookie();
     }
     
     private static final String less4jAudit = "AUDIT: ";
     private static final String less4jAuditDelimiter = " ";
     
-    /** <p>Log an audit of this action on one line:
+    /** 
+     * Log an audit of this HTTP request and response in one line. 
+     * 
+     * <p>For instance:
      * 
      * <blockquote>
-     * <pre>digest identity rights time digested GET url HTTP/1.1 200</pre>
+     * <pre>digest identity roles time digested GET url HTTP/1.1 200</pre>
      * </blockquote>
      * 
      * using by convention strings without whitespace for the identity
-     * and the enumeration of the rights granted. practically, that fits
+     * and the enumeration of the rights granted. Practically, that fits
      * email addresses or names that users allready use as principals.</p>
      * 
-     * <p>Right names don't *need* whitespaces, they are pretty much
+     * <p>Role names don't *need* whitespaces, they are pretty much
      * constants defined at the network level (for instance products of an 
-     * ASP or roles in a CMS, etc ...).</p>
+     * ASP or rigths over contents in a CMS, etc ...).</p>
      * 
      * <p>Note that digested is the digest of the previous request, the
      * backlink to chain a session step by step ... and detect fraud.</p>
@@ -687,6 +794,18 @@ public class Actor extends Simple {
     public boolean httpIdempotent () {
         return (request.getQueryString() == null);
         }
+    
+    /**
+     * Dispatch an idempotent Actor, split its context path (the one
+     * between the resource identified and the servlet path) between
+     * separators and returns an iterator. Let the accessor decide
+     * how to dispatch that stack ...
+     *
+     */
+    public Iterator httpDispatch (HashMap resources) {
+        String s = request.getContextPath();
+        return iterate(s.split("/"));
+    }
     
     /**
      * <p>Try to send a 200 Ok HTTP response with the appropriate headers
@@ -1112,8 +1231,6 @@ public class Actor extends Simple {
             return "";
     }
     
-    // JDBC conveniences
-    
     /**
      * Try to open a JDBC connection using the configuration properties,
      * disable AutoCommit. Allways log error, log success only in test mode.
@@ -1159,17 +1276,29 @@ public class Actor extends Simple {
         if (test) {logInfo("disconnected from the database", TEST);}
     }
     
+    /**
+     * Copy the JDBC result set into ArrayList of primitive Objects,
+     * something to iterate through and index in a closed statement's
+     * result, possibly defering that process to I/O time and yield 
+     * faster JDBC connections pooling between threads, certainly
+     * never taking the risk of leaking DataSource pools.
+     * 
+     * @param rs
+     * @return
+     * @throws SQLException
+     */
     private static ArrayList jdbc2java (ResultSet rs)
     throws SQLException {
+        int i;
         ArrayList rows = null;
         if (rs.next()) {
-            ArrayList row;
+            Object[] row;
             rows = new ArrayList();
             ResultSetMetaData mt = rs.getMetaData();
             int l = mt.getColumnCount();
             do {
-                row = new ArrayList();
-                for (int i = 0; i < l; i++) {row.add(rs.getObject(i));};
+                row = new Object[l];
+                for (i = 0; i < l; i++) row[i] = rs.getObject(i);
                 rows.add(row);
             } while (rs.next());
         }
@@ -1177,6 +1306,16 @@ public class Actor extends Simple {
         return rows;
     }
     
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement, return an ArrayList of rows or null if the result
+     * set was empty. In any case, close the statement JDBC statement
+     * and result set to prevent any leak in the connections pool.
+     * 
+     * @param statement
+     * @return an ArrayList of Object[] or null
+     * @throws SQLException
+     */
     public ArrayList sqlQuery (String statement) 
     throws SQLException {
         if (test) logInfo(statement, TEST);
@@ -1184,6 +1323,7 @@ public class Actor extends Simple {
         Statement st = null;
         try {
             st = sql.createStatement();
+            st.setFetchSize(less4jFetch);
             rows = jdbc2java(st.executeQuery(statement));
             st.close(); 
             st = null;
@@ -1196,6 +1336,17 @@ public class Actor extends Simple {
         return rows;
     }
 
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and arguments, return an ArrayList of rows or null if 
+     * the result set was empty. In any case, close the statement JDBC 
+     * statement and result set to prevent any leak in the connections pool.
+     * 
+     * @param statement to prepare and execute as a query
+     * @param args a primitive array of arguments
+     * @return an ArrayList of Object[] or null
+     * @throws SQLException
+     */
     public ArrayList sqlQuery (String statement, Object[] args) 
     throws SQLException {
         if (test) logInfo(statement, TEST);
@@ -1204,6 +1355,7 @@ public class Actor extends Simple {
         try {
             int i;
             st = sql.prepareStatement(statement);
+            st.setFetchSize(less4jFetch);
             for (i = 0; i < args.length; i++) st.setObject(i, args[i]);
             rows = jdbc2java(st.executeQuery(statement));
             st.close(); 
@@ -1220,20 +1372,61 @@ public class Actor extends Simple {
     private static JSONObject jdbc2json (ResultSet rs)
     throws SQLException {
         int i;
-        JSONObject model = new JSONObject ();
         JSONArray row;
-        JSONArray rows = new JSONArray();
         ResultSetMetaData mt = rs.getMetaData();
         int l = mt.getColumnCount();
+        JSONObject model = new JSONObject ();
+        row = new JSONArray();
+        for (i = 0; i < l; i++) row.add(mt.getColumnName(i));
+        model.put("columns", row);
+        JSONArray rows = new JSONArray();
         while (rs.next()) {
             row = new JSONArray();
-            for (i = 0; i < l; i++) {row.add(rs.getObject(i));};
+            for (i = 0; i < l; i++) row.add(rs.getObject(i));
             rows.add(row);
         }
+        model.put("rows", rows);
         rs.close();
         return model;
     }
     
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and named arguments, return a JSONObject model or null if 
+     * the result set was empty. In any case, close the statement JDBC 
+     * statement and result set to prevent any leak in the connections pool.
+     * 
+     * @param statement to prepare and execute as a query
+     * @param args a MashMap
+     * @param names a primitive array of argument names
+     * @return a JSONObject with a simple relational model
+     * @throws SQLException
+     */
+    public JSONObject sqlQuery (
+        String statement, HashMap args, String[] names
+        ) 
+    throws SQLException {
+        if (test) logInfo(statement, TEST);
+        JSONObject model = null;
+        PreparedStatement st = null;
+        try {
+            int i;
+            st = sql.prepareStatement(statement);
+            st.setFetchSize(less4jFetch);
+            for (i = 0; i < names.length; i++) 
+                st.setObject(i, args.get(names[i]));
+            model = jdbc2json(st.executeQuery(statement));
+            st.close(); 
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;} 
+                st = null;
+            }
+        }
+        return model;
+    }
+
     public JSONObject sqlQuery (String statement, JSONArray args) 
     throws SQLException {
         if (test) logInfo(statement, TEST);
@@ -1241,6 +1434,7 @@ public class Actor extends Simple {
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
+            st.setFetchSize(less4jFetch);
             Iterator iter = args.iterator();
             int i = 0;
             while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
@@ -1266,6 +1460,7 @@ public class Actor extends Simple {
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
+            st.setFetchSize(less4jFetch);
             int i = 0;
             while(names.hasNext()) {
                 st.setObject(i, args.get(names.next())); 
@@ -1285,12 +1480,44 @@ public class Actor extends Simple {
     }
     
     public JSONObject sqlQuery (
-        String statement, JSONObject args, Object[] names
+        String statement, JSONObject args, String[] names
         )
         throws SQLException {
         return sqlQuery(statement, args, iterate(names));
     }
 
+    /* The ultimate convenience, for the one liner
+     *
+     *     $.rest200Ok(
+     *         $.sqlQueryJSON(STATEMENT, $.actions, ARGUMENTS),
+     *         "application/json", 600
+     *         );
+     *     
+     * opens a JDBC connection, prepare and execute a statement, fetch a 
+     * result set, serialize it as a JSON string and send it as body of
+     * a RESTfull 200 Ok HTTP response.
+     * 
+     * Any exception arising from the transaction is logged to the
+     * controller's STDERR and echoed to the JSON user agent as:
+     * 
+     *    {error: "message"}
+     */
+    
+    public void sqlQueryJSON (
+        String statement, HashMap args, String[] names
+        ) {
+        
+    }
+    
+    /* A more specialized convenience for X-JSON transactions
+     * 
+     */
+    public void sqlQueryJSON (
+        String statement, JSONObject args, String[] names
+        ) {
+        
+    }
+    
     /**
      * Try to execute and UPDATE, INSERT, DELETE or DDL statement, close
      * the JDBC/DataSource statement, return the number of rows updated.
@@ -1435,6 +1662,9 @@ public class Actor extends Simple {
         ) 
     throws SQLException {return new JSONArray();}
             
+    public int sqlBatch (String statement, JSONArray rows) 
+        throws SQLException {return 0;}
+                
     /**
      * Try to open a new connection (establish a new "initial directory 
      * context" in j-speak) to the LDAP server configured, using a
@@ -1617,3 +1847,17 @@ public class Actor extends Simple {
     /* that's all folks */
     
 }
+
+/*
+ *  TODO: add validation of actions and objects against simple maps of
+ *        a name to a type caster and a regular expression pattern:
+ *        
+ *            {"name": [caster, pattern]}
+ *  
+ *        enough to test most input constraints.
+ *        
+ *        Note that this is specialy usefull with a stack of regular
+ *        expression and types, using sample data to find the strictest
+ *        matching pattern and type in a test case.
+ *        
+ */

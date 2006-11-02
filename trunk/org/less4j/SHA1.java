@@ -1,7 +1,4 @@
-package org.less4j;
-
-/*
- * SHA1.java - An implementation of the SHA-1 Algorithm
+/* SHA1.java - An implementation of the SHA-1 Algorithm
  *
  * Modified for less4j by Laurent Szyster, removed the dependency on
  * PyString required for Jython
@@ -49,6 +46,8 @@ package org.less4j;
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+package org.less4j;
 
 /**
  * This class implements the SHA-1 message digest algorithm.

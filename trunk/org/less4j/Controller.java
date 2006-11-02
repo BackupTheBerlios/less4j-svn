@@ -40,34 +40,64 @@ import javax.servlet.http.HttpServlet;
  * <blockquote>
  * <pre>class World extends Controller {
  *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) { 
- *        (new Actor(getConfiguration()), req, res)).rest200Ok(
- *            "<World/>", 600
- *            );
+ *        <strong>(new Actor(getConfiguration()), req, res)).rest200Ok(
+ *            "&lt;World/&gt;", 600
+ *            );</strong>
  *    }
  *}</pre>
  * </blockquote>
  * 
- * <h4>JSON</h4>
+ * <h4>d'irtd</h4>
  * 
- * <p>As part of a Web 2.0 framework, less4j controllers expect one kind
- * of REST request and three kinds of JSON requests: for a resource, an
- * action or a transaction.</p>
+ * <p>That bizarre acronym stands for: Digest Identity Roles Time Digested,
+ * a simple relation to chain authentic signatures of an original digest
+ * back to their source, auditing user interactions and effectively tracking 
+ * impersonation fraud attempts.</p>
+ * 
+ * <p>Here is a simplistic Guest resource, that identify an "anonymous" user
+ * and grants him the rights of a "guest":
+ * 
+ * <blockquote>
+ * <pre>class Guest extends Controller {
+ *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
+ *        Actor $ = new Actor(getConfiguration()), req, res));
+ *        <strong>if ($.notAuthorized()) {
+ *            $.authorize("", "guest");
+ *        } else {
+ *            $.authorize("guest");
+ *        }</strong>
+ *        $.rest200Ok("&lt;World/&gt;", 600);
+ *    }
+ *}</pre>
+ * </blockquote>
+ *
+ * Note that HTTP cookies are used, must be supported by the user agent and 
+ * that d'irtd digests are bound to a domain, maybe to a path (by default
+ * cookies are digested for the "/" root path).</p>
+ * 
+ * <h4>JSON</h4>
  * 
  * <p>The request for globals of the JavaScript client state and the request
  * for stateless interactions with the server use the GET method of HTTP:
  * 
  * <blockquote>
- * <pre>class HelloWorld extends Controller {
+ * <pre>class Hello extends Controller {
  *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
  *        Actor $ = new Actor(getConfiguration()), req, res));
- *        <strong>if ($.httpIdempotent()) {
- *            if $.restMatch($.identity) {
- *                $.rest200Ok("{}", "application/json", 600);
- *            else {
- *                </strong>$.rest200Ok("<World/>", 600);<strong>
- *            }
- *        } else if $.hasAction("hello") {
- *            $.json200Ok(new Object[]{"hello", $.getAction("hello"})
+ *        <strong>if ($.noAuthorized("guest")) {
+ *            $.rest302Redirect("/Guest");
+ *        } else if ($.httpIdempotent()) {
+ *            $.rest200Ok("{method: \"hello\"}", "application/json", 600);
+ *        } else (if $.httpActions() && $.hasAction("hello")) {
+ *            $.json200Ok(new Object[]{"hello", $.identity});
+ *        } else {
+ *            $.rest302Redirect();
+ *        }</strong>
+ *    }
+ *    public void doPost(HttpServlertRequest req, HttpServlertResponse res) {
+ *        Actor $ = new Actor(getConfiguration()), req, res));
+ *        <strong>if ($.jsonPOST()) {
+ *            $.json200Ok();
  *        } else {
  *            $.rest302Redirect();
  *        }</strong>
@@ -79,35 +109,10 @@ import javax.servlet.http.HttpServlet;
  * HTTP response states: 200 Ok and 302 Redirect. Failure is not an option
  * on this side.</p>
  * 
- * <h4>d'irtd</h4>
- * 
- * <p>That bizarre acronym stands for: Digest Identity Roles Time Digested,
- * a simple relation to chain authentic signatures of an original digest
- * back to their source, auditing user interactions and effectively tracking 
- * impersonation fraud attempts:
- * 
- * <blockquote>
- * <pre>class SafeHelloWorld extends Controller {
- *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
- *        Actor $ = new Actor(getConfiguration()), req, res));
- *        <strong>if $.notAuthorized() {
- *            $.rest302Redirect("?login")
- *        } else</strong> if ($.httpIdempotent()) {
- *            $.rest200Ok("{}", "application/json", 600);
- *        } else if $.hasAction("hello") {
- *            $.json200Ok(new Object[]{"hello", $.getAction("hello"})
- *        } else if $.hasAction("login") {
- *            $.rest200Ok()
- *        } else {
- *            $.rest302Redirect();
- *        }
- *    }
- *}</pre>
- * </blockquote>
-
- * ...</p>
- * 
- * <p>The POST method is used to commit a controlled transaction:</p>
+ * <p>The POST method implemented in the example echoes the JSON object
+ * posted, as a simple test of the full stack between a browser and the
+ * controller. Real applications use POST to commit transactions which don't
+ * fit a URL query string (practically, anything bigger than 2048 bytes).</p>
  * 
  * @author Laurent Szyster
  * @version 0.1.0
@@ -160,7 +165,5 @@ public class Controller extends HttpServlet {
             );
         }
     }
-    
-    /* here comes your application */
     
 }

@@ -21,7 +21,7 @@ public class Simple {
     /**
      * The maximum block size for many file system.
      */
-	static private final int fioBufferSize = 4096;
+	public static final int fioBufferSize = 4096;
 	
     /**
      * Try to read a complete file into a String.
@@ -112,6 +112,8 @@ public class Simple {
         return null;
     }
 
+    public static final int netBufferSize = 16384;
+    
     /**
     * Try to read a complete file into a buffer of 16K bytes, then
     * decode it all at once with the given encoding and return a String
@@ -123,10 +125,10 @@ public class Simple {
      * @return a UNICODE String or null 
     */
     static public String fileBuffer (String name, String encoding) {
-        return fileBuffer(name, new byte[16384], encoding);
+        return fileBuffer(name, new byte[netBufferSize], encoding);
     }
     
-    private static final String _UTF8 = "UTF-8";
+    private static final String netEncoding = "UTF8";
     
     /**
      * Try to read a complete file into a buffer of 16K bytes, then
@@ -138,7 +140,7 @@ public class Simple {
       * @return a UNICODE String or null 
      */
      static public String fileBuffer (String name) {
-         return fileBuffer(name, new byte[16384], _UTF8);
+         return fileBuffer(name, new byte[netBufferSize], netEncoding);
      }
      
 	/**
@@ -184,11 +186,43 @@ public class Simple {
 	 * application controllers where check lists and filter sets made of
 	 * primitive array abound (usually to enforce business rules).</p>
 	 * 
-	 * @param objects the array of objects to iterate through
-	 * @return iterator yielding those objects
+	 * @param objects the array to iterate through
+	 * @return iterator yields all objects in the array
 	 */
 	public static ObjectIterator iterate (Object[] objects) {
 		return new ObjectIterator(objects);
 		}
 	
+    // a simplistic "opaque" type caster for Java 1.4.2 non-string
+    // primitive type wrappers that can be expressed as JSON (some 
+    // sort of web2 generics ;-)
+    
+    /*
+     * Usage
+     * 
+     * Double d = cast(DOUBLE, "0.123");
+     * 
+     * This is only usefull when you need to dynamically map a type
+     * caster to an argument name. But then, this is what happens for
+     * all network peers ... 
+     * 
+     * */
+
+    public static final Integer NULL = new Integer(0);
+    public static final Integer INTEGER = new Integer(1);
+    public static final Integer DOUBLE = new Integer(2);
+    public static final Integer BOOLEAN = new Integer(3);
+    public static final Integer LONG = new Integer(4);
+    
+    public static Object cast (Integer type, String s) {
+        Object result = null;
+        switch (type.intValue()) {
+            case 0:;
+            case 1: result = (Object) Integer.valueOf(s);
+            case 2: result = (Object) Double.valueOf(s);
+            case 3: result = (Object) Boolean.valueOf(s);
+            case 5: result = (Object) Long.valueOf(s);
+        } // that's safe, simple and fast ;-)
+        return result;
+    }
 }
