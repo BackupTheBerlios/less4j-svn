@@ -39,6 +39,7 @@ import java.util.Map;
  * or broken validation (which is why I forked org.stringtree.json ;-)
  * 
  * @author Laurent Szyster
+ * @version 0.1.0
  */
 public class JSON {
     

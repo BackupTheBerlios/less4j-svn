@@ -24,8 +24,18 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
+ * Public Names is a protocol to encode uniformely a non-dispersed context 
+ * graph of character strings as one UNICODE string. It's a better URL.
+ * 
+ * It is designed to bring some intelligent order to semantic chaos in 
+ * network applications.
+ * 
+ * For more on Public Names, see:
+ * 
+ *   http://laurentszyster.be/blog/
  * 
  * @author Laurent Szyster
+ * @version 0.1.0
  */
 public class PublicNames {
     
