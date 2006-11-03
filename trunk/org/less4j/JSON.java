@@ -39,6 +39,7 @@ public class JSON {
     
     public static class SyntaxError extends Exception {
         private static final long serialVersionUID = 0L;
+        public SyntaxError(String message) {super(message);}
     }
     
     /**
@@ -68,28 +69,12 @@ public class JSON {
      */
     public static class Interpreter {
         
-        private static final Object OBJECT = new Object();
-        private static final Object ARRAY = new Object();
-        private static final Object COLON = new Object();
-        private static final Object COMMA = new Object();
-        private static Map escapes = new HashMap();
-        static {
-            escapes.put(new Character('"'), new Character('"'));
-            escapes.put(new Character('\\'), new Character('\\'));
-            escapes.put(new Character('/'), new Character('/'));
-            escapes.put(new Character('b'), new Character('\b'));
-            escapes.put(new Character('f'), new Character('\f'));
-            escapes.put(new Character('n'), new Character('\n'));
-            escapes.put(new Character('r'), new Character('\r'));
-            escapes.put(new Character('t'), new Character('\t'));
-        }
-        
         private char c;
         private CharacterIterator it;
         private StringBuffer buf = new StringBuffer();
         
-        public Object eval(String string) throws SyntaxError {
-            it = new StringCharacterIterator(string);
+        public Object eval(String json) throws SyntaxError {
+            it = new StringCharacterIterator(json);
             c = it.first();
             if (c == CharacterIterator.DONE)
                 return null;
@@ -101,7 +86,12 @@ public class JSON {
             c = it.next(); 
             return c == test;
             }
-
+        
+        private static final Object OBJECT = new Object();
+        private static final Object ARRAY = new Object();
+        private static final Object COLON = new Object();
+        private static final Object COMMA = new Object();
+        
         private Object value() throws SyntaxError {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
@@ -113,66 +103,66 @@ public class JSON {
                 case ']': {c = it.next(); return ARRAY;} 
                 case '}': {c = it.next(); return OBJECT;}
                 case 't': {
-                    if (next('r') && next('u') && next('e'))
-                        return Boolean.TRUE;
-                    else
-                        throw new SyntaxError();
+                    if (next('r') && next('u') && next('e')) {
+                        c = it.next(); return Boolean.TRUE;
+                    } else
+                        throw new SyntaxError("literal 'true' expected");
                 }
                 case 'f': {
-                    if (next('a') && next('l') && next('s') && next('e'))
-                        return Boolean.FALSE;
-                    else
-                        throw new SyntaxError();
+                    if (next('a') && next('l') && next('s') && next('e')) {
+                        c = it.next(); return Boolean.FALSE;
+                    } else
+                        throw new SyntaxError("literal 'false' expected");
                 }
                 case 'n': {
-                    if (next('u') && next('l') && next('l'))
-                        return null;
-                    else
-                        throw new SyntaxError();
+                    if (next('u') && next('l') && next('l')) {
+                        c = it.next(); return null;
+                    } else
+                        throw new SyntaxError("literal 'null' expected");
                 }
                 case '0': case '1': case '2': case '3': case '4':  
                 case '5': case '6': case '7': case '8': case '9': 
                 case '-':
                     return number();
                 default: 
-                    throw new SyntaxError();
+                    throw new SyntaxError("bad token");
             }
         }
         
         private Object object() throws SyntaxError {
-            Object val, key;
             HashMap ret = new HashMap();
-            key = value();
-            while (key != OBJECT) {
-                if ((key==COLON||key==COMMA||key==ARRAY))
-                    throw new SyntaxError();
-                if (value() == COLON) {
+            Object token = value();
+            Object key, val;
+            while (token != OBJECT) {
+                if (!(token instanceof String) || 
+                    token==COLON || token==COMMA || token==ARRAY
+                    )
+                    throw new SyntaxError("string expected");
+                key = token;
+                token = value(); 
+                if (token == COLON) {
                     val = value();
-                    if ((val==COLON||val==COMMA||val==OBJECT||val==ARRAY))
-                        throw new SyntaxError();
+                    if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
+                        throw new SyntaxError("value expected");
                     ret.put(key, val);
-                } else
-                    throw new SyntaxError();
-                if (value() == COMMA){
-                    key = value();
-                } else
-                    throw new SyntaxError();
+                    token = value();
+                    if (token == COMMA)
+                        token = value();
+                }
             }
             return ret;
         }
         
         private Object array() throws SyntaxError {
             ArrayList ret = new ArrayList();
-            Object val = value();
-            while (val != ARRAY) {
-                if ((val==COLON||val==COMMA||val==OBJECT))
-                    throw new SyntaxError();
-                ret.add(val);
-                val = value(); 
-                if (val == COMMA) {
-                    val = value();
-                } else
-                    throw new SyntaxError();
+            Object token = value();
+            while (token != ARRAY) {
+                if (token==COLON || token==COMMA || token==OBJECT)
+                    throw new SyntaxError("value expected");
+                ret.add(token);
+                token = value(); 
+                if (token == COMMA) 
+                    token = value();
             }
             return ret;
         }
@@ -197,6 +187,18 @@ public class JSON {
             return new Double(buf.toString());
         }
         
+        private static Map escapes = new HashMap();
+        static {
+            escapes.put(new Character('"'), new Character('"'));
+            escapes.put(new Character('\\'), new Character('\\'));
+            escapes.put(new Character('/'), new Character('/'));
+            escapes.put(new Character('b'), new Character('\b'));
+            escapes.put(new Character('f'), new Character('\f'));
+            escapes.put(new Character('n'), new Character('\n'));
+            escapes.put(new Character('r'), new Character('\r'));
+            escapes.put(new Character('t'), new Character('\t'));
+        }
+        
         private Object string() throws SyntaxError {
             buf.setLength(0);
             while (c != '"') {
@@ -207,14 +209,14 @@ public class JSON {
                     } else {
                         Object val = escapes.get(new Character(c));
                         if (val == null) {
-                            throw new SyntaxError();
+                            throw new SyntaxError("bad escape sequence");
                         } else {
                             buf.append(((Character) val).charValue());
                             c = it.next();
                         }
                     }
                 } else if (c == CharacterIterator.DONE) {
-                    throw new SyntaxError();
+                    throw new SyntaxError("unexpected end");
                 } else {
                     buf.append(c); c = it.next();
                 }
@@ -243,55 +245,47 @@ public class JSON {
                     val = (val << 4) + c - 'K';
                     break;
                 default:
-                    throw new SyntaxError();
+                    throw new SyntaxError("bad UNICODE sequence");
                 }
             }
             return (char) val;
         }
     }
 
+    public static Object eval(String json) throws SyntaxError {
+        return (new Interpreter()).eval(json);
+    }
+
     public static class TypeError extends Exception {
         private static final long serialVersionUID = 0L; 
     }
     
-    public static Object value(String encoded) throws SyntaxError {
-        return (new Interpreter()).eval(encoded);
-    }
-
-    public static HashMap object(String encoded) 
-    throws SyntaxError, TypeError {
-        Object o = value(encoded);
-        if (!(o instanceof HashMap)) 
-            throw new TypeError();
+    public static HashMap object(Object json) throws TypeError {
+        if ((json instanceof HashMap)) 
+            return (HashMap) json;
         else
-            return (HashMap) o;
+            throw new TypeError();
     }
     
-    public static ArrayList array(String encoded) 
-    throws SyntaxError, TypeError {
-        Object o = value(encoded);
-        if (!(o instanceof ArrayList)) 
-            throw new TypeError();
+    public static ArrayList array(Object json) throws TypeError {
+        if ((json instanceof ArrayList)) 
+            return (ArrayList) json;
         else
-            return (ArrayList) o;
+            throw new TypeError();
     }
     
-    public static Double number(String encoded) 
-    throws SyntaxError, TypeError {
-        Object o = value(encoded);
-        if (!(o instanceof Double)) 
-            throw new TypeError();
+    public static Double number(Object json) throws TypeError {
+        if ((json instanceof Double)) 
+            return (Double) json;
         else
-            return (Double) o;
+            throw new TypeError();
     }
     
-    public static String string(String encoded) 
-    throws SyntaxError, TypeError {
-        Object o = value(encoded);
-        if (!(o instanceof String)) 
-            throw new TypeError();
+    public static String string(Object json) throws TypeError {
+        if ((json instanceof String)) 
+            return (String) json;
         else
-            return (String) o;
+            throw new TypeError();
     }
     
     public static void encode(StringBuffer sb, String s) {
@@ -333,6 +327,10 @@ public class JSON {
     }
 
     private static final String _object = "{}";
+    private static final String _list = "[]";
+    private static final String _null = "null";
+    private static final String _true = "true";
+    private static final String _false = "false";
     
     public static void encode(StringBuffer sb, Map map) {
         Object key; 
@@ -356,8 +354,6 @@ public class JSON {
         sb.append('}');
     }
     
-    private static final String _list = "[]";
-    
     public static void encode(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_list);
@@ -371,10 +367,6 @@ public class JSON {
         }
         sb.append(']');
     }
-    
-    private static final String _null = "null";
-    private static final String _true = "true";
-    private static final String _false = "false";
     
     public static void encode(StringBuffer sb, Object value) {
         if (value == null) 
@@ -403,12 +395,102 @@ public class JSON {
         return sb.toString();
     }
     
+    private static final String CRLF = "\r\n";
+    private static final String INDT = "  ";
+    
+    public static void print(StringBuffer sb, Map map, String indent) {
+        Object key; 
+        Iterator it = map.keySet().iterator();
+        if (!it.hasNext()) {
+            sb.append(_object);
+            return;
+        }
+        indent += INDT;
+        sb.append('{');
+        sb.append(indent);
+        key = it.next();
+        print(sb, key, indent);
+        sb.append(':');
+        print(sb, map.get(key), indent);
+        while (it.hasNext()) {
+            sb.append(',');
+            sb.append(indent);
+            key = it.next();
+            print(sb, key, indent);
+            sb.append(':');
+            print(sb, map.get(key), indent);
+        }
+        sb.append(indent);
+        sb.append('}');
+    }
+    
+    public static void print(StringBuffer sb, Iterator it, String indent) {
+        if (!it.hasNext()) {
+            sb.append(_list);
+            return;
+        }
+        sb.append('[');
+        indent += INDT;
+        sb.append(indent);
+        print(sb, it.next(), indent);
+        while (it.hasNext()) {
+            sb.append(',');
+            sb.append(indent);
+            print(sb, it.next(), indent);
+        }
+        sb.append(indent);
+        sb.append(']');
+    }
+    
+    public static void print(StringBuffer sb, Object value, String indent) {
+        if (value == null) 
+            sb.append(_null);
+        else if (value instanceof Boolean)
+            sb.append((((Boolean) value).booleanValue() ? _true : _false));
+        else if (value instanceof Number) 
+            sb.append(value);
+        else if (value instanceof String) 
+            encode(sb, (String) value);
+        else if (value instanceof Character) 
+            encode(sb, ((Character) value).toString());
+        else if (value instanceof Map)
+            print(sb, (Map) value, indent);
+        else if (value instanceof List) 
+            print(sb, ((List) value).iterator(), indent);
+        else if (value instanceof JSON) 
+            encode(sb, ((JSON) value).string);
+        else 
+            encode(sb, value.toString());
+    }
+    
+    public static String print(Object value) {
+        StringBuffer sb = new StringBuffer();
+        print(sb, value, CRLF);
+        return sb.toString();
+    }
+    
     public String string;
     
     public JSON(String literal) {this.string = literal;}
     
     public JSON(Object value) {this.string = encode(value);}
     
+    // this unit test
+    
+    private static Object test(String json) {
+        Interpreter interpreter = new Interpreter();
+        try {
+            return interpreter.eval(json);
+        } catch (SyntaxError e) {
+            System.err.print(e.getMessage());
+            System.err.print(" on chr '");
+            System.err.print(interpreter.c);
+            System.err.print("' at pos ");
+            System.err.println(interpreter.it.getIndex());
+            return null;
+        }
+    }
+
     /**
      * <p>Without arguments:
      * 
@@ -435,7 +517,7 @@ public class JSON {
         if (args.length == 0) {
             byte[] buffer = new byte[16384];
             try {
-                System.out.print(encode(value(
+                System.out.println(print(test(
                     new String(buffer, 0, System.in.read(buffer), "UTF8")
                     )));
             } catch (Exception e) {
@@ -444,7 +526,7 @@ public class JSON {
                 buffer = null;
             }
         } else for (int i=0; i < args.length; i++) try {
-            System.out.print(encode(value(Simple.fileRead(args[i]))));
+            System.out.println(print(test(Simple.fileRead(args[i]))));
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
