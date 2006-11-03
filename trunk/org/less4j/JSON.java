@@ -29,7 +29,7 @@ import java.util.Map;
  * Java types: HashMap, ArrayList, String, Double, Boolean and null.
  * 
  * Note that JSON strings are expected to be complete. It is not recommended  
- * to parse or serialize large objects with this implementation  as it will 
+ * to parse or serialize large objects with this implementation as it will 
  * take large chunks of memory for object instances and buffer.
  * 
  * However, for relatively small JSON strings (below 16KB), this design is  
@@ -43,10 +43,10 @@ import java.util.Map;
 public class JSON {
     
     public static class SyntaxError extends Exception {
-        private static final long serialVersionUID = 0L; 
+        private static final long serialVersionUID = 0L;
     }
     
-    private static class Tokenizer {
+    public static class Interpreter {
         
         private static final Object OBJECT_END = new Object();
         private static final Object ARRAY_END = new Object();
@@ -69,19 +69,19 @@ public class JSON {
         private Object token;
         private StringBuffer buf = new StringBuffer();
         
+        public Object eval(String string) throws SyntaxError {
+            it = new StringCharacterIterator(string);
+            c = it.first();
+            return value();
+        }
+        
         private char next() {c = it.next(); return c;}
         
         private void skip() {
             while (Character.isWhitespace(c)) {c = it.next();}
         }
         
-        public Object read(String string) {
-            it = new StringCharacterIterator(string);
-            c = it.first();
-            return read();
-        }
-        
-        private Object read() {
+        private Object value() throws SyntaxError {
             Object ret = null;
             skip();
             if (c == '"') {
@@ -114,31 +114,32 @@ public class JSON {
                 ret = null;
             } else if (Character.isDigit(c) || c == '-') {
                 ret = number(); // TODO: move 3thd position
-            }
+            } else 
+                throw new SyntaxError();
             token = ret;
             return ret;
         }
         
-        private Object object() {
+        private Object object() throws SyntaxError {
             HashMap ret = new HashMap();
-            Object key = read();
+            Object key = this.value();
             while (token != OBJECT_END) {
-                read(); // colon
-                ret.put(key, read());
-                if (read() == COMMA) {
-                    key = read();
+                this.value(); // colon
+                ret.put(key, this.value());
+                if (this.value() == COMMA) {
+                    key = this.value();
                 }
             }
             return ret;
         }
         
-        private Object array() {
+        private Object array() throws SyntaxError {
             ArrayList ret = new ArrayList();
-            Object value = read();
+            Object val = value();
             while (token != ARRAY_END) {
-                ret.add(value);
-                if (read() == COMMA) {
-                    value = read();
+                ret.add(val);
+                if (value() == COMMA) {
+                    val = value();
                 }
             }
             return ret;
@@ -164,7 +165,7 @@ public class JSON {
             return new Double(buf.toString());
         }
         
-        private Object string() {
+        private Object string() throws SyntaxError {
             buf.setLength(0);
             while (c != '"') {
                 if (c == '\\') {
@@ -172,9 +173,9 @@ public class JSON {
                     if (c == 'u') {
                         buf.append(unicode()); c = it.next();
                     } else {
-                        Object value = escapes.get(new Character(c));
-                        if (value != null) {
-                            buf.append(((Character) value).charValue());
+                        Object val = escapes.get(new Character(c));
+                        if (val != null) {
+                            buf.append(((Character) val).charValue());
                             c = it.next();
                         }
                     }
@@ -190,23 +191,26 @@ public class JSON {
             while (Character.isDigit(c)) {buf.append(c); c = it.next();}
         }
         
-        private char unicode() {
-            int value = 0;
+        private char unicode() throws SyntaxError {
+            int val = 0;
             for (int i = 0; i < 4; ++i) {
-                switch (next()) {
+                c = it.next();
+                switch (c) {
                 case '0': case '1': case '2': case '3': case '4': 
                 case '5': case '6': case '7': case '8': case '9':
-                    value = (value << 4) + c - '0';
+                    val = (val << 4) + c - '0';
                     break;
                 case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-                    value = (value << 4) + c - 'k';
+                    val = (val << 4) + c - 'k';
                     break;
                 case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-                    value = (value << 4) + c - 'K';
+                    val = (val << 4) + c - 'K';
                     break;
+                default:
+                    throw new SyntaxError();
                 }
             }
-            return (char) value;
+            return (char) val;
         }
     }
 
@@ -215,7 +219,7 @@ public class JSON {
     }
     
     public static Object value(String encoded) throws SyntaxError {
-        return (new Tokenizer()).read(encoded);
+        return (new Interpreter()).eval(encoded);
     }
 
     public static HashMap object(String encoded) 
@@ -252,32 +256,6 @@ public class JSON {
             throw new TypeError();
         else
             return (String) o;
-    }
-    
-    private static final String _null = "null";
-    private static final String _true = "true";
-    private static final String _false = "false";
-    
-    public static void encode(StringBuffer sb, boolean b) {
-        sb.append((b ? _true : _false));
-    }
-
-    public static void encode(StringBuffer sb, char c) {
-        sb.append('"');
-        if (c == '"') sb.append("\\\"");
-        else if (c == '\\') sb.append("\\\\");
-        else if (c == '/') sb.append("\\/");
-        else if (c == '\b') sb.append("\\b");
-        else if (c == '\f') sb.append("\\f");
-        else if (c == '\n') sb.append("\\n");
-        else if (c == '\r') sb.append("\\r");
-        else if (c == '\t') sb.append("\\t");
-        else if (Character.isISOControl(c)) {
-            unicode(sb, c);
-        } else {
-            sb.append(c);
-        }
-        sb.append('"');
     }
     
     public static void encode(StringBuffer sb, String s) {
@@ -358,11 +336,15 @@ public class JSON {
         sb.append(']');
     }
     
+    private static final String _null = "null";
+    private static final String _true = "true";
+    private static final String _false = "false";
+    
     public static void encode(StringBuffer sb, Object value) {
         if (value == null) 
             sb.append(_null);
-        else if (value instanceof Boolean) 
-            encode(sb, ((Boolean) value).booleanValue());
+        else if (value instanceof Boolean)
+            sb.append((((Boolean) value).booleanValue() ? _true : _false));
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String) 
@@ -373,6 +355,8 @@ public class JSON {
             encode(sb, (Map) value);
         else if (value instanceof List) 
             encode(sb, ((List) value).iterator());
+        else if (value instanceof JSON) 
+            encode(sb, ((JSON) value).string);
         else 
             encode(sb, value.toString());
     }
@@ -381,6 +365,53 @@ public class JSON {
         StringBuffer sb = new StringBuffer();
         encode(sb, value);
         return sb.toString();
+    }
+    
+    public String string;
+    
+    public JSON(String literal) {this.string = literal;}
+    
+    public JSON(Object value) {this.string = encode(value);}
+    
+    /**
+     * <p>Without arguments:
+     * 
+     * <blockquote>
+     * <pre>java JSON &lt; test.json</pre>
+     * </blockquote>
+     * 
+     * reads a JSON string from STDIN, evaluate it and the serialize the
+     * object instance tree back to STDOUT, print error to STDERR.</p>
+     * 
+     * <p>Arguments are expected to be JSON file names and
+     * 
+     * <blockquote>
+     * <pre>java JSON test1.json test2.json</pre>
+     * </blockquote>
+     * 
+     * reads a JSON string from each file named, evaluate them all and
+     * serialze the object instance trees to STDOUT, printing errors to
+     * STDERR.</p>
+     * 
+     * @param args
+     */
+    public static void main(String args[]) {
+        if (args.length == 0) {
+            byte[] buffer = new byte[16384];
+            try {
+                System.out.print(encode(value(
+                    new String(buffer, 0, System.in.read(buffer), "UTF8")
+                    )));
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+            } finally {
+                buffer = null;
+            }
+        } else for (int i=0; i < args.length; i++) try {
+            System.out.print(encode(value(Simple.fileRead(args[i]))));
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        }
     }
     
 }

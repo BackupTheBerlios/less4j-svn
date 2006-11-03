@@ -191,38 +191,6 @@ public class Simple {
 	 */
 	public static ObjectIterator iterate (Object[] objects) {
 		return new ObjectIterator(objects);
-		}
+	}
 	
-    // a simplistic "opaque" type caster for Java 1.4.2 non-string
-    // primitive type wrappers that can be expressed as JSON (some 
-    // sort of web2 generics ;-)
-    
-    /*
-     * Usage
-     * 
-     * Double d = cast(DOUBLE, "0.123");
-     * 
-     * This is only usefull when you need to dynamically map a type
-     * caster to an argument name. But then, this is what happens for
-     * all network peers ... 
-     * 
-     * */
-
-    public static final Integer NULL = new Integer(0);
-    public static final Integer INTEGER = new Integer(1);
-    public static final Integer DOUBLE = new Integer(2);
-    public static final Integer BOOLEAN = new Integer(3);
-    public static final Integer LONG = new Integer(4);
-    
-    public static Object cast (Integer type, String s) {
-        Object result = null;
-        switch (type.intValue()) {
-            case 0:;
-            case 1: result = (Object) Integer.valueOf(s);
-            case 2: result = (Object) Double.valueOf(s);
-            case 3: result = (Object) Boolean.valueOf(s);
-            case 5: result = (Object) Long.valueOf(s);
-        } // that's safe, simple and fast ;-)
-        return result;
-    }
 }

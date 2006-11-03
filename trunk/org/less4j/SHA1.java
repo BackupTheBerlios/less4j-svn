@@ -7,8 +7,7 @@
  *   
  * and unsynchronized the update method.
  *
- * Modified for Jython by Finn Bock. The original was split
- * into two files.
+ * Modified for Jython by Finn Bock. The original was split into two files.
  *
  * Original author and copyright:
  *
