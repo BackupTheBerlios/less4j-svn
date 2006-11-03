@@ -32,12 +32,6 @@ import java.util.Map;
  * to parse or serialize large objects with this implementation as it will 
  * take large chunks of memory for object instances and buffer.
  * 
- * However, for relatively small JSON strings (below 16KB), this design is  
- * fast enough and yields a low memory footprint, without intermediate object 
- * instances (like org.json), no lexxer and no special type to instanciate 
- * before serialization (as in org.json.simple), no funky Java types casting 
- * or broken validation (which is why I forked org.stringtree.json ;-)
- * 
  * @author Laurent Szyster
  * @version 0.1.0
  */
@@ -47,10 +41,35 @@ public class JSON {
         private static final long serialVersionUID = 0L;
     }
     
+    /**
+     * A strict JSON interpreter for Java 1.4.2
+     * 
+     * <p>Anything slightly off the standard described here:
+     * 
+     * <blockquote><a href="http://json.org/"
+     *  >http://json.org/</a></blockquote>
+     *   
+     * will throw a JSON.SyntaxError. This is a "zero-tolerance" JSON
+     * interpreter, with support for nothing else than the bare standard.</p>
+     * 
+     * <p>Remember: JSON is a protocol for JavaScript interactive
+     * client controllers that sit between the views and their model,
+     * authorizing and auditing a restricted access to the core of
+     * web 2.0 applications.</p>
+     * 
+     * <p>The server controllers are not supposed to enable broken clients,
+     * they are expected to test input for compliance before any action
+     * is taken on the application model. A JSON syntax error is not
+     * something tolerable here.</p>
+     * 
+     * <p>The simplest failure is an exception.</p>
+     * 
+     * @author Laurent Szyster
+     */
     public static class Interpreter {
         
-        private static final Object OBJECT_END = new Object();
-        private static final Object ARRAY_END = new Object();
+        private static final Object OBJECT = new Object();
+        private static final Object ARRAY = new Object();
         private static final Object COLON = new Object();
         private static final Object COMMA = new Object();
         private static Map escapes = new HashMap();
@@ -65,71 +84,79 @@ public class JSON {
             escapes.put(new Character('t'), new Character('\t'));
         }
         
-        private CharacterIterator it;
         private char c;
-        private Object token;
+        private CharacterIterator it;
         private StringBuffer buf = new StringBuffer();
         
         public Object eval(String string) throws SyntaxError {
             it = new StringCharacterIterator(string);
             c = it.first();
-            return value();
+            if (c == CharacterIterator.DONE)
+                return null;
+            else
+                return value();
         }
         
-        private char next() {c = it.next(); return c;}
-        
-        private void skip() {
-            while (Character.isWhitespace(c)) {c = it.next();}
-        }
-        
+        private boolean next(char test) {
+            c = it.next(); 
+            return c == test;
+            }
+
         private Object value() throws SyntaxError {
-            Object ret = null;
-            skip();
-            if (c == '"') {
-                c = it.next();
-                ret = string();
-            } else if (c == '[') { // TODO: move down
-                c = it.next();
-                ret = array();
-            } else if (c == ']') {
-                ret = ARRAY_END;
-            } else if (c == ',') { 
-                ret = COMMA; // TODO: move up second
-                c = it.next();
-            } else if (c == '{') {
-                c = it.next();
-                ret = object();
-            } else if (c == '}') { // TODO: move down
-                ret = OBJECT_END;
-                c = it.next();
-            } else if (c == ':') {
-                ret = COLON;
-                c = it.next();
-            } else if (c=='t'&&next()=='r'&&next()=='u'&&next()=='e') {
-                ret = Boolean.TRUE;
-            } else if (
-                c =='f'&&next()=='a'&&next()=='l'&&next()=='s'&&next()=='e'
-                ) {
-                ret = Boolean.FALSE;
-            } else if (c =='n'&&next()=='u'&& next()=='l'&&next()=='l') {
-                ret = null;
-            } else if (Character.isDigit(c) || c == '-') {
-                ret = number(); // TODO: move 3thd position
-            } else 
-                throw new SyntaxError();
-            token = ret;
-            return ret;
+            while (Character.isWhitespace(c)) c = it.next();
+            switch(c){
+                case '"': {c = it.next(); return string();}
+                case '[': {c = it.next(); return array();}
+                case '{': {c = it.next(); return object();}
+                case ',': {c = it.next(); return COMMA;} 
+                case ':': {c = it.next(); return COLON;}
+                case ']': {c = it.next(); return ARRAY;} 
+                case '}': {c = it.next(); return OBJECT;}
+                case 't': {
+                    if (next('r') && next('u') && next('e'))
+                        return Boolean.TRUE;
+                    else
+                        throw new SyntaxError();
+                }
+                case 'f': {
+                    if (next('a') && next('l') && next('s') && next('e'))
+                        return Boolean.FALSE;
+                    else
+                        throw new SyntaxError();
+                }
+                case 'n': {
+                    if (next('u') && next('l') && next('l'))
+                        return null;
+                    else
+                        throw new SyntaxError();
+                }
+                case '0': case '1': case '2': case '3': case '4':  
+                case '5': case '6': case '7': case '8': case '9': 
+                case '-':
+                    return number();
+                default: 
+                    throw new SyntaxError();
+            }
         }
         
         private Object object() throws SyntaxError {
+            Object val, key;
             HashMap ret = new HashMap();
-            Object key = this.value();
-            while (token != OBJECT_END) {
-                this.value(); // colon
-                ret.put(key, this.value());
-                if (this.value() == COMMA) {
-                    key = this.value();
-                }
+            key = value();
+            while (key != OBJECT) {
+                if ((key==COLON||key==COMMA||key==ARRAY))
+                    throw new SyntaxError();
+                if (value() == COLON) {
+                    val = value();
+                    if ((val==COLON||val==COMMA||val==OBJECT||val==ARRAY))
+                        throw new SyntaxError();
+                    ret.put(key, val);
+                } else
+                    throw new SyntaxError();
+                if (value() == COMMA){
+                    key = value();
+                } else
+                    throw new SyntaxError();
             }
             return ret;
         }
@@ -137,11 +164,15 @@ public class JSON {
         private Object array() throws SyntaxError {
             ArrayList ret = new ArrayList();
             Object val = value();
-            while (token != ARRAY_END) {
+            while (val != ARRAY) {
+                if ((val==COLON||val==COMMA||val==OBJECT))
+                    throw new SyntaxError();
                 ret.add(val);
-                if (value() == COMMA) {
+                val = value(); 
+                if (val == COMMA) {
                     val = value();
-                }
+                } else
+                    throw new SyntaxError();
             }
             return ret;
         }
@@ -175,11 +206,15 @@ public class JSON {
                         buf.append(unicode()); c = it.next();
                     } else {
                         Object val = escapes.get(new Character(c));
-                        if (val != null) {
+                        if (val == null) {
+                            throw new SyntaxError();
+                        } else {
                             buf.append(((Character) val).charValue());
                             c = it.next();
                         }
                     }
+                } else if (c == CharacterIterator.DONE) {
+                    throw new SyntaxError();
                 } else {
                     buf.append(c); c = it.next();
                 }
