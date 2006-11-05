@@ -176,7 +176,7 @@ public class Actor extends Simple {
      * 
      * <p>Finally, sixteen KB buffers can hold more than 65 thousand concurrent
      * responses in one GB of RAM, a figure between one and two orders of 
-     * magnitude smaller than what you can reasonably expect from a J2EE 
+     * magnitude larger than what you can reasonably expect from a J2EE 
      * container running some commodity hardware. At an average speed of
      * 0.5 millisecond per concurrent request/response 16KB buffers sums
      * up to 36MBps, less than 1Gbps.</p>
