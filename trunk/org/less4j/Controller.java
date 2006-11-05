@@ -114,6 +114,8 @@ import javax.servlet.http.HttpServlet;
  * controller. Real applications use POST to commit transactions which don't
  * fit a URL query string (practically, anything bigger than 2048 bytes).</p>
  * 
+ * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * 
  * @author Laurent Szyster
  * @version 0.1.0
  *

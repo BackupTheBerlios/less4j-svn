@@ -29,6 +29,8 @@ import java.util.NoSuchElementException;
  * applied to bring some intelligent order to semantic chaos in network 
  * applications (see http://laurentszyster.be/blog/public-names).</p>
  * 
+ * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * 
  * @author Laurent Szyster
  * @version 0.1.0
  */

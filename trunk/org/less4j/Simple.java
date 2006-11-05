@@ -11,6 +11,8 @@ import java.util.Iterator;
  * A few simple utilities. Probably too simple for language experts, but 
  * damn usefull for J2EE application developers ... 
  * 
+ * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * 
  * @author Laurent Szyster
  * @version 0.1.0
  */

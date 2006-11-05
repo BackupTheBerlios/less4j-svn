@@ -151,6 +151,8 @@ import org.json.simple.JSONValue; // Yet, all is well that ends well.
  * </dd></di>
  * </dl>
  * 
+ * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * 
  * @author Laurent Szyster
  * @version 0.1.0
  */
