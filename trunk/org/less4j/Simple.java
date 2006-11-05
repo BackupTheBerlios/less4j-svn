@@ -157,7 +157,7 @@ public class Simple {
      * implemented. By the way, if you find a good reason for optional
      * interfaces in an API specification, send it to Sun, they need one.</p>
 	 */
-	public static class ObjectIterator implements Iterator {
+	protected static class ObjectIterator implements Iterator {
 		private Object[] _objects;
 		private int _index = -1;
 		public ObjectIterator (Object[] objects) {_objects = objects;}
@@ -189,7 +189,7 @@ public class Simple {
 	 * @param objects the array to iterate through
 	 * @return iterator yields all objects in the array
 	 */
-	public static ObjectIterator iterate (Object[] objects) {
+	public static Iterator iterator (Object[] objects) {
 		return new ObjectIterator(objects);
 		}
 	

@@ -804,7 +804,7 @@ public class Actor extends Simple {
      */
     public Iterator httpDispatch (HashMap resources) {
         String s = request.getContextPath();
-        return iterate(s.split("/"));
+        return iterator(s.split("/"));
     }
     
     /**
@@ -1483,7 +1483,7 @@ public class Actor extends Simple {
         String statement, JSONObject args, String[] names
         )
         throws SQLException {
-        return sqlQuery(statement, args, iterate(names));
+        return sqlQuery(statement, args, iterator(names));
     }
 
     /* The ultimate convenience, for the one liner
@@ -1651,7 +1651,7 @@ public class Actor extends Simple {
         String statement, JSONObject args, Object[] names
         ) 
     throws SQLException {
-        return sqlUpdate(statement, args, iterate(names));
+        return sqlUpdate(statement, args, iterator(names));
     }
     
     public JSONArray sqlUpdate (String statement, JSONArray args, int id) 
