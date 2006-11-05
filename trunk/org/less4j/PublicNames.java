@@ -24,15 +24,10 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Public Names is a protocol to encode uniformely a non-dispersed context 
- * graph of character strings as one UNICODE string. It's a better URL.
- * 
- * It is designed to bring some intelligent order to semantic chaos in 
- * network applications.
- * 
- * For more on Public Names, see:
- * 
- *   http://laurentszyster.be/blog/
+ * <p>Public Names is a better URL protocol to <em>uniformely</em> encode a 
+ * <em>well-articulated context graph</em> of UNICODE strings, it can be 
+ * applied to bring some intelligent order to semantic chaos in network 
+ * applications (see http://laurentszyster.be/blog/public-names).</p>
  * 
  * @author Laurent Szyster
  * @version 0.1.0
@@ -134,23 +129,17 @@ public class PublicNames {
      * 
      * @author Laurent Szyster
      */
-    public static class Netunidecode implements Iterator {
+    private static class Netiterate implements Iterator {
         private String buffer;
         private String item;
         private int size;
         private int prev = 0;
         private int pos, length, next;
         private boolean nostrip;
-        public Netunidecode(String encoded, boolean strip) {
+        public Netiterate(String encoded, boolean strip) {
             buffer = encoded;
             size = buffer.length();
             nostrip = !strip;
-            next();
-        }
-        public Netunidecode(String encoded) {
-            buffer = encoded;
-            size = buffer.length();
-            nostrip = false;
             next();
         }
         public boolean hasNext() {
@@ -192,10 +181,14 @@ public class PublicNames {
         public void remove() {} // optional interfaces? what else now ...
     }
     
+    public static Iterator netiterate(String encoded) {
+        return new Netiterate(encoded, true);
+    }
+    
     public static String validate (
         String encoded, HashSet field, int horizon
         ) {
-        Iterator names = new Netunidecode(encoded);
+        Iterator names = netiterate(encoded);
         if (!names.hasNext()) {
             if (field.contains(encoded))
                 return null;
@@ -232,7 +225,7 @@ public class PublicNames {
     public static String validate (
         String encoded, HashSet field, int horizon, ArrayList tree
         ) {
-        Iterator names = new Netunidecode(encoded);
+        Iterator names = netiterate(encoded);
         if (!names.hasNext()) {
             if (field.contains(encoded))
                 return null;
