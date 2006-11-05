@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
-package org.less4j;
+package org.less4j; // less java for fore applications
 
 import java.util.Map;
 import java.util.List;
@@ -26,78 +26,157 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
 /**
- * Static classes and methods to convert between JSON string and the
- * Java types: HashMap, ArrayList, String, Double, Boolean and null.
+ * <p>A convenience class with static methods to serialize java objects as
+ * JSON and to evaluate a strict JSON expression as a limited tree of the 
+ * six Java types
  * 
- * Note that JSON strings are expected to be complete, this is a
- * simple recursive-end-tail interpreter, not a validator. This
- * would require a stack and is only usefull to parse a JSON body
- * before they are completed, an unlikely application case in a
- * synchronized web controller for some entreprise database.
+ * <blockquote>
+ * <code>HashMap</code>, 
+ * <code>ArrayList</code>, 
+ * <code>String</code>, 
+ * <code>Double</code>, 
+ * <code>Boolean</code>, 
+ * <code>null</code>
+ * </blockquote>
+ * 
+ * enforcing safety limits on the number of containers and iterations 
+ * evaluated, protecting the J2EE container JVM, CPU and RAM from
+ * malicious JSON input.</p>
+ * 
+ * <h3>Evaluate Safely</h3>
+ * 
+ * <p>To evaluate and validate a JSON string as a single object, without
+ * depth and with at most 25 simple properties, do:
+ * 
+ * <blockquote>
+ * <pre>HashMap object = JSON.object("{...}", 1, 25);</pre>
+ * </blockquote>
+ * 
+ * To evaluate and validate a JSON string as a single array, without depth 
+ * and with at most 50 items, do:
+ * 
+ * <blockquote>
+ * <pre>HashMap object = JSON.array("[...]", 1, 50);</pre>
+ * </blockquote>
+ * 
+ * To evaluate and validate a JSON string as an single array of at most
+ * 5 records containing an average of 10 fields, do:
+ * 
+ * <blockquote>
+ * <pre>HashMap object = JSON.array("[...]", 6, 55);</pre>
+ * </blockquote>
+ * 
+ * Of course this would also validate one object with five arrays of 
+ * different sizes, for instance 6, 12, 3, 19 and 8. The purpose is not
+ * to validate complex structure but to prevent abuse of a network interface
+ * that could otherwise instanciate thousands of instances from a 16KB JSON 
+ * string, straining the JVM stack, the garbage collector and the J2EE 
+ * container most precious resources: memory!</p>
+ * 
+ * <p>Note that this is a simple recursive-end-tail interpreter, not a stream
+ * parser. JSON strings are expected to be complete, which is the desired
+ * use case of JSON in the synchronized web controller of some entreprise 
+ * database application.</p>
+ * 
+ * <h3>JSON Serialization</h3>
+ * 
+ * <p>...</p>
+ * 
+ * <h3>A Simple Convenience</h3>
+ * 
+ * <p>...
+ * 
+ * <blockquote>
+ * <pre>JSON serialized = JSON("[1,2,3,{},\"...\"]");</pre>
+ * </blockquote>
+ * 
+ * or
+ * 
+ * <blockquote>
+ * <pre>ArrayList list = new ArrayList();
+ *list.add(1); list.add(2); list.add(3);
+ *list.add(new HashMap()); list.add("...");
+ *JSON serialized = JSON(list);</pre>
+ * </blockquote>
+ * 
+ * ...
+ * 
+ * <blockquote>
+ * <pre>HashMap object = new HashMap;
+ *object.put("name", serialized);
+ *JSON.repr(object);</pre>
+ * </blockquote>
+ * 
+ * ...</p>
  * 
  * @author Laurent Szyster
  * @version 0.1.0
  */
 public class JSON {
     
-    public static class SyntaxError extends Exception {
+    protected static final char DONE = CharacterIterator.DONE;
+    
+    public static class Error extends Exception {
         private static final long serialVersionUID = 0L;
-        public SyntaxError(String message) {super(message);}
+        public Error(String message) {super(message);}
     }
     
-    /**
-     * A strict JSON interpreter for Java 1.4.2
-     * 
-     * <p>Anything slightly off the standard described here:
-     * 
-     * <blockquote><a href="http://json.org/"
-     *  >http://json.org/</a></blockquote>
-     *   
-     * will throw a JSON.SyntaxError. This is a "zero-tolerance" JSON syntax
-     * interpreter, with support for allmost nothing else than the bare 
-     * standard.</p>
-     * 
-     * <p>Namely, it is possible to evaluate any JSON value, not just a
-     * payload.</p>
-     * 
-     * @author Laurent Szyster
-     */
-    public static class Interpreter {
+    protected static class Interpreter {
         
+        public int containers;
+        public int iterations;
         public char c;
         public CharacterIterator it;
-        public StringBuffer buf = new StringBuffer();
+        public StringBuffer buf;
         
-        private static final char DONE = CharacterIterator.DONE;
-        
-        public Object eval(String json) throws SyntaxError {
-            it = new StringCharacterIterator(json);
-            c = it.first();
-            if (c == DONE)
-                return null;
-            else
-                return value();
+        protected Interpreter(
+            int containers, int iterations
+            ) {
+            this.containers = (containers > 0 ? containers: 1);
+            this.iterations = (iterations > 0 ? iterations: 1);
         }
         
-        private SyntaxError error(String message) {
+        public Object eval(String json) throws Error {
+            buf = new StringBuffer();
+            it = new StringCharacterIterator(json);
+            try {
+                c = it.first();
+                if (c == DONE)
+                    return null;
+                else
+                    return value();
+            } finally {
+                buf = null;
+                it = null;
+            }
+        }
+        
+        public Error error(String message) {
             StringBuffer sb = new StringBuffer();
             sb.append(it.getIndex());
             sb.append(message);
-            sb.append(c);
-            return new SyntaxError(sb.toString());
+            return new Error(sb.toString());
         }
         
-        private boolean next(char test) {
+        public Error error(String message, char arg) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(it.getIndex());
+            sb.append(message);
+            sb.append(arg);
+            return new Error(sb.toString());
+        }
+        
+        public boolean next(char test) {
             c = it.next();
             return c == test;
         }
         
-        private static final Object OBJECT = new Object();
-        private static final Object ARRAY = new Object();
-        private static final Object COLON = new Object();
-        private static final Object COMMA = new Object();
+        public static final Object OBJECT = new Object();
+        public static final Object ARRAY = new Object();
+        public static final Object COLON = new Object();
+        public static final Object COMMA = new Object();
         
-        private Object value() throws SyntaxError {
+        public Object value() throws Error {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
             case '{': {c = it.next(); return object();}
@@ -112,61 +191,76 @@ public class JSON {
                 if (next('r') && next('u') && next('e')) {
                     c = it.next(); return Boolean.TRUE;
                 } else
-                    throw error(" 'true' expected ");
+                    throw error(" 'true' expected ", c);
             }
             case 'f': {
                 if (next('a') && next('l') && next('s') && next('e')) {
                     c = it.next(); return Boolean.FALSE;
                 } else
-                    throw error(" 'false' expected ");
+                    throw error(" 'false' expected ", c);
             }
             case 'n': {
                 if (next('u') && next('l') && next('l')) {
                     c = it.next(); return null;
                 } else
-                    throw error(" 'null' expected ");
+                    throw error(" 'null' expected ", c);
             }
             case ',': {c = it.next(); return COMMA;} 
             case ':': {c = it.next(); return COLON;}
             case ']': {c = it.next(); return ARRAY;} 
             case '}': {c = it.next(); return OBJECT;}
             case DONE:
-                throw error("unexpected end ");
+                throw error(" unexpected end");
             default: 
-                throw error(" unexpected character ");
+                throw error(" unexpected character ", c);
             }
         }
         
-        private Object object() throws SyntaxError {
+        public Object object() throws Error {
+            String key; 
+            Object val;
+            if (--containers < 0) 
+                throw error(" containers overflow");
+            
             HashMap map = new HashMap();
             Object token = value();
-            Object key, val;
             while (token != OBJECT) {
-                if (!(token instanceof String) || 
-                    token==COLON || token==COMMA || token==ARRAY
-                    )
+                if (!(token instanceof String))
                     throw error(" string expected ");
-                key = token;
-                token = value(); 
-                if (token == COLON) {
+                
+                if (--iterations < 0) 
+                    throw error(" iterations overflow");
+                
+                key = (String) token;
+                if (value() == COLON) {
                     val = value();
                     if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
-                        throw error(" value expected ");
+                        throw error(" value expected");
+                    
                     map.put(key, val);
                     token = value();
                     if (token == COMMA)
                         token = value();
+                } else {
+                    throw error(" colon expected ", c);
                 }
             }
             return map;
         }
         
-        private Object array() throws SyntaxError {
+        public Object array() throws Error {
+            if (--containers < 0) 
+                throw error(" containers overflow");
+            
             ArrayList list = new ArrayList();
             Object token = value();
             while (token != ARRAY) {
                 if (token==COLON || token==COMMA || token==OBJECT)
-                    throw error(" value expected ");
+                    throw error(" value expected");
+                
+                if (--iterations < 0) 
+                    throw error(" iterations overflow");
+                
                 list.add(token);
                 token = value(); 
                 if (token == COMMA) 
@@ -175,7 +269,7 @@ public class JSON {
             return list;
         }
         
-        private Object number() {
+        public Object number() {
             buf.setLength(0);
             if (c == '-') {
                 buf.append(c); c = it.next();
@@ -195,7 +289,7 @@ public class JSON {
             return new Double(buf.toString());
         }
         
-        private Object string() throws SyntaxError {
+        public Object string() throws Error {
             buf.setLength(0);
             while (c != '"') {
                 if (c == '\\') {
@@ -213,11 +307,11 @@ public class JSON {
                             case 'r': buf.append('\r'); break;
                             case 't': buf.append('\t'); break;
                             default: 
-                                throw error(" illegal escape sequence ");
+                                throw error(" illegal escape sequence ", c);
                         }
                     }
                 } else if (c == DONE) {
-                    throw error(" unexpected end ");
+                    throw error(" unexpected end");
                 } else {
                     buf.append(c); 
                 }
@@ -227,11 +321,11 @@ public class JSON {
             return buf.toString();
         }
         
-        private void digits() {
+        public void digits() {
             while (Character.isDigit(c)) {buf.append(c); c = it.next();}
         }
         
-        private char unicode() throws SyntaxError {
+        public char unicode() throws Error {
             int val = 0;
             for (int i = 0; i < 4; ++i) {
                 c = it.next();
@@ -247,80 +341,72 @@ public class JSON {
                     val = (val << 4) + c - 'K';
                     break;
                 case DONE:
-                    throw error(" unexpected end ");
+                    throw error(" unexpected end");
                 default:
-                    throw error(" illegal UNICODE sequence ");
+                    throw error(" illegal UNICODE sequence");
                 }
             }
             return (char) val;
         }
     }
 
-    public static Object eval(String json) throws SyntaxError {
-        return (new Interpreter()).eval(json);
-    }
-
-    public static class TypeError extends Exception {
-        private static final long serialVersionUID = 0L; 
+    public static Object eval(String json) throws Error {
+        return (new Interpreter(65355, 65355)).eval(json);
     }
     
-    public static HashMap object(Object json) throws TypeError {
-        if ((json instanceof HashMap)) 
-            return (HashMap) json;
+    public static Object eval(
+        String json, int containers, int iterations
+        ) throws Error {
+        return (new Interpreter(containers, iterations)).eval(json);
+    }
+    
+    public static Object object(
+        String json, int containers, int iterations
+        ) throws Error {
+        Object o = eval(json, containers, iterations);
+        if ((o instanceof HashMap)) 
+            return (HashMap) o;
         else
-            throw new TypeError();
-    }
-    
-    public static ArrayList array(Object json) throws TypeError {
-        if ((json instanceof ArrayList)) 
-            return (ArrayList) json;
+            throw new Error("type error");
+        }
+        
+    public static Object array(
+        String json, int containers, int iterations
+        ) throws Error {
+        Object o = eval(json, containers, iterations);
+        if ((o instanceof ArrayList)) 
+            return (ArrayList) o;
         else
-            throw new TypeError();
+            throw new Error("type error");
     }
-    
-    public static Double number(Object json) throws TypeError {
-        if ((json instanceof Double)) 
-            return (Double) json;
-        else
-            throw new TypeError();
-    }
-    
-    public static String string(Object json) throws TypeError {
-        if ((json instanceof String)) 
-            return (String) json;
-        else
-            throw new TypeError();
-    }
-    
+            
     private static final String _quote = "\\\"";
     private static final String _back = "\\\\";
     private static final String _slash = "\\/";
-    private static final String _ctrl_b = "\\/";
-    private static final String _ctrl_f = "\\/";
-    private static final String _ctrl_n = "\\/";
-    private static final String _ctrl_r = "\\/";
-    private static final String _ctrl_t = "\\/";
+    private static final String _ctrl_b = "\\b";
+    private static final String _ctrl_f = "\\f";
+    private static final String _ctrl_n = "\\n";
+    private static final String _ctrl_r = "\\r";
+    private static final String _ctrl_t = "\\t";
     
-    public static void encode(StringBuffer sb, String s) {
+    public static void repr(StringBuffer sb, String s) {
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
-        for (
-            char c = it.first(); 
-            c != CharacterIterator.DONE; 
-            c = it.next()
-            ) {
-            if (c == '"') sb.append(_quote);
-            else if (c == '\\') sb.append(_back);
-            else if (c == '/') sb.append(_slash);
-            else if (c == '\b') sb.append(_ctrl_b);
-            else if (c == '\f') sb.append(_ctrl_f);
-            else if (c == '\n') sb.append(_ctrl_n);
-            else if (c == '\r') sb.append(_ctrl_r);
-            else if (c == '\t') sb.append(_ctrl_t);
-            else if (Character.isISOControl(c)) {
-                unicode(sb, c);
-            } else {
-                sb.append(c);
+        for (char c = it.first(); c != DONE; c = it.next()) {
+            switch(c) {
+            case '"':  sb.append(_quote); break;
+            case '\\': sb.append(_back); break;
+            case '/': sb.append(_slash); break;
+            case '\b': sb.append(_ctrl_b); break;
+            case '\f': sb.append(_ctrl_f); break;
+            case '\n': sb.append(_ctrl_n); break;
+            case '\r': sb.append(_ctrl_r); break;
+            case '\t': sb.append(_ctrl_t); break;
+            default: 
+                if (Character.isISOControl(c))
+                    unicode(sb, c);
+                else
+                    sb.append(c);
             }
         }
         sb.append('"');
@@ -345,7 +431,7 @@ public class JSON {
     private static final String _true = "true";
     private static final String _false = "false";
     
-    public static void encode(StringBuffer sb, Map map) {
+    public static void repr(StringBuffer sb, Map map) {
         Object key; 
         Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
@@ -354,34 +440,34 @@ public class JSON {
         }
         sb.append('{');
         key = it.next();
-        encode(sb, key);
+        repr(sb, key);
         sb.append(':');
-        encode(sb, map.get(key));
+        repr(sb, map.get(key));
         while (it.hasNext()) {
             sb.append(',');
             key = it.next();
-            encode(sb, key);
+            repr(sb, key);
             sb.append(':');
-            encode(sb, map.get(key));
+            repr(sb, map.get(key));
         }
         sb.append('}');
     }
     
-    public static void encode(StringBuffer sb, Iterator it) {
+    public static void repr(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_list);
             return;
         }
         sb.append('[');
-        encode(sb, it.next());
+        repr(sb, it.next());
         while (it.hasNext()) {
             sb.append(',');
-            encode(sb, it.next());
+            repr(sb, it.next());
         }
         sb.append(']');
     }
     
-    public static void encode(StringBuffer sb, Object value) {
+    public static void repr(StringBuffer sb, Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -389,22 +475,22 @@ public class JSON {
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String) 
-            encode(sb, (String) value);
+            repr(sb, (String) value);
         else if (value instanceof Character) 
-            encode(sb, ((Character) value).toString());
+            repr(sb, ((Character) value).toString());
         else if (value instanceof Map)
-            encode(sb, (Map) value);
+            repr(sb, (Map) value);
         else if (value instanceof List) 
-            encode(sb, ((List) value).iterator());
+            repr(sb, ((List) value).iterator());
         else if (value instanceof JSON) 
-            encode(sb, ((JSON) value).string);
+            repr(sb, ((JSON) value).string);
         else 
-            encode(sb, value.toString());
+            repr(sb, value.toString());
     }
     
-    public static String encode(Object value) {
+    public static String repr(Object value) {
         StringBuffer sb = new StringBuffer();
-        encode(sb, value);
+        repr(sb, value);
         return sb.toString();
     }
     
@@ -412,6 +498,7 @@ public class JSON {
     
     public JSON(String literal) {this.string = literal;}
     
-    public JSON(Object value) {this.string = encode(value);}
-        
+    public JSON(Object value) {this.string = repr(value);}
+    
 }
+

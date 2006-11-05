@@ -81,17 +81,17 @@ public class Test {
             else if (value instanceof Number) 
                 sb.append(value);
             else if (value instanceof String) 
-                encode(sb, (String) value);
+                repr(sb, (String) value);
             else if (value instanceof Character) 
-                encode(sb, ((Character) value).toString());
+                repr(sb, ((Character) value).toString());
             else if (value instanceof Map)
                 print(sb, (Map) value, indent);
             else if (value instanceof List) 
                 print(sb, ((List) value).iterator(), indent);
             else if (value instanceof JSON) 
-                encode(sb, ((JSON) value).string);
+                repr(sb, ((JSON) value).string);
             else 
-                encode(sb, value.toString());
+                repr(sb, value.toString());
         }
         
         public static String print(Object value) {
@@ -100,15 +100,15 @@ public class Test {
             return sb.toString();
         }
         
-        public TestJSON (String encoded) throws SyntaxError {
+        public TestJSON (String encoded) throws JSON.Error {
             super(encoded);
         }
         
         public boolean test(int scale) {
             try {
-                for (int j=0; j < scale; j++) encode(eval(string));
+                for (int j=0; j < scale; j++) repr(eval(string));
                 return true;
-            } catch (SyntaxError e) {
+            } catch (JSON.Error e) {
                 string = e.getMessage();
                 return false;
             }
