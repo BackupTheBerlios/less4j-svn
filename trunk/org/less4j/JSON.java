@@ -35,6 +35,7 @@ import java.text.StringCharacterIterator;
  * <code>ArrayList</code>, 
  * <code>String</code>, 
  * <code>Double</code>, 
+ * <code>Integer</code>, 
  * <code>Boolean</code>, 
  * <code>null</code>
  * </blockquote>
@@ -280,15 +281,24 @@ public class JSON {
             if (c == '.') {
                 buf.append(c); c = it.next();
                 digits();
-            }
-            if (c == 'e' || c == 'E') {
+                if (c == 'e' || c == 'E') {
+                    buf.append(c); c = it.next();
+                    if (c == '+' || c == '-') {
+                        buf.append(c); c = it.next();
+                    }
+                    digits();
+                }
+                return new Double(buf.toString());
+            } else if (c == 'e' || c == 'E') {
                 buf.append(c); c = it.next();
                 if (c == '+' || c == '-') {
                     buf.append(c); c = it.next();
                 }
                 digits();
+                return new Double(buf.toString());
+            } else {
+                return new Integer(buf.toString());
             }
-            return new Double(buf.toString());
         }
         
         public Object string() throws Error {
@@ -474,8 +484,10 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append((((Boolean) value).booleanValue() ? _true : _false));
-        else if (value instanceof Number) 
-            sb.append(value);
+        else if (value instanceof Double) 
+            sb.append((Double) value);
+        else if (value instanceof Integer) 
+            sb.append((Integer) value);
         else if (value instanceof String) 
             repr(sb, (String) value);
         else if (value instanceof Character) 
