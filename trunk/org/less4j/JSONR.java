@@ -302,13 +302,13 @@ public class JSONR extends HashMap {
         public Object copy() {return new ArrayRegular(types);}
     }
     
-    protected static class Interpreter extends JSON.Interpreter {
+    public static class Interpreter extends JSON.Interpreter {
         
         public Interpreter(int containers, int iterations) {
             super(containers, iterations);
         }
         
-        public Error error(String message, String arg) {
+        protected Error error(String message, String arg) {
             StringBuffer sb = new StringBuffer();
             sb.append(it.getIndex());
             sb.append(message);
@@ -350,7 +350,7 @@ public class JSONR extends HashMap {
             }
         }
         
-        public Object object(JSONR namespace) 
+        protected Object object(JSONR namespace) 
         throws JSON.Error {
             String name; 
             Object val;
@@ -388,7 +388,7 @@ public class JSONR extends HashMap {
             return map;
         }
         
-        public Object array(Iterator types) 
+        protected Object array(Iterator types) 
         throws JSON.Error {
             if (--containers < 0) 
                 throw error(" containers overflow");
@@ -431,7 +431,7 @@ public class JSONR extends HashMap {
             return list;
         }
         
-        public Object value(Type type) 
+        protected Object value(Type type) 
         throws JSON.Error {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
@@ -565,248 +565,4 @@ public class JSONR extends HashMap {
         }
     }
 }
-
-/*
-
-The purpose here is to validate a JSON value as it is interpreted, not once 
-it has been evaluated. I assume that interactive input validation has 
-allready taken place in the AJAX client application, here there is no need
-to handle all value validation error, only to test the type and the general
-form of the value submitted to the controller.
-
-In a J2EE container, it is a requirement to compile a namespace from the 
-configuration property
-
-    less4j.namespace
-
-for every servlet, dynamically recreating each time the model validation
-data structure. Then, for each request, clone that tree of namespaces and
-types, as fast as the JVM can. 
-
-The expense is worth the benefit: there is nothing else to share between 
-servlet threads. They are expected to use the same model and would otherwise 
-repetitively have to synchronize namespaces and type validation objects, 
-creating a nightmare of contention and potential subtle deadlocks.
-
-Finally the balance achieved is profitable, because JSON regular expressions
-are usually shorter than the JSON instances they validate, fast enough to 
-instanciate without significant loss of performances in the case of a
-type iteration. There is a worst case for large record instances, but cloning 
-a namespace (or an iteration of types) will allways take a fraction of the
-time spent applying it.
-
-Note that any errors found in the JSON model must yield a ServletException
-at initialization of the controler, because that's something the actor
-cannot handle.
-
-
-
-*/
-
-/* let's abuse JSON and give rise to JSONR, a Regular JavaScript Object 
- * Notation. Here's a specification for the types and values
- * of a fictonnary application
- * 
- * {
- *   "type": {
- *     "bar": +0.0,            // a positive double
- *     "barf": 1000,           // a positive integer lower or equal 1000
- *     "barfo": -1.0           // a negative scale between -1.0 and -0.0
- *     "barfoo": "",            // any string, defaults to empty, not null
- *     "fobaro": null,          // any type, defaults to null
- *     "faboro": true,          // a boolean
- *     "rofabo": "[a-z]+",      // any lowercase non null string 
- *     "foo": [],               // an untyped array
- *     "barofo": [0],           // an array of positive integer
- *     "forabo": ["[a-z]*"],    // an array of lowercase string, maybe null
- *     "braoof": [
- *       +100, 
- *       -1.0, 
- *       "[a-z]+", 
- *       true
- *       ],                     // a typed and sized record
- *     "arbaoof": [[
- *       +100, 
- *       -1.0, 
- *       "[a-z]+", 
- *       true
- *       ]],                    // an array of records
- *     "oof": {},               // an object in this namespace
- *     "foobar": {
- *       "test": true
- *       },                     // an object in its own namespace
- *     }
- * 
- * This is a quite practical specification for public interfaces,
- * because it is easely portable wherever JSON and a Regular Expression 
- * engine are available (and that's pretty much everywhere now).
- * 
- * A big benefit of using JSON is to allow both the Java servlet
- * controller and the JavaScript client application to apply the same
- * namespace definition, to perform different parts of the validation 
- * in the same model.
- * 
- * An AJAX client will validate its input interactively, the Java server
- * does not have to bother with interaction errors and can focus on its
- * controller task.
- * 
- * This is more than enough to validate the bread
- * 
- * {
- *   "columns": ["name", "score", "scale", "pass"],
- *   "rows": [
- *     ["[a-Z\w]+", 1000, -1.0, true]
- *     ] 
- *   }
- * 
- * and butter
- * 
- * {
- *   "records": [
- *     {
- *       "name": "[a-Z\w]+", 
- *       "score": 1000, 
- *       "scale": -1.0, 
- *       "pass": true
- *       }
- *     ] 
- *   }
- * 
- * of most business application controllers, including the infamous object
- * known as the "one-to-many" relationship:
- * 
- * {
- *   "school": {
- *     "name": "[a-Z\w]+", 
- *     "address": ".+",
- *     "year": 2038
- *     }
- *   "students": {
- *     "columns": ["name", "score", "scale", "pass"],
- *     "rows": [["[a-Z\w]+", 1000, -1.0, true]]
- *     }
- *   }
- *   
- * the one applied for most transactions between relational databases and 
- * their web users, the one displayed by their browser and the one SQL
- * is made to select, update, insert or delete. 
- * 
- * Each form is implemented as a static subclass of Namespace, 
- * privately:
- * 
- *     TypedArray()
- *     TypedObject()
- *     DoubleGT(0.0)
- *     StringNotNull()
- *     ExistsNull()
- *     IntegerGT(0)
- *     BooleanNotNull(true)
- *     StringRegular("[a-z]+")
- *     StringRegulars("[a-z]+")
- *     IntegersGT(0)
- *     IntegersGT(0)
- *     
- * each with the same interface
- * 
- *     validate(Object data)
- *     
- * that validates untyped input data.
- * 
- * A namespace throws instances of Namespace.Error, and this should
- * be a fatal error for its application, because it signals invalid
- * input, possibly due to a malfunctionning network interface or
- * maybe caused by a malicious attacker.
- * */
-
-/* TODO: Type
- * 
- * The idea is to evaluate a valid JSON statement and then recursively walk 
- * down it's object instance tree to compile a map of named type and regular 
- * expressions to use once values are instanciated.
- * 
- * Limited JSON
- * 
- * Then, at runtime, set a limit on the number of objects and arrays that can 
- * be instanciated. For instance, to evaluate no more than one transaction of 
- * 100 rows at most or to instanciate at most 100 records per batch.
- * 
- * Her is the API applied for those two case, as
- * 
- *     JSON.object("{}", 2, 100)
- *  
- * and
- *  
- *     JSON.array("[]", 101, 100)
- *     
- * How much input is acceptable and in which combination is the business of 
- * the controller.
- * 
- * Together with a 16KB limit on the UTF-8 encoded JSON body, here are
- * 
- *     $.jsonArrayPOST(101, 100);
- * 
- * and
- *     
- *     $.jsonObjectPOST(2, 100);
- *     
- * two convenient API to load, parse and validate a relatively small JSON 
- * string, which is precisely what you need to protect, what your program 
- * is supposed to control: entreprise resources. 
- * 
- * Here failure is not an option.
- * 
- * Within a modest 1024 bytes, a malicious attacker could instanciate
- * five hundred empty nested containers, managing to pegg the server through 
- * its X-JSON headers. Under DoS attack from a hundred attackers, that's a
- * load of 50.000 empty containers concurrently created and destroyed, 
- * straining the parser and the garbage collector, stressing CPU and RAM.
- * 
- * Think of what can be delivered by 100 concurrent attacker with 16KB.
- * 
- * Yeah, that's more than 800.000 void containers pegging your JVM.
- * 
- * The only solution is to limit those numbers ahead, testing the limits
- * as data is read, then as the interpreter parse it and before instanciation
- * of containers take place.
- * 
- * The limit on the maximum number of properties in an object is defined 
- * outside of the resource controller, at the application level as the
- * size of its namespace.
- * 
- * Namespace
- * 
- * with very different effects and yet with amazingly simple implementation,
- * thanks to a ever-usefull couple: a better convention.
- * 
- * As long as you stick with an object/configuration oriented-mind, validation
- * is bound to turn into the practical programming hell it is (and which
- * yield monsters frameworks like Spring).
- * 
- * Yet, if you consider validation globaly and functionaly, where decoupling
- * leverages more is between quantities and semantics. How input is expressed
- * regularly by text is related to its machine type, and both embrace the 
- * whole application.
- * 
- * Here's the interface:
- * 
- *     HashMap namespace = {"property": [type, pattern]}
- * 
- *     class Application extend Actor {
- *         static final Actions public;
- *     }
- *     
- *     Application $ = new Application(getConfiguration());
- * 
- * Also, it makes sharing a large validator quite practical and gives a rules 
- * to develop large a consistant network API: if you can share a name publicly,
- * you must share it in the sources too, somewhere in the same class.
- * 
- * Type of the property "username" should not vary depending on the 
- * resource of *this* application. Not all resource controllers have to support
- * it, but if they do, they must support the same definition of what a valid 
- * "username" is throughout the application.
- * 
- * Because special cases are not special enough to break the rules.
- * 
- **/
 

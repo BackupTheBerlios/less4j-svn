@@ -126,8 +126,8 @@ public class Test {
                 try {
                     Object o = JSON.eval(input, 65355, 65355);
                     System.out.print(" = ");
-                    String output = JSON.repr(o);
-                    System.out.println(JSON.print(o));
+                    String output = JSON.str(o);
+                    System.out.println(JSON.repr(o));
                     long t = System.currentTimeMillis();
                     for (int i = 0; i < scale; i++)
                         JSON.eval(input, 65355, 65355);
@@ -147,7 +147,7 @@ public class Test {
                     System.out.print("... ");
                     t = System.currentTimeMillis();
                     for (int i = 0; i < scale; i++)
-                        JSON.repr(o);
+                        JSON.str(o);
                     t = System.currentTimeMillis() - t;
                     System.out.print(output.length()*scale);
                     if (t > 0) {

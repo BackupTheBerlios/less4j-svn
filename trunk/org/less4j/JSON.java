@@ -124,13 +124,13 @@ public class JSON {
         public Error(String message) {super(message);}
     }
     
-    protected static class Interpreter {
+    public static class Interpreter {
         
-        public int containers;
-        public int iterations;
-        public char c;
-        public CharacterIterator it;
-        public StringBuffer buf;
+        protected int containers;
+        protected int iterations;
+        protected char c;
+        protected CharacterIterator it;
+        protected StringBuffer buf;
         
         public Interpreter(
             int containers, int iterations
@@ -186,14 +186,14 @@ public class JSON {
             }
         }
         
-        public Error error(String message) {
+        protected Error error(String message) {
             StringBuffer sb = new StringBuffer();
             sb.append(it.getIndex());
             sb.append(message);
             return new Error(sb.toString());
         }
         
-        public Error error(String message, char arg) {
+        protected Error error(String message, char arg) {
             StringBuffer sb = new StringBuffer();
             sb.append(it.getIndex());
             sb.append(message);
@@ -201,17 +201,17 @@ public class JSON {
             return new Error(sb.toString());
         }
         
-        public boolean next(char test) {
+        protected boolean next(char test) {
             c = it.next();
             return c == test;
         }
         
-        public static final Object OBJECT = new Object();
-        public static final Object ARRAY = new Object();
-        public static final Object COLON = new Object();
-        public static final Object COMMA = new Object();
+        protected static final Object OBJECT = new Object();
+        protected static final Object ARRAY = new Object();
+        protected static final Object COLON = new Object();
+        protected static final Object COMMA = new Object();
         
-        public Object value() throws Error {
+        protected Object value() throws Error {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
             case '{': {c = it.next(); return object();}
@@ -251,7 +251,7 @@ public class JSON {
             }
         }
         
-        public Object object() throws Error {
+        protected Object object() throws Error {
             String key; 
             Object val;
             if (--containers < 0) 
@@ -283,7 +283,7 @@ public class JSON {
             return map;
         }
         
-        public Object array() throws Error {
+        protected Object array() throws Error {
             if (--containers < 0) 
                 throw error(" containers overflow");
             
@@ -304,7 +304,7 @@ public class JSON {
             return list;
         }
         
-        public Object number() {
+        protected Object number() {
             buf.setLength(0);
             if (c == '-') {
                 buf.append(c); c = it.next();
@@ -333,7 +333,7 @@ public class JSON {
             }
         }
         
-        public Object string() throws Error {
+        protected Object string() throws Error {
             buf.setLength(0);
             while (c != '"') {
                 if (c == '\\') {
@@ -362,11 +362,11 @@ public class JSON {
             return buf.toString();
         }
         
-        public void digits() {
+        protected void digits() {
             while (Character.isDigit(c)) {buf.append(c); c = it.next();}
         }
         
-        public char unicode() throws Error {
+        protected char unicode() throws Error {
             int val = 0;
             for (int i = 0; i < 4; ++i) {
                 c = it.next();
@@ -427,7 +427,7 @@ public class JSON {
     protected static final String _ctrl_r = "\\r";
     protected static final String _ctrl_t = "\\t";
     
-    public static void repr(StringBuffer sb, String s) {
+    public static void strb(StringBuffer sb, String s) {
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
         for (char c = it.first(); c != DONE; c = it.next()) {
@@ -469,7 +469,7 @@ public class JSON {
     protected static final String _true = "true";
     protected static final String _false = "false";
     
-    public static void repr(StringBuffer sb, Map map) {
+    public static void strb(StringBuffer sb, Map map) {
         Object key; 
         Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
@@ -478,34 +478,34 @@ public class JSON {
         }
         sb.append('{');
         key = it.next();
-        repr(sb, key);
+        strb(sb, key);
         sb.append(':');
-        repr(sb, map.get(key));
+        strb(sb, map.get(key));
         while (it.hasNext()) {
             sb.append(',');
             key = it.next();
-            repr(sb, key);
+            strb(sb, key);
             sb.append(':');
-            repr(sb, map.get(key));
+            strb(sb, map.get(key));
         }
         sb.append('}');
     }
     
-    public static void repr(StringBuffer sb, Iterator it) {
+    public static void strb(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
             return;
         }
         sb.append('[');
-        repr(sb, it.next());
+        strb(sb, it.next());
         while (it.hasNext()) {
             sb.append(',');
-            repr(sb, it.next());
+            strb(sb, it.next());
         }
         sb.append(']');
     }
     
-    public static void repr(StringBuffer sb, Object value) {
+    public static void strb(StringBuffer sb, Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -515,73 +515,73 @@ public class JSON {
         else if (value instanceof Integer) 
             sb.append((Integer) value);
         else if (value instanceof String) 
-            repr(sb, (String) value);
+            strb(sb, (String) value);
         else if (value instanceof Character) 
-            repr(sb, ((Character) value).toString());
+            strb(sb, ((Character) value).toString());
         else if (value instanceof Map)
-            repr(sb, (Map) value);
+            strb(sb, (Map) value);
         else if (value instanceof List) 
-            repr(sb, ((List) value).iterator());
+            strb(sb, ((List) value).iterator());
         else if (value instanceof JSON) 
-            repr(sb, ((JSON) value).string);
+            strb(sb, ((JSON) value).string);
         else 
-            repr(sb, value.toString());
+            strb(sb, value.toString());
     }
     
-    public static String repr(Object value) {
+    public static String str(Object value) {
         StringBuffer sb = new StringBuffer();
-        repr(sb, value);
+        strb(sb, value);
         return sb.toString();
     }
     
-    private static final String CRLF = "\r\n";
-    private static final String INDT = "  ";
+    protected static final String _crlf = "\r\n";
+    protected static final String _indent = "  ";
     
-    public static void print(StringBuffer sb, Map map, String indent) {
+    protected static void repr(StringBuffer sb, Map map, String indent) {
         Object key; 
         Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
             sb.append("{}");
             return;
         }
-        indent += INDT;
+        indent += _indent;
         sb.append('{');
         sb.append(indent);
         key = it.next();
-        print(sb, key, indent);
+        repr(sb, key, indent);
         sb.append(": ");
-        print(sb, map.get(key), indent);
+        repr(sb, map.get(key), indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
             key = it.next();
-            print(sb, key, indent);
+            repr(sb, key, indent);
             sb.append(": ");
-            print(sb, map.get(key), indent);
+            repr(sb, map.get(key), indent);
         }
         sb.append(indent);
         sb.append('}');
     }
     
-    public static void print(StringBuffer sb, Iterator it, String indent) {
+    protected static void repr(StringBuffer sb, Iterator it, String indent) {
         if (!it.hasNext()) {
             sb.append("[]");
             return;
         }
         sb.append('[');
-        indent += INDT;
+        indent += _indent;
         sb.append(indent);
-        print(sb, it.next(), indent);
+        repr(sb, it.next(), indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
-            print(sb, it.next(), indent);
+            repr(sb, it.next(), indent);
         }
         sb.append(indent);
         sb.append(']');
     }
     
-    public static void print(StringBuffer sb, Object value, String indent) {
+    protected static void repr(StringBuffer sb, Object value, String indent) {
         if (value == null) 
             sb.append("null");
         else if (value instanceof Boolean)
@@ -591,22 +591,22 @@ public class JSON {
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String) 
-            repr(sb, (String) value);
+            strb(sb, (String) value);
         else if (value instanceof Character) 
-            repr(sb, ((Character) value).toString());
+            strb(sb, ((Character) value).toString());
         else if (value instanceof Map)
-            print(sb, (Map) value, indent);
+            repr(sb, (Map) value, indent);
         else if (value instanceof List) 
-            print(sb, ((List) value).iterator(), indent);
+            repr(sb, ((List) value).iterator(), indent);
         else if (value instanceof JSON) 
-            repr(sb, ((JSON) value).string);
+            strb(sb, ((JSON) value).string);
         else 
-            repr(sb, value.toString());
+            strb(sb, value.toString());
     }
     
-    public static String print(Object value) {
+    public static String repr(Object value) {
         StringBuffer sb = new StringBuffer();
-        print(sb, value, CRLF);
+        repr(sb, value, _crlf);
         return sb.toString();
     }
     
@@ -614,7 +614,7 @@ public class JSON {
     
     public JSON(String literal) {this.string = literal;}
     
-    public JSON(Object value) {this.string = repr(value);}
+    public JSON(Object value) {this.string = str(value);}
     
 }
 
