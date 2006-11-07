@@ -132,7 +132,7 @@ public class JSON {
         public CharacterIterator it;
         public StringBuffer buf;
         
-        protected Interpreter(
+        public Interpreter(
             int containers, int iterations
             ) {
             this.containers = (containers > 0 ? containers: 1);
@@ -148,6 +148,38 @@ public class JSON {
                     return null;
                 else
                     return value();
+            } finally {
+                buf = null;
+                it = null;
+            }
+        }
+        
+        public HashMap object(String json) throws Error {
+            buf = new StringBuffer();
+            it = new StringCharacterIterator(json);
+            try {
+                c = it.first();
+                while (Character.isWhitespace(c)) c = it.next();
+                if (c != '{')
+                    throw error(" not an object");
+                else
+                    return (HashMap) object();
+            } finally {
+                buf = null;
+                it = null;
+            }
+        }
+        
+        public ArrayList array(String json) throws Error {
+            buf = new StringBuffer();
+            it = new StringCharacterIterator(json);
+            try {
+                c = it.first();
+                while (Character.isWhitespace(c)) c = it.next();
+                if (c != '[')
+                    throw error(" not an array");
+                else
+                    return (ArrayList) array();
             } finally {
                 buf = null;
                 it = null;
@@ -306,21 +338,18 @@ public class JSON {
             while (c != '"') {
                 if (c == '\\') {
                     c = it.next(); 
-                    if (c == 'u') {
-                        buf.append(unicode()); 
-                    } else {
-                        switch(c) {
-                            case '\\': buf.append('\\'); break;
-                            case '"': buf.append('"'); break;
-                            case '/': buf.append('/'); break;
-                            case 'b': buf.append('\b'); break;
-                            case 'f': buf.append('\f'); break;
-                            case 'n': buf.append('\n'); break;
-                            case 'r': buf.append('\r'); break;
-                            case 't': buf.append('\t'); break;
-                            default: 
-                                throw error(" illegal escape sequence ", c);
-                        }
+                    switch(c) {
+                        case 'u': buf.append(unicode()); break;
+                        case '\\': buf.append('\\'); break;
+                        case '"': buf.append('"'); break;
+                        case '/': buf.append('/'); break;
+                        case 'b': buf.append('\b'); break;
+                        case 'f': buf.append('\f'); break;
+                        case 'n': buf.append('\n'); break;
+                        case 'r': buf.append('\r'); break;
+                        case 't': buf.append('\t'); break;
+                        default: 
+                            throw error(" illegal escape sequence ", c);
                     }
                 } else if (c == DONE) {
                     throw error(" unexpected end");
@@ -362,44 +391,41 @@ public class JSON {
         }
     }
 
-    public static Object eval(String json) throws Error {
-        return (new Interpreter(65355, 65355)).eval(json);
-    }
-    
     public static Object eval(
         String json, int containers, int iterations
         ) throws Error {
-        return (new Interpreter(containers, iterations)).eval(json);
+        if (json != null)
+            return (new Interpreter(containers, iterations)).eval(json);
+        else
+            throw new Error("null JSON string");
     }
     
-    public static Object object(
+    public static HashMap object(
         String json, int containers, int iterations
         ) throws Error {
-        Object o = eval(json, containers, iterations);
-        if ((o instanceof HashMap)) 
-            return (HashMap) o;
+        if (json != null)
+            return (new Interpreter(containers, iterations)).object(json);
         else
-            throw new Error("type error");
+            throw new Error("null JSON string");
         }
         
-    public static Object array(
+    public static ArrayList array(
         String json, int containers, int iterations
         ) throws Error {
-        Object o = eval(json, containers, iterations);
-        if ((o instanceof ArrayList)) 
-            return (ArrayList) o;
+        if (json != null)
+            return (new Interpreter(containers, iterations)).array(json);
         else
-            throw new Error("type error");
+            throw new Error("null JSON string");
     }
             
-    private static final String _quote = "\\\"";
-    private static final String _back = "\\\\";
-    private static final String _slash = "\\/";
-    private static final String _ctrl_b = "\\b";
-    private static final String _ctrl_f = "\\f";
-    private static final String _ctrl_n = "\\n";
-    private static final String _ctrl_r = "\\r";
-    private static final String _ctrl_t = "\\t";
+    protected static final String _quote = "\\\"";
+    protected static final String _back = "\\\\";
+    protected static final String _slash = "\\/";
+    protected static final String _ctrl_b = "\\b";
+    protected static final String _ctrl_f = "\\f";
+    protected static final String _ctrl_n = "\\n";
+    protected static final String _ctrl_r = "\\r";
+    protected static final String _ctrl_t = "\\t";
     
     public static void repr(StringBuffer sb, String s) {
         sb.append('"');
@@ -424,10 +450,10 @@ public class JSON {
         sb.append('"');
     }
     
-    private static final String _unicode = "\\u";
-    private static final char[] _hex = "0123456789ABCDEF".toCharArray();
+    protected static final String _unicode = "\\u";
+    protected static final char[] _hex = "0123456789ABCDEF".toCharArray();
     
-    private static void unicode(StringBuffer sb, char c) {
+    protected static void unicode(StringBuffer sb, char c) {
         sb.append(_unicode);
         int n = c;
         for (int i = 0; i < 4; ++i) {
@@ -437,11 +463,11 @@ public class JSON {
         }
     }
 
-    private static final String _object = "{}";
-    private static final String _list = "[]";
-    private static final String _null = "null";
-    private static final String _true = "true";
-    private static final String _false = "false";
+    protected static final String _object = "{}";
+    protected static final String _array = "[]";
+    protected static final String _null = "null";
+    protected static final String _true = "true";
+    protected static final String _false = "false";
     
     public static void repr(StringBuffer sb, Map map) {
         Object key; 
@@ -467,7 +493,7 @@ public class JSON {
     
     public static void repr(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
-            sb.append(_list);
+            sb.append(_array);
             return;
         }
         sb.append('[');
@@ -505,6 +531,82 @@ public class JSON {
     public static String repr(Object value) {
         StringBuffer sb = new StringBuffer();
         repr(sb, value);
+        return sb.toString();
+    }
+    
+    private static final String CRLF = "\r\n";
+    private static final String INDT = "  ";
+    
+    public static void print(StringBuffer sb, Map map, String indent) {
+        Object key; 
+        Iterator it = map.keySet().iterator();
+        if (!it.hasNext()) {
+            sb.append("{}");
+            return;
+        }
+        indent += INDT;
+        sb.append('{');
+        sb.append(indent);
+        key = it.next();
+        print(sb, key, indent);
+        sb.append(": ");
+        print(sb, map.get(key), indent);
+        while (it.hasNext()) {
+            sb.append(", ");
+            sb.append(indent);
+            key = it.next();
+            print(sb, key, indent);
+            sb.append(": ");
+            print(sb, map.get(key), indent);
+        }
+        sb.append(indent);
+        sb.append('}');
+    }
+    
+    public static void print(StringBuffer sb, Iterator it, String indent) {
+        if (!it.hasNext()) {
+            sb.append("[]");
+            return;
+        }
+        sb.append('[');
+        indent += INDT;
+        sb.append(indent);
+        print(sb, it.next(), indent);
+        while (it.hasNext()) {
+            sb.append(", ");
+            sb.append(indent);
+            print(sb, it.next(), indent);
+        }
+        sb.append(indent);
+        sb.append(']');
+    }
+    
+    public static void print(StringBuffer sb, Object value, String indent) {
+        if (value == null) 
+            sb.append("null");
+        else if (value instanceof Boolean)
+            sb.append((
+                ((Boolean) value).booleanValue() ? "true": "false"
+                ));
+        else if (value instanceof Number) 
+            sb.append(value);
+        else if (value instanceof String) 
+            repr(sb, (String) value);
+        else if (value instanceof Character) 
+            repr(sb, ((Character) value).toString());
+        else if (value instanceof Map)
+            print(sb, (Map) value, indent);
+        else if (value instanceof List) 
+            print(sb, ((List) value).iterator(), indent);
+        else if (value instanceof JSON) 
+            repr(sb, ((JSON) value).string);
+        else 
+            repr(sb, value.toString());
+    }
+    
+    public static String print(Object value) {
+        StringBuffer sb = new StringBuffer();
+        print(sb, value, CRLF);
         return sb.toString();
     }
     
