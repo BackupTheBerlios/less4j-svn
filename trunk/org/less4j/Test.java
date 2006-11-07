@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
-package org.less4j;
+package org.less4j; // less java for more applications
 
 import java.io.File;
 import java.util.Iterator;
@@ -38,6 +38,7 @@ public class Test {
                 try {
                     Object o = JSON.eval(input, 65355, 65355);
                     System.out.print(" = ");
+                    String output = JSON.repr(o);
                     System.out.println(JSON.print(o));
                     long t = System.currentTimeMillis();
                     for (int i = 0; i < scale; i++)
@@ -49,6 +50,23 @@ public class Test {
                         System.out.print(t);
                         System.out.print(" milliseconds, ");
                         System.out.print(input.length()*scale/t);
+                        System.out.print(" char/ms, ");
+                        System.out.print(scale/t);
+                        System.out.println(" object/ms");
+                    } else {
+                        System.out.println(" characters in zero milliseconds");
+                    }
+                    System.out.print("... ");
+                    t = System.currentTimeMillis();
+                    for (int i = 0; i < scale; i++)
+                        JSON.repr(o);
+                    t = System.currentTimeMillis() - t;
+                    System.out.print(output.length()*scale);
+                    if (t > 0) {
+                        System.out.print(" characters in ");
+                        System.out.print(t);
+                        System.out.print(" milliseconds, ");
+                        System.out.print(output.length()*scale/t);
                         System.out.print(" char/ms, ");
                         System.out.print(scale/t);
                         System.out.println(" object/ms");
@@ -70,8 +88,11 @@ public class Test {
      * @param args
      */
     public static void main(String[] args) {
+        int scale = 1000;
+        if (args.length > 0)
+            scale = Integer.parseInt(args[0]);
         try {
-            json("test", 10000);
+            json("test", scale);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }

@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
-package org.less4j;
+package org.less4j; // less java for more applications
 
 import java.util.Map;
 import java.util.HashMap;
@@ -603,8 +603,8 @@ cannot handle.
 
 */
 
-/* let's abuse JSON and give rise to a JSOE, JavaScript Object 
- * Expression. Here's a specification for the types and values
+/* let's abuse JSON and give rise to JSONR, a Regular JavaScript Object 
+ * Notation. Here's a specification for the types and values
  * of a fictonnary application
  * 
  * {
@@ -637,15 +637,14 @@ cannot handle.
  *       },                     // an object in its own namespace
  *     }
  * 
- * This is a quite practical specification for a JSON interface,
- * because it is easely portable wherever a JSON, hash maps and a 
- * Regular Expression engine are available (and that's pretty much 
- * everywhere now).
+ * This is a quite practical specification for public interfaces,
+ * because it is easely portable wherever JSON and a Regular Expression 
+ * engine are available (and that's pretty much everywhere now).
  * 
- * The biggest benefit of using JSON is to allow both the Java servlet
+ * A big benefit of using JSON is to allow both the Java servlet
  * controller and the JavaScript client application to apply the same
- * namespace definition, to do exactly the same validation but with two
- * different purpose.
+ * namespace definition, to perform different parts of the validation 
+ * in the same model.
  * 
  * An AJAX client will validate its input interactively, the Java server
  * does not have to bother with interaction errors and can focus on its
