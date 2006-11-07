@@ -24,7 +24,15 @@ import java.util.Iterator;
 import java.util.regex.Pattern;
 import java.text.StringCharacterIterator;
 
-
+/**
+ * A JSON regular pattern compiler, complete with extensible types and a safe
+ * validating interpreter for J2EE applications.
+ * 
+ * <p>...</p>
+ * 
+ * @author Laurent Szyster
+ *
+ */
 public class JSONR extends HashMap {
     
     private static final long serialVersionUID = 0L; 
@@ -69,8 +77,8 @@ public class JSONR extends HashMap {
     } 
     // at last some use for java interfaces ;-)
     
-    protected static class Undefined implements Type {
-        public static final Undefined singleton = new Undefined();
+    protected static class TypeUndefined implements Type {
+        public static final TypeUndefined singleton = new TypeUndefined();
         public Object value (Object instance) {return instance;}
         public Object eval (String string) {
             if (string.equals(JSON._null))
@@ -83,8 +91,8 @@ public class JSONR extends HashMap {
         public Object copy() {return singleton;}
     }
 
-    protected static class BooleanNotNull implements Type {
-        public static final BooleanNotNull singleton = new BooleanNotNull();
+    protected static class TypeBoolean implements Type {
+        public static final TypeBoolean singleton = new TypeBoolean();
         public Object value (Object data) throws Error {
             if (data instanceof Boolean)
                 return data;
@@ -104,8 +112,8 @@ public class JSONR extends HashMap {
         public Object copy() {return singleton;}
     }
 
-    protected static class IntegerNotNull implements Type {
-        public static final IntegerNotNull singleton = new IntegerNotNull();
+    protected static class TypeInteger implements Type {
+        public static final TypeInteger singleton = new TypeInteger();
         public Object value (Object data) throws Error {
             if (data instanceof Integer)
                 return data;
@@ -123,8 +131,8 @@ public class JSONR extends HashMap {
         public Object copy() {return singleton;}
     }
 
-    protected static class DoubleNotNull implements Type {
-        public static final DoubleNotNull singleton = new DoubleNotNull();
+    protected static class TypeDouble implements Type {
+        public static final TypeDouble singleton = new TypeDouble();
         public Object value (Object data) throws Error {
             if (data instanceof Double)
                 return data;
@@ -142,8 +150,8 @@ public class JSONR extends HashMap {
         public Object copy() {return singleton;}
     }
 
-    protected static class StringNotNull implements Type {
-        public static final StringNotNull singleton = new StringNotNull();
+    protected static class TypeString implements Type {
+        public static final TypeString singleton = new TypeString();
         public Object value (Object instance) throws Error {
             if (instance instanceof String) {
                 String s = (String) instance;
@@ -166,12 +174,12 @@ public class JSONR extends HashMap {
         public Object copy() {return singleton;}
     }
     
-    protected static class StringRegular implements Type {
+    protected static class TypeStringRegular implements Type {
         Pattern pattern;
-        public StringRegular (Pattern pattern) {
+        public TypeStringRegular (Pattern pattern) {
             this.pattern = pattern;
         } 
-        public StringRegular (String expression) {
+        public TypeStringRegular (String expression) {
             pattern = Pattern.compile(expression);
         } 
         public Object value (Object instance) throws Error {
@@ -191,14 +199,14 @@ public class JSONR extends HashMap {
         }
         public JSONR namespace() {return null;}
         public Iterator iterator() {return null;}
-        public Object copy() {return new StringRegular(this.pattern);}
+        public Object copy() {return new TypeStringRegular(this.pattern);}
     }
     
     private static final Integer _integer_zero = new Integer(0);
     
-    protected static class IntegerPositiveLTE implements Type {
+    protected static class TypeIntegerLTE implements Type {
         Integer limit;
-        public IntegerPositiveLTE (Integer gt) {this.limit = gt;}
+        public TypeIntegerLTE (Integer gt) {this.limit = gt;}
         public Object value (Object instance) throws Error {
             if (instance instanceof Integer) {
                 Integer i = (Integer) instance;
@@ -225,14 +233,14 @@ public class JSONR extends HashMap {
         }
         public JSONR namespace() {return null;}
         public Iterator iterator() {return null;}
-        public Object copy() {return new IntegerPositiveLTE(this.limit);}
+        public Object copy() {return new TypeIntegerLTE(this.limit);}
     }
 
     private static final Double _double_zero = new Double(0.0);
     
-    protected static class DoublePositiveLTE implements Type {
+    protected static class TypeDoubleLTE implements Type {
         Double limit;
-        public DoublePositiveLTE (Double gt) {this.limit = gt;}
+        public TypeDoubleLTE (Double gt) {this.limit = gt;}
         public Object value (Object instance) throws Error {
             if (instance instanceof Double) {
                 Double d = (Double) instance;
@@ -259,12 +267,12 @@ public class JSONR extends HashMap {
         }
         public JSONR namespace() {return null;}
         public Iterator iterator() {return null;}
-        public Object copy() {return new DoublePositiveLTE(this.limit);}
+        public Object copy() {return new TypeDoubleLTE(this.limit);}
     }
     
-    protected static class ObjectRegular implements Type {
-        public JSONR ns = null;
-        public ObjectRegular (JSONR ns) {this.ns = ns;}
+    protected static class TypeObject implements Type {
+        private JSONR ns = null;
+        public TypeObject (JSONR ns) {this.ns = ns;}
         public Object value (Object instance) throws Error {
             if (instance instanceof HashMap)
                 return instance;
@@ -276,12 +284,12 @@ public class JSONR extends HashMap {
         }
         public JSONR namespace() {return ns;}
         public Iterator iterator() {return null;}
-        public Object copy() {return new ObjectRegular(new JSONR(ns));}
+        public Object copy() {return new TypeObject(new JSONR(ns));}
     }
     
-    protected static class ArrayRegular implements Type {
-        public Type[] types = null;
-        public ArrayRegular (Type[] types) {this.types = types;}
+    protected static class TypeArray implements Type {
+        private Type[] types = null;
+        public TypeArray (Type[] types) {this.types = types;}
         public Object value (Object instance) throws Error {
             if (instance instanceof ArrayList)
                 return instance;
@@ -299,7 +307,7 @@ public class JSONR extends HashMap {
         }
         public JSONR namespace() {return null;}
         public Iterator iterator() {return new Simple.ObjectIterator(types);}
-        public Object copy() {return new ArrayRegular(types);}
+        public Object copy() {return new TypeArray(types);}
     }
     
     public static class Interpreter extends JSON.Interpreter {

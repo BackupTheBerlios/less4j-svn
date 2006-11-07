@@ -28,7 +28,7 @@ import java.text.StringCharacterIterator;
 /**
  * <p>A convenience class with static methods to serialize java objects as
  * JSON and to evaluate a strict JSON expression as a limited tree of the 
- * six Java types
+ * seven Java types
  * 
  * <blockquote>
  * <code>HashMap</code>, 
@@ -124,6 +124,19 @@ public class JSON {
         public Error(String message) {super(message);}
     }
     
+    /**
+     * <p>A strict JSON intepreter to evaluate a UNICODE string as seven 
+     * convenient Java types. Direct instanciation of an Interpreter is
+     * usefull to evaluate many strings under the same global constraints
+     * on their cumulated numbers of containers and iterations.</p>
+     * 
+     * <p>For a more common use, to evaluate a single string, the
+     * static methods JSON.eval, JSON.object and JSON.array should be
+     * used instead.</p> 
+     * 
+     * @author Laurent Szyster
+     *
+     */
     public static class Interpreter {
         
         protected int containers;
