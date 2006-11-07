@@ -24,85 +24,9 @@ import java.security.NoSuchAlgorithmException;
 
 public class Test {
     
-    private static byte[] sha1TextShort = (
-        "a relatively short string, but long enough to simulate a key or URL"
-        ).getBytes();
-    private static byte[] sha1TextLong = (
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL"
-        ).getBytes();
-    private static byte[] sha1TextHuge = (
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL" +
-        "a relatively short string, but long enough to simulate a key or URL"
-        ).getBytes();
+    private static String sha1Text = (
+        "a relatively short string, but long enough to simulate a key or URL "
+        );
     private static byte[] sha1Salt = "*9a7short1but2secret1key*".getBytes();
     
     public static long sha1SUN(int scale, byte[] sha1Text) 
@@ -155,6 +79,14 @@ public class Test {
     }
 
     public static void sha1(int scale) {
+        int i;
+        StringBuffer sb = new StringBuffer();
+        sb.append(sha1Text);
+        byte[] sha1TextShort = sb.toString().getBytes();
+        for (i=0;i<4;i++) sb.append(sb.toString());
+        byte[] sha1TextLong = sb.toString().getBytes();
+        for (i=0;i<4;i++) sb.append(sb.toString());
+        byte[] sha1TextHuge = sb.toString().getBytes();
         System.out.println("Jython SHA1");
         long jythonS = sha1Jython(scale, sha1TextShort);
         long jythonL = sha1Jython(scale/10, sha1TextLong);
