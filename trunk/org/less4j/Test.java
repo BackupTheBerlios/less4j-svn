@@ -19,14 +19,170 @@ package org.less4j; // less java for more applications
 import java.io.File;
 import java.util.Iterator;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Test {
     
-    public static boolean json(String dir, int scale) {
+    private static byte[] sha1TextShort = (
+        "a relatively short string, but long enough to simulate a key or URL"
+        ).getBytes();
+    private static byte[] sha1TextLong = (
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL"
+        ).getBytes();
+    private static byte[] sha1TextHuge = (
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL" +
+        "a relatively short string, but long enough to simulate a key or URL"
+        ).getBytes();
+    private static byte[] sha1Salt = "*9a7short1but2secret1key*".getBytes();
+    
+    public static long sha1SUN(int scale, byte[] sha1Text) 
+    throws NoSuchAlgorithmException {
+        MessageDigest md;
+        System.out.print(scale);
+        System.out.print(" message of ");
+        System.out.print(sha1Text.length);
+        System.out.print(" bytes digested in ");
+        long t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++) {
+            md = MessageDigest.getInstance("SHA1");
+            md.update(sha1Text);
+            md.update(sha1Salt);
+            md.digest();
+        }
+        t = System.currentTimeMillis() - t;
+        System.out.print(t);
+        if (t > 0) {
+            System.out.print(" ms or ");
+            System.out.print(scale/t);
+            System.out.println(" digests per ms.");
+        } else
+            System.out.println(" milliseconds.");
+        return t;
+    }
+    
+    public static long sha1Jython(int scale, byte[] sha1Text) {
+        SHA1 md;
+        System.out.print(scale);
+        System.out.print(" message of ");
+        System.out.print(sha1Text.length);
+        System.out.print(" bytes digested in ");
+        long t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++) {
+            md = new SHA1();
+            md.update(sha1Text);
+            md.update(sha1Salt);
+            md.hexdigest();
+        }
+        t = System.currentTimeMillis() - t;
+        System.out.print(t);
+        if (t > 0) {
+            System.out.print(" ms, ");
+            System.out.print(scale/t);
+            System.out.println(" digests per ms.");
+        } else
+            System.out.println(" milliseconds.");
+        return t;
+    }
+
+    public static void sha1(int scale) {
+        System.out.println("Jython SHA1");
+        long jythonS = sha1Jython(scale, sha1TextShort);
+        long jythonL = sha1Jython(scale/10, sha1TextLong);
+        long jythonH = sha1Jython(scale/100, sha1TextHuge);
+        System.out.println();
+        System.out.println("Java SHA1");
+        try {
+            long javaS = sha1SUN(scale, sha1TextShort);
+            long javaL = sha1SUN(scale/10, sha1TextLong);
+            long javaH = sha1SUN(scale/100, sha1TextHuge);
+            System.out.println();
+            System.out.print(sha1TextShort.length);
+            System.out.print(" bytes: Java 100 Jython ");
+            System.out.println(100*javaS/jythonS);
+            System.out.print(sha1TextLong.length);
+            System.out.print(" bytes: Java 100, Jython ");
+            System.out.println(100*javaL/jythonL);
+            System.out.print(sha1TextHuge.length);
+            System.out.print(" bytes: Java 100, Jython ");
+            System.out.println(100*javaH/jythonH);
+        } catch (NoSuchAlgorithmException e) {}
+    }
+    
+    public static void json(String dir, int scale) {
         String filename;
         String[] dirlist = (new File(dir)).list();
         if (dirlist == null)
-            return false;
+            return;
         
         dir += File.separatorChar; 
         Iterator filenames = Simple.iterator(dirlist);
@@ -79,7 +235,7 @@ public class Test {
                 }
             }
         }
-        return true;
+        return;
     }
 
     /**
@@ -92,7 +248,13 @@ public class Test {
         if (args.length > 0)
             scale = Integer.parseInt(args[0]);
         try {
-            json("test", scale);
+            if (args.length > 1) for (int i=1; i < args.length; i++) {
+                if (args[i].equals("JSON"))
+                    json("test", scale);
+                else if (args[i].equals("SHA1")) {
+                    sha1(scale);
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
