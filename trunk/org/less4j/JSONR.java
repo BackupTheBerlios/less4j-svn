@@ -300,38 +300,6 @@ public class JSONR {
             }
             return map;
         }
-        public HashMap filter(Map query) throws Error {
-            Type type;
-            String name;
-            String[] strings;
-            HashMap valid = new HashMap();
-            Iterator iter = query.keySet().iterator();
-            while (iter.hasNext()) {
-                name = (String) iter.next();
-                type = (Type) namespace.get(name);
-                strings = (String[]) query.get(name);
-                if (type != null && strings != null && strings.length > 0) {
-                    valid.put(name, type.eval(strings[0]));
-                }
-            }
-            return valid;
-        }
-        public HashMap match(Map query) throws Error {
-            Type type;
-            String name;
-            String[] strings;
-            HashMap valid = new HashMap();
-            Iterator iter = query.keySet().iterator();
-            while (iter.hasNext()) {
-                name = (String) iter.next();
-                type = (Type) namespace.get(name);
-                strings = (String[]) query.get(name);
-                if (type != null && strings != null && strings.length > 0) {
-                    valid.put(name, type.eval(strings[0]));
-                }
-            }
-            return valid;
-        }
     }
     
     public static class Interpreter extends JSON.Interpreter {
@@ -584,6 +552,40 @@ public class JSONR {
             throw new Error("invalid JSONR, not an array");
     }
     
+    public static HashMap filter(HashMap namespace, Map query) 
+    throws Error {
+        Type type;
+        String name;
+        String[] strings;
+        HashMap valid = new HashMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            type = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (type != null && strings != null && strings.length > 0) {
+                valid.put(name, type.eval(strings[0]));
+            }
+        }
+        return valid;
+    }
+    public static HashMap match(HashMap namespace, Map query) 
+    throws Error {
+        Type type;
+        String name;
+        String[] strings;
+        HashMap valid = new HashMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            type = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (type != null && strings != null && strings.length > 0) {
+                valid.put(name, type.eval(strings[0]));
+            }
+        }
+        return valid;
+    }
     public static HashMap match(
         TypeObject type, String json, int containers, int iterations
         ) 
