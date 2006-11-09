@@ -19,9 +19,7 @@ package org.less4j; // less java for more applications
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
  * <p>Public Names is a better URL protocol to <em>uniformely</em> encode a 

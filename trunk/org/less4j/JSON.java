@@ -26,23 +26,11 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
 /**
- * <p>A convenience class with static methods to serialize java objects as
- * JSON and to evaluate a strict JSON expression as a limited tree of the 
- * seven Java types
- * 
- * <blockquote>
- * <code>HashMap</code>, 
- * <code>ArrayList</code>, 
- * <code>String</code>, 
- * <code>Double</code>, 
- * <code>Integer</code>, 
- * <code>Boolean</code>, 
- * <code>null</code>
- * </blockquote>
- * 
- * enforcing safety limits on the number of containers and iterations 
- * evaluated, protecting the J2EE container JVM, CPU and RAM from
- * malicious JSON input.</p>
+ * <p>One convenience and static methods to serialize java objects as JSON,
+ * and a few more to evaluate a strict JSON expression as a <em>limited</em> 
+ * tree of basic Java instances, enforcing safety limits on the number of 
+ * containers and iterations evaluated, protecting the JVM, CPU and RAM 
+ * from malicious input.</p>
  * 
  * <h3>Evaluate Safely</h3>
  * 
@@ -57,14 +45,14 @@ import java.text.StringCharacterIterator;
  * and with at most 50 items, do:
  * 
  * <blockquote>
- * <pre>HashMap object = JSON.array("[...]", 1, 50);</pre>
+ * <pre>ArrayList object = JSON.array("[...]", 1, 50);</pre>
  * </blockquote>
  * 
  * To evaluate and validate a JSON string as an single array of at most
  * 5 records containing an average of 10 fields, do:
  * 
  * <blockquote>
- * <pre>HashMap object = JSON.array("[...]", 6, 55);</pre>
+ * <pre>ArrayList object = JSON.array("[...]", 6, 55);</pre>
  * </blockquote>
  * 
  * Of course this would also validate one object with five arrays of 
@@ -125,17 +113,32 @@ public class JSON {
     }
     
     /**
-     * <p>A strict JSON intepreter to evaluate a UNICODE string as seven 
-     * convenient Java types. Direct instanciation of an Interpreter is
-     * usefull to evaluate many strings under the same global constraints
-     * on their cumulated numbers of containers and iterations.</p>
+     * <p>A strict JSON intepreter to evaluate a UNICODE string as the 
+     * the six Java types
+     * 
+     * <blockquote>
+     * <code>HashMap</code>, 
+     * <code>ArrayList</code>, 
+     * <code>String</code>, 
+     * <code>Double</code>, 
+     * <code>Integer</code>, 
+     * <code>Boolean</code>
+     * </blockquote>
+     * 
+     * and the untyped <code>null</code> value.</p> 
+     * 
+     * <p>Direct instanciation of an Interpreter is usefull to evaluate many 
+     * strings under the same global constraints on their cumulated numbers 
+     * of containers and iterations.</p>
      * 
      * <p>For a more common use, to evaluate a single string, the
      * static methods JSON.eval, JSON.object and JSON.array should be
      * used instead.</p> 
      * 
+     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * 
      * @author Laurent Szyster
-     *
+     * @version 0.1.0
      */
     public static class Interpreter {
         

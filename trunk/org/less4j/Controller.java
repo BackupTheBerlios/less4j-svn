@@ -25,11 +25,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
 /**
- * <p>Applications derive their action servlets from this Controller
- * class, overriding the methods <code>doGet</code> and <code>doPost</code>
- * to implement control of a web 2.0 view of SQL relational database(s) 
- * and LDAP directory(ies), using one <code>Actor</code> instances 
- * for each request and response.</p>
+ * <p>A servlet class to derive application resource and action controllers
+ * using the <code>Actor</code> API.</p>
  * 
  * <h3>Usage</h3>
  * 

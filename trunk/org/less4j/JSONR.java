@@ -25,13 +25,27 @@ import java.util.regex.Pattern;
 import java.text.StringCharacterIterator;
 
 /**
- * A JSON regular pattern compiler, complete with basic types and a safe
- * validating interpreter for many J2EE applications.
+ * Regular patterns to evaluate and validate JSON input safely, as it is 
+ * intepreted.
  * 
  * <p>...</p>
  * 
+ * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
+ * <tr><td>null</td><td>an undefined type and value</td></tr>
+ * <td>true</td><td>a boolean value, true or false</td></tr>
+ * <td>0</td><td>any integer value</td></tr>
+ * <td>12</td><td>a positive integer lower or equal 12</td></tr>
+ * <td>1.0</td><td>a positive real lower or equal 1.0</td></tr>
+ * <td>""</td><td>any non empty string</td></tr>
+ * <td>"[a-z]*"</td><td>any string matching this regular expression</td></tr>
+ * </table>
+ * 
+ * <p>...</p>
+ * 
+ * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * 
  * @author Laurent Szyster
- *
+ * @version 0.1.0
  */
 public class JSONR {
     
@@ -44,34 +58,8 @@ public class JSONR {
         public Error(String message) {super(message);}
     }
     
-    /**
-     * <p>An interface for the interpretation of URL query string as
-     *  
-     * <code>String</code>,
-     * <code>Double</code>, 
-     * <code>Integer</code>,
-     * <code>Boolean</code> or 
-     * <code>null</code>
-
-     * and the validation of those types and values, enough to implement
-     * a consistent API to interpret and validate URL and JSON requests
-     * in the same application.</p>
-     */
     protected static interface Type {
-        /**
-         * <p>Validate an Object instance type and value.</p>
-         * 
-         * @param instance of undefined type
-         * @return true if the instance type and value are valid
-         */
         public Object value(Object instance) throws Error ;
-        /**
-         * <p>Evaluate a string as a valid Object instance type and value</p>
-         * 
-         * @param string representing a valid instance type and value
-         * @return the valid instance value, or
-         * @throws a <code>Namespace.Error</code> if the instance is invalid 
-         */
         public Object eval(String string) throws Error;
         public Type copy();
     } 
@@ -304,6 +292,27 @@ public class JSONR {
         }
     }
     
+    /**
+     * <p>A strict JSON intepreter to evaluate and a UNICODE string as the 
+     * the six Java types
+     * 
+     * <blockquote>
+     * <code>HashMap</code>, 
+     * <code>ArrayList</code>, 
+     * <code>String</code>, 
+     * <code>Double</code>, 
+     * <code>Integer</code>, 
+     * <code>Boolean</code>
+     * </blockquote>
+     * 
+     * and the untyped <code>null</code> value, matching the evaluated
+     * instances against a regular JSON pattern.</p> 
+     * 
+     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * 
+     * @author Laurent Szyster
+     * @version 0.1.0
+     */
     public static class Interpreter extends JSON.Interpreter {
         
         public Interpreter() {super();}

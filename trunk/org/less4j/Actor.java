@@ -60,12 +60,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue; // Yet, all is well that ends well.
 
 /**
- * <p>This Actor class provides simple implementations in Java 1.4.2 of  
- * practical interfaces between LDAP, SQL and the JSON object model in a 
- * RESTfull application of the web. It supports a "full-stack" framework, 
- * starting with no-nonsense logging and a cross-plateform protocol of 
- * identification and authorization in time, ending with a general audit 
- * that can track any paths of user interaction.</p>
+ * <p>A "full-stack" framework, starting with no-nonsense logging and a 
+ * cross-plateform protocol of identification and authorization in time, 
+ * ending with a general audit that can track any paths of user interaction,
+ * and in between a rich API to develop JSON interfaces for J2EE controllers
+ * of entreprise SQL and LDAP resources.</p>
  * 
  * <h3>Table of Content</h3>
  * 
