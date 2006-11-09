@@ -172,7 +172,7 @@ public class JSON {
             }
         }
         
-        public HashMap object(String json) throws Error {
+        public HashMap update(String json, HashMap map) throws Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -181,14 +181,14 @@ public class JSON {
                 if (c != '{')
                     throw error(" not an object");
                 else
-                    return (HashMap) object();
+                    return (HashMap) object(map);
             } finally {
                 buf = null;
                 it = null;
             }
         }
         
-        public ArrayList array(String json) throws Error {
+        public ArrayList append(String json, ArrayList list) throws Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -197,7 +197,7 @@ public class JSON {
                 if (c != '[')
                     throw error(" not an array");
                 else
-                    return (ArrayList) array();
+                    return (ArrayList) array(list);
             } finally {
                 buf = null;
                 it = null;
@@ -232,8 +232,8 @@ public class JSON {
         protected Object value() throws Error {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
-            case '{': {c = it.next(); return object();}
-            case '[': {c = it.next(); return array();}
+            case '{': {c = it.next(); return object(null);}
+            case '[': {c = it.next(); return array(null);}
             case '"': {c = it.next(); return string();}
             case '0': case '1': case '2': case '3': case '4':  
             case '5': case '6': case '7': case '8': case '9': 
@@ -269,13 +269,13 @@ public class JSON {
             }
         }
         
-        protected Object object() throws Error {
+        protected Object object(HashMap map) throws Error {
             String key; 
             Object val;
+            map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
                 throw error(" containers overflow");
             
-            HashMap map = new HashMap();
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
@@ -301,11 +301,11 @@ public class JSON {
             return map;
         }
         
-        protected Object array() throws Error {
+        protected Object array(ArrayList list) throws Error {
+            list = (list != null) ? list : new ArrayList();
             if (--containers < 0) 
                 throw error(" containers overflow");
             
-            ArrayList list = new ArrayList();
             Object token = value();
             while (token != ARRAY) {
                 if (token==COLON || token==COMMA || token==OBJECT)
@@ -422,7 +422,9 @@ public class JSON {
         String json, int containers, int iterations
         ) throws Error {
         if (json != null)
-            return (new Interpreter(containers, iterations)).object(json);
+            return (
+                new Interpreter(containers, iterations)
+                ).update(json, null);
         else
             throw new Error("null JSON string");
         }
@@ -431,11 +433,35 @@ public class JSON {
         String json, int containers, int iterations
         ) throws Error {
         if (json != null)
-            return (new Interpreter(containers, iterations)).array(json);
+            return (
+                new Interpreter(containers, iterations)
+                ).append(json, null);
         else
             throw new Error("null JSON string");
     }
             
+    public static boolean update(
+        String json, int containers, int iterations, HashMap map
+        ) {
+        if (json != null) try {
+            (new Interpreter(containers, iterations)).update(json, map);
+            return false;
+            
+        } catch (Error e) {}
+        return false;
+    }
+            
+    public static boolean append(
+        String json, int containers, int iterations, ArrayList list 
+        ) throws Error {
+        if (json != null) try {
+            (new Interpreter(containers, iterations)).append(json, null);
+            return false;
+            
+        } catch (Error e) {}
+        return false;
+    }
+                
     protected static final String _quote = "\\\"";
     protected static final String _back = "\\\\";
     protected static final String _slash = "\\/";

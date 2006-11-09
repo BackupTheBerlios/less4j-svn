@@ -32,12 +32,41 @@ import java.text.StringCharacterIterator;
  * 
  * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
  * <tr><td>null</td><td>an undefined type and value</td></tr>
- * <td>true</td><td>a boolean value, true or false</td></tr>
- * <td>0</td><td>any integer value</td></tr>
- * <td>12</td><td>a positive integer lower or equal 12</td></tr>
- * <td>1.0</td><td>a positive real lower or equal 1.0</td></tr>
- * <td>""</td><td>any non empty string</td></tr>
- * <td>"[a-z]*"</td><td>any string matching this regular expression</td></tr>
+ * <tr><td>true</td><td>a boolean value, true or false</td></tr>
+ * <tr><td>0</td><td>any integer value</td></tr>
+ * <tr><td>0.0</td><td>a real value</td></tr>
+ * <tr><td>""</td><td>any non empty string</td></tr>
+ * <tr><td>[]</td><td>a list of undefined types an values</td></tr>
+ * <tr><td>{}</td><td>an object of undefined names, types and values</td></tr>
+ * </table>
+ * 
+ * <p>...</p>
+ * 
+ * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
+ * <tr><td>12</td><td>a positive integer lower than or equal 12</td></tr>
+ * <tr><td>-1</td><td>an integer greater or equal -1</td></tr>
+ * <tr><td>-0.99</td><td>an real greater or equal -0.99</td></tr>
+ * <tr><td>1.0</td><td>a positive real lower than or equal 1.0</td></tr>
+ * <tr><td>"[a-z]*"</td><td>any string matching this regular expression</td></tr>
+ * </table>
+ * 
+ * <p>...</p>
+ * 
+ * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
+ * <tr><td>[12]</td><td>a list of zero or more integers between 1 and 12</td></tr>
+ * <tr><td>[-1.0]</td><td>a list of zero or more reals above -1.0</td></tr>
+ * <tr><td>[""]</td><td>a list of zero or more non-empty strings</td></tr>
+ * <tr>
+ * <td>["[a-z]*"]</td>
+ * <td>a list of zero or more strings matching this regular expression</td></tr>
+ * <tr>
+ * <td>["[a-z]+", 0.0, "", true]</td>
+ * <td>a fixed list of four typed instances, aka a row</td>
+ * </tr>
+ * <tr>
+ * <td>[["[a-z]+", 0.0, "", true]]</td>
+ * <td>a list of at least one row, aka a table</td>
+ * </tr>
  * </table>
  * 
  * <p>...</p>
@@ -252,7 +281,7 @@ public class JSONR {
             }
         public Object eval (String instance) throws Error {
             try {
-                return (new Interpreter()).array(instance, this);
+                return (new Interpreter()).array(instance, this, null);
             } catch (JSON.Error e) {
                 return null;
             }
@@ -274,7 +303,7 @@ public class JSONR {
             }
         public Object eval (String instance) throws Error {
             try {
-                return (new Interpreter()).object(instance, this);
+                return (new Interpreter()).object(instance, this, null);
             } catch (JSON.Error e) {
                 return null;
             }
@@ -331,7 +360,7 @@ public class JSONR {
             }
         }
         
-        protected HashMap object(String json, TypeObject type) 
+        protected HashMap object(String json, TypeObject type, HashMap map) 
         throws JSON.Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
@@ -341,14 +370,14 @@ public class JSONR {
                 if (c != '{')
                     throw error(" not an object");
                 else
-                    return (HashMap) object(type.namespace());
+                    return (HashMap) object(type.namespace(), map);
             } finally {
                 buf = null;
                 it = null;
             }
         }
         
-        protected ArrayList array(String json, TypeArray type) 
+        protected ArrayList array(String json, TypeArray type, ArrayList list) 
         throws JSON.Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
@@ -358,22 +387,22 @@ public class JSONR {
                 if (c != '[')
                     throw error(" not an array");
                 else
-                    return (ArrayList) array(type.iterator());
+                    return (ArrayList) array(type.iterator(), list);
             } finally {
                 buf = null;
                 it = null;
             }
         }
         
-        protected Object object(HashMap namespace) 
+        protected Object object(HashMap namespace, HashMap map) 
         throws JSON.Error {
             String name; 
             Object val;
+            map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
                 throw error(" containers overflow");
             
             Type type;
-            HashMap map = new HashMap();
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
@@ -403,12 +432,12 @@ public class JSONR {
             return map;
         }
         
-        protected Object array(Iterator types) 
+        protected Object array(Iterator types, ArrayList list) 
         throws JSON.Error {
+            list = (list != null) ? list : new ArrayList();
             if (--containers < 0) 
                 throw error(" containers overflow");
 
-            ArrayList list = new ArrayList();
             Type type = (Type) types.next();
             Object token = value(type);
             if (types.hasNext()) {
@@ -455,9 +484,9 @@ public class JSONR {
                     HashMap namespace = ((TypeObject) type).namespace();
                     c = it.next();
                     if (namespace.isEmpty())
-                        return object();
+                        return object(null);
                     else
-                        return object(namespace);
+                        return object(namespace, null);
                     }
                 else
                     throw error(" irregular object");
@@ -467,9 +496,9 @@ public class JSONR {
                     Iterator types = ((TypeArray) type).iterator();
                     c = it.next(); 
                     if (types.hasNext())
-                        return array(types);
+                        return array(types, null);
                     else
-                        return array();
+                        return array(null);
                 } else 
                 throw error(" irregular array");
                 }
@@ -575,7 +604,7 @@ public class JSONR {
     if (type instanceof TypeObject) 
         return (
             new Interpreter(containers, iterations)
-            ).object(json, ((TypeObject) type));
+            ).object(json, ((TypeObject) type), null);
     else
         throw new Error("not a JSONR object type");
     }
@@ -585,7 +614,7 @@ public class JSONR {
     if (type instanceof TypeArray) 
         return (
             new Interpreter(containers, iterations)
-            ).array(json, ((TypeArray) type));
+            ).array(json, ((TypeArray) type), null);
     else
         throw new Error("not a JSONR array type");
     }
@@ -634,5 +663,33 @@ public class JSONR {
         return valid;
     }
     
+    public boolean update(
+        String json, int containers, int iterations, HashMap map
+        ) 
+        throws JSON.Error {
+        if (type instanceof TypeObject) try { 
+            (
+                new Interpreter(containers, iterations)
+                ).object(json, ((TypeObject) type), map);
+            return true;
+            
+        } catch (JSON.Error e) {}
+        return false;
+    }
+            
+    public boolean append(
+        String json, int containers, int iterations, ArrayList list
+        ) 
+    throws JSON.Error {
+        if (type instanceof TypeArray) try { 
+            (
+                new Interpreter(containers, iterations)
+                ).array(json, ((TypeArray) type), list);
+            return true;
+            
+        } catch (JSON.Error e) {}
+        return false;
+    }
+            
 }
 
