@@ -293,20 +293,9 @@ public class JSONR {
     }
     
     /**
-     * <p>A strict JSON intepreter to evaluate and a UNICODE string as the 
-     * the six Java types
-     * 
-     * <blockquote>
-     * <code>HashMap</code>, 
-     * <code>ArrayList</code>, 
-     * <code>String</code>, 
-     * <code>Double</code>, 
-     * <code>Integer</code>, 
-     * <code>Boolean</code>
-     * </blockquote>
-     * 
-     * and the untyped <code>null</code> value, matching the evaluated
-     * instances against a regular JSON pattern.</p> 
+     * <p>A strict JSON intepreter to evaluate and validate a UNICODE string 
+     * as a limited tree of Java instances that matches a regular JSON pattern
+     * of types and values.</p> 
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 

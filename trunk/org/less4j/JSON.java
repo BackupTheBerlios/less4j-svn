@@ -113,8 +113,8 @@ public class JSON {
     }
     
     /**
-     * <p>A strict JSON intepreter to evaluate a UNICODE string as the 
-     * the six Java types
+     * <p>A strict JSON intepreter to evaluate a UNICODE string as a limited
+     * tree of the six Java types
      * 
      * <blockquote>
      * <code>HashMap</code>, 

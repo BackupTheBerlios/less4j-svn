@@ -22,10 +22,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 /**
- * <p>Public Names is a better URL protocol to <em>uniformely</em> encode a 
- * <em>well-articulated context graph</em> of UNICODE strings, it can be 
- * applied to bring some intelligent order to semantic chaos in network 
- * applications (see http://laurentszyster.be/blog/public-names).</p>
+ * <p>A protocol to encode <em>well-articulated context graph</em> of 
+ * UNICODE strings, it may bring some intelligent order to semantic chaos 
+ * in network applications.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
