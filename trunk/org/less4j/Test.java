@@ -79,6 +79,7 @@ public class Test {
     }
 
     public static void sha1(int scale) {
+        scale = scale*10;
         int i;
         StringBuffer sb = new StringBuffer();
         sb.append(sha1Text);
@@ -182,10 +183,13 @@ public class Test {
         try {
             if (args.length > 1) for (int i=1; i < args.length; i++) {
                 if (args[i].equals("JSON"))
-                    json("test", scale);
+                    json("test/json", scale);
                 else if (args[i].equals("SHA1")) {
                     sha1(scale);
                 }
+            } else {
+                json("test/json", scale);
+                sha1(scale);
             }
         } catch (Exception e) {
             e.printStackTrace(System.err);
