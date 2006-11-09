@@ -73,7 +73,7 @@ public class JSONR {
          * @throws a <code>Namespace.Error</code> if the instance is invalid 
          */
         public Object eval(String string) throws Error;
-        public Object copy();
+        public Type copy();
     } 
     // at last some use for java interfaces ;-)
     
@@ -86,7 +86,7 @@ public class JSONR {
             else
                 return string;
             }
-        public Object copy() {return singleton;}
+        public Type copy() {return singleton;}
     }
 
     protected static class TypeBoolean implements Type {
@@ -105,7 +105,7 @@ public class JSONR {
             else
                 throw new Error("boolean error");
         }
-        public Object copy() {return singleton;}
+        public Type copy() {return singleton;}
     }
 
     protected static class TypeInteger implements Type {
@@ -122,7 +122,7 @@ public class JSONR {
             } else
                 throw new Error("not an integer");
         }
-        public Object copy() {return singleton;}
+        public Type copy() {return singleton;}
     }
 
     protected static class TypeDouble implements Type {
@@ -139,7 +139,7 @@ public class JSONR {
             } else
                 throw new Error("not a double");
         }
-        public Object copy() {return singleton;}
+        public Type copy() {return singleton;}
     }
 
     protected static class TypeString implements Type {
@@ -160,7 +160,7 @@ public class JSONR {
             else
                 return string;
         }
-        public Object copy() {return singleton;}
+        public Type copy() {return singleton;}
     }
     
     protected static class TypeStringRegular implements Type {
@@ -186,7 +186,7 @@ public class JSONR {
             else
                 throw new Error("irregular string");
         }
-        public Object copy() {return new TypeStringRegular(this.pattern);}
+        public Type copy() {return new TypeStringRegular(this.pattern);}
     }
     
     private static final Integer _integer_zero = new Integer(0);
@@ -218,7 +218,7 @@ public class JSONR {
             } else
                 throw new Error("not an integer");
         }
-        public Object copy() {return new TypeIntegerLTE(this.limit);}
+        public Type copy() {return new TypeIntegerLTE(this.limit);}
     }
 
     private static final Double _double_zero = new Double(0.0);
@@ -250,10 +250,10 @@ public class JSONR {
             } else
                 throw new Error("not a double");
         }
-        public Object copy() {return new TypeDoubleLTE(this.limit);}
+        public Type copy() {return new TypeDoubleLTE(this.limit);}
     }
     
-    public static class TypeArray implements Type {
+    protected static class TypeArray implements Type {
         private Type[] types = null;
         public TypeArray (Type[] types) {this.types = types;}
         public Object value (Object instance) throws Error {
@@ -264,20 +264,18 @@ public class JSONR {
             }
         public Object eval (String instance) throws Error {
             try {
-                return (new Interpreter(65355, 65355)).array(
-                    instance, this.iterator()
-                    );
+                return (new Interpreter()).array(instance, this);
             } catch (JSON.Error e) {
                 return null;
             }
         }
         public Iterator iterator() {return new Simple.ObjectIterator(types);}
-        public Object copy() {
+        public Type copy() {
             return new TypeArray(types);
             }
     }
     
-    public static class TypeObject implements Type {
+    protected static class TypeObject implements Type {
         private HashMap namespace = null;
         public TypeObject (HashMap ns) {namespace = ns;}
         public Object value (Object instance) throws Error {
@@ -287,10 +285,14 @@ public class JSONR {
                 throw new Error("not an object");
             }
         public Object eval (String instance) throws Error {
-            throw new Error("use JSON instead");
+            try {
+                return (new Interpreter()).object(instance, this);
+            } catch (JSON.Error e) {
+                return null;
+            }
         }
         public HashMap namespace() {return namespace;}
-        public Object copy() {
+        public Type copy() {
             String name;
             HashMap map = new HashMap();
             Iterator iter = namespace.keySet().iterator();
@@ -298,11 +300,13 @@ public class JSONR {
                 name = (String) iter.next();
                 map.put(name, ((Type) namespace.get(name)).copy());
             }
-            return map;
+            return new TypeObject(map);
         }
     }
     
     public static class Interpreter extends JSON.Interpreter {
+        
+        public Interpreter() {super();}
         
         public Interpreter(int containers, int iterations) {
             super(containers, iterations);
@@ -316,7 +320,20 @@ public class JSONR {
             return new Error(sb.toString());
         }
         
-        public HashMap object(String json, HashMap ns) 
+        public Object eval(String json, JSONR jsonr) 
+        throws JSON.Error {
+            buf = new StringBuffer();
+            it = new StringCharacterIterator(json);
+            try {
+                c = it.first();
+                return (HashMap) value(jsonr.type);
+            } finally {
+                buf = null;
+                it = null;
+            }
+        }
+        
+        protected HashMap object(String json, TypeObject type) 
         throws JSON.Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
@@ -326,14 +343,14 @@ public class JSONR {
                 if (c != '{')
                     throw error(" not an object");
                 else
-                    return (HashMap) object(ns);
+                    return (HashMap) object(type.namespace());
             } finally {
                 buf = null;
                 it = null;
             }
         }
         
-        public ArrayList array(String json, Iterator types) 
+        protected ArrayList array(String json, TypeArray type) 
         throws JSON.Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
@@ -343,7 +360,7 @@ public class JSONR {
                 if (c != '[')
                     throw error(" not an array");
                 else
-                    return (ArrayList) array(types);
+                    return (ArrayList) array(type.iterator());
             } finally {
                 buf = null;
                 it = null;
@@ -370,7 +387,7 @@ public class JSONR {
                 name = (String) token;
                 type = (Type) namespace.get(name);
                 if (type == null)
-                    throw error(" invalid name ", name);
+                    throw error(" no type for ", name);
                 
                 if (value() == COLON) {
                     val = value(type);
@@ -495,7 +512,7 @@ public class JSONR {
         
     }
     
-    public static Type compile(Object regular) {
+    protected static Type compile(Object regular) {
         if (regular == null) {
             return TypeUndefined.singleton;
         } else if (regular instanceof String) {
@@ -538,70 +555,86 @@ public class JSONR {
         } return null;
     }
     
-    public static TypeObject object(Object regular) throws Error {
-        if (regular instanceof HashMap)
-            return (TypeObject) compile(regular);
-        else
-            throw new Error("invalid JSONR, not an object");
-    }
+    protected Type type = null;
     
-    public static TypeArray array(Object regular) throws Error {
-        if (regular instanceof ArrayList)
-            return (TypeArray) compile(regular);
-        else
-            throw new Error("invalid JSONR, not an array");
-    }
+    protected JSONR(Type type) {this.type = type;}
     
-    public static HashMap filter(HashMap namespace, Map query) 
-    throws Error {
-        Type type;
-        String name;
-        String[] strings;
-        HashMap valid = new HashMap();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            type = (Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (type != null && strings != null && strings.length > 0) {
-                valid.put(name, type.eval(strings[0]));
-            }
-        }
-        return valid;
+    public JSONR(JSONR jsonr) {type = jsonr.type.copy();}
+    
+    public JSONR(Object regular) {type = compile(regular);}
+    
+    public JSONR(String jsonr) throws JSON.Error {
+        type = compile((new JSON.Interpreter()).eval(jsonr));
     }
-    public static HashMap match(HashMap namespace, Map query) 
-    throws Error {
-        Type type;
-        String name;
-        String[] strings;
-        HashMap valid = new HashMap();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            type = (Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (type != null && strings != null && strings.length > 0) {
-                valid.put(name, type.eval(strings[0]));
-            }
-        }
-        return valid;
-    }
-    public static HashMap match(
-        TypeObject type, String json, int containers, int iterations
-        ) 
+
+    public Object eval(String json, int containers, int iterations) 
     throws JSON.Error {
+        return (new Interpreter(containers, iterations)).eval(json, this);
+    }
+
+    public HashMap object(String json, int containers, int iterations) 
+    throws JSON.Error {
+    if (type instanceof TypeObject) 
         return (
             new Interpreter(containers, iterations)
-            ).object(json, type.namespace());
-        }
-            
-    public static ArrayList match(
-        TypeArray type, String json, int containers, int iterations
-        ) 
-    throws JSON.Error {
-        return (new Interpreter(containers, iterations)).array(
-            json, type.iterator()
-            );
+            ).object(json, ((TypeObject) type));
+    else
+        throw new Error("not a JSONR object type");
     }
+            
+    public ArrayList array(String json, int containers, int iterations) 
+    throws JSON.Error {
+    if (type instanceof TypeArray) 
+        return (
+            new Interpreter(containers, iterations)
+            ).array(json, ((TypeArray) type));
+    else
+        throw new Error("not a JSONR array type");
+    }
+            
+    public HashMap filter(Map query) 
+    throws Error {
+        if (!(type instanceof TypeObject))
+            throw new Error("not a JSONR object type");
+        
+        Type type;
+        String name;
+        String[] strings;
+        HashMap namespace = ((TypeObject) this.type).namespace();
+        HashMap valid = new HashMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            type = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (type != null && strings != null && strings.length > 0) {
+                valid.put(name, type.eval(strings[0]));
+            }
+        }
+        return valid;
+    }
+    
+    public HashMap match(Map query) 
+    throws Error {
+        if (!(type instanceof TypeObject))
+            throw new Error("not a JSONR object type");
+        
+        Type type;
+        String name;
+        String[] strings;
+        HashMap namespace = ((TypeObject) this.type).namespace();
+        HashMap valid = new HashMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            type = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (type != null && strings != null && strings.length > 0) {
+                valid.put(name, type.eval(strings[0]));
+            }
+        }
+        return valid;
+    }
+    
 }
 

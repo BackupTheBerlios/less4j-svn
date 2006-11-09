@@ -139,11 +139,13 @@ public class JSON {
      */
     public static class Interpreter {
         
-        protected int containers;
-        protected int iterations;
         protected char c;
         protected CharacterIterator it;
         protected StringBuffer buf;
+        protected int containers = 65355;
+        protected int iterations = 65355;
+        
+        public Interpreter() {}
         
         public Interpreter(
             int containers, int iterations
