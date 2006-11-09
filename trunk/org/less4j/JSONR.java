@@ -219,7 +219,7 @@ public class JSONR {
                 else if (limit.compareTo(i) >= 0)
                     return i;
                 else
-                    throw new Error("integer positive overflow");
+                    throw new Error("positive integer overflow");
             } else
                 throw new Error("not an integer");
         }
@@ -231,11 +231,37 @@ public class JSONR {
                 else if (limit.compareTo(i) >= 0)
                     return i;
                 else
-                    throw new Error("integer positive overflow");
+                    throw new Error("positive integer overflow");
             } else
                 throw new Error("not an integer");
         }
         public Type copy() {return new TypeIntegerLTE(this.limit);}
+    }
+
+    protected static class TypeIntegerGT implements Type {
+        Integer limit;
+        public TypeIntegerGT (Integer gt) {this.limit = gt;}
+        public Object value (Object instance) throws Error {
+            if (instance instanceof Integer) {
+                Integer i = (Integer) instance;
+                if (limit.compareTo(i) < 0)
+                    return i;
+                else
+                    throw new Error("integer overflow");
+            } else
+                throw new Error("not an integer");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null) { 
+                Integer i = new Integer(string);
+                if (limit.compareTo(i) < 0)
+                    return i;
+                else
+                    throw new Error("integer overflow");
+            } else
+                throw new Error("not an integer");
+        }
+        public Type copy() {return new TypeIntegerGT(this.limit);}
     }
 
     private static final Double _double_zero = new Double(0.0);
@@ -251,7 +277,7 @@ public class JSONR {
                 else if (limit.compareTo(d) >= 0)
                     return d;
                 else
-                    throw new Error("double positive overflow");
+                    throw new Error("positive double overflow");
             } else
                 throw new Error("not a double");
         }
@@ -263,11 +289,37 @@ public class JSONR {
                 else if (limit.compareTo(d) >= 0)
                     return d;
                 else
-                    throw new Error("double positive overflow");
+                    throw new Error("positive double overflow");
             } else
                 throw new Error("not a double");
         }
         public Type copy() {return new TypeDoubleLTE(this.limit);}
+    }
+    
+    protected static class TypeDoubleGT implements Type {
+        Double limit;
+        public TypeDoubleGT (Double gt) {this.limit = gt;}
+        public Object value (Object instance) throws Error {
+            if (instance instanceof Double) {
+                Double d = (Double) instance;
+                if (limit.compareTo(d) < 0)
+                    return d;
+                else
+                    throw new Error("double overflow");
+            } else
+                throw new Error("not a double");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null) { 
+                Double d = new Double(string);
+                if (limit.compareTo(d) < 0)
+                    return d;
+                else
+                    throw new Error("double overflow");
+            } else
+                throw new Error("not a double");
+        }
+        public Type copy() {return new TypeDoubleGT(this.limit);}
     }
     
     protected static class TypeArray implements Type {
@@ -549,11 +601,23 @@ public class JSONR {
             else
                 return new TypeStringRegular(s);
         } else if (regular instanceof Integer) {
-            Integer i = (Integer) regular;
-            if (i.longValue() == 0)
+            Integer d = (Integer) regular;
+            int cmpr = d.compareTo(_double_zero); 
+            if (cmpr == 0)
                 return TypeInteger.singleton;
+            else if (cmpr > 0)
+                return new TypeIntegerLTE(d);
             else
-                return new TypeIntegerLTE(i);
+                return new TypeIntegerGT(d);
+        } else if (regular instanceof Double) {
+            Double d = (Double) regular;
+            int cmpr = d.compareTo(_double_zero); 
+            if (cmpr == 0)
+                return TypeDouble.singleton;
+            else if (cmpr > 0)
+                return new TypeDoubleLTE(d);
+            else
+                return new TypeDoubleGT(d);
         } else if (regular instanceof Boolean) {
             return TypeBoolean.singleton;
         } else if (regular instanceof ArrayList) {
