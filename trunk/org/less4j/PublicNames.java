@@ -36,161 +36,10 @@ import java.util.NoSuchElementException;
  */
 public class PublicNames {
     
-    private static final char _COLON = ':';
-    private static final char _COMMA = ',';
-
-    public static void netunicode (String[] strings, StringBuffer sb) {
-        String string;
-        for (int i = 0; i < strings.length; i++) {
-            string = strings[i];
-            sb.append(string.length());
-            sb.append(_COLON);
-            sb.append(string);
-            sb.append(_COMMA);
-        }
-    }
-
-    public static String netunicode (String[] strings) {
-        StringBuffer sb = new StringBuffer();
-        netunicode(strings, sb);
-        return sb.toString();
-    }
-    
-    public static void netunicode (ArrayList items, StringBuffer sb) {
-        Object item;
-        Iterator iter = items.iterator();
-        while(iter.hasNext()) {
-            item = iter.next();
-            if (item instanceof String) {
-                sb.append(((String)item).length());
-                sb.append(_COLON);
-                sb.append((String)item);
-                sb.append(_COMMA);
-            } else if (item instanceof ArrayList) {
-                sb.append(netunicode((ArrayList)item));
-            }
-        }
-    }
-
-    public static String netunicode (ArrayList items) {
-        StringBuffer sb = new StringBuffer();
-        netunicode(items, sb);
-        return sb.toString();
-    }
-
-    /**
-     * Decode a buffer of netunicodes as a new ArrayList of Strings,
-     * maybe stripping out any null netunicoded strings (ie. the 
-     * netnull literal "0:,"), returns <code>null</code> if the buffer
-     * does not contain at least one netunicoded string.
-     * 
-     * @param buffer
-     * @param strip
-     * @return a non-empty ArrayList or null
-     */
-    public static ArrayList netunidecode (String buffer, boolean nostrip) {
-        ArrayList list = null;
-        int size = buffer.length();
-        int prev = 0;
-        int pos, length, next;
-        while (prev < size) {
-            pos = buffer.indexOf (_COLON, prev);
-            if (pos < 1) {
-                prev = size;
-            } else {
-                try {
-                    length = Integer.parseInt(buffer.substring (prev, pos));
-                } catch (NumberFormatException e) {
-                    prev = size;
-                    continue;
-                }
-                next = pos + length + 1;
-                if (next >= size) {
-                    prev = size;
-                } else if (buffer.charAt(next) == _COMMA) {
-                    if (nostrip || next-pos > 1) {
-                        if (list == null) list = new ArrayList();
-                        list.add(buffer.substring (pos+1, next));
-                        };
-                    prev = next + 1;
-                } else {
-                    prev = size;
-                }
-            }
-        }
-        return list;
-    }
-
-    public static ArrayList netunidecode (String buffer) {
-        return netunidecode(buffer, false);
-    }
-
-    /**
-     * A iterator of netunicoded strings, leaner on memory than the static 
-     * method <code>netunidecode</code> method.
-     * 
-     * @author Laurent Szyster
-     */
-    private static class Netiterate implements Iterator {
-        private String buffer;
-        private String item;
-        private int size;
-        private int prev = 0;
-        private int pos, length, next;
-        private boolean nostrip;
-        public Netiterate(String encoded, boolean strip) {
-            buffer = encoded;
-            size = buffer.length();
-            nostrip = !strip;
-            next();
-        }
-        public boolean hasNext() {
-            return item != null;
-            }
-        public Object next() throws NoSuchElementException {
-            if (item == null) 
-                throw new NoSuchElementException();
-            
-            Object result = (Object)item;
-            item = null;
-            while (prev < size) {
-                pos = buffer.indexOf (_COLON, prev);
-                if (pos < 1) {
-                    prev = size;
-                } else {
-                    try {
-                        length = Integer.parseInt(
-                            buffer.substring (prev, pos)
-                            );
-                    } catch (NumberFormatException e) {
-                        prev = size;
-                    }
-                    next = pos + length + 1;
-                    if (next >= size) {
-                        prev = size;
-                    } else if (buffer.charAt(next) == _COMMA) {
-                        if (nostrip || next-pos > 1) {
-                            item = buffer.substring (pos+1, next);
-                            };
-                        prev = next + 1;
-                    } else {
-                        prev = size;
-                    }
-                }
-            }
-            return result;
-        }
-        public void remove() {} // optional interfaces? what else now ...
-    }
-    
-    public static Iterator netiterate(String encoded) {
-        return new Netiterate(encoded, true);
-    }
-    
     public static String validate (
         String encoded, HashSet field, int horizon
         ) {
-        Iterator names = netiterate(encoded);
+        Iterator names = Netunicode.iterator(encoded);
         if (!names.hasNext()) {
             if (field.contains(encoded))
                 return null;
@@ -212,7 +61,7 @@ public class PublicNames {
             } while (names.hasNext());
             if (valid.size() > 1) {
                 Collections.sort(valid);
-                return netunicode (valid);
+                return Netunicode.encode(valid.iterator());
 
             }
             if (valid.size() > 0) {
@@ -227,7 +76,7 @@ public class PublicNames {
     public static String validate (
         String encoded, HashSet field, int horizon, ArrayList tree
         ) {
-        Iterator names = netiterate(encoded);
+        Iterator names = Netunicode.iterator(encoded);
         if (!names.hasNext()) {
             if (field.contains(encoded))
                 return null;
@@ -256,7 +105,7 @@ public class PublicNames {
             } while (names.hasNext());
             if (valid.size() > 1) {
                 Collections.sort(valid);
-                return netunicode (valid);
+                return Netunicode.encode(valid.iterator());
 
             }
             if (valid.size() > 0) {
@@ -297,7 +146,7 @@ public class PublicNames {
             } while (names.hasNext());
             if (valid.size() > 1) {
                 Collections.sort(valid);
-                return netunicode (valid);
+                return Netunicode.encode(valid.iterator());
 
             }
             if (valid.size() > 0) {
