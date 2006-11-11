@@ -16,12 +16,14 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
+import java.math.BigDecimal;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
-
 import java.util.regex.Pattern;
+
 import java.text.StringCharacterIterator;
 
 /**
@@ -34,7 +36,8 @@ import java.text.StringCharacterIterator;
  * <tr><td>null</td><td>an undefined type and value</td></tr>
  * <tr><td>true</td><td>a boolean value, true or false</td></tr>
  * <tr><td>0</td><td>any integer value</td></tr>
- * <tr><td>0.0</td><td>a real value</td></tr>
+ * <tr><td>0.0</td><td>any double value</td></tr>
+ * <tr><td>10.1</td><td>a one digit decimal value lower than 10.1</td></tr>
  * <tr><td>""</td><td>any non empty string</td></tr>
  * <tr><td>[]</td><td>a list of undefined types an values</td></tr>
  * <tr><td>{}</td><td>an object of undefined names, types and values</td></tr>
@@ -44,9 +47,10 @@ import java.text.StringCharacterIterator;
  * 
  * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
  * <tr><td>12</td><td>a positive integer lower than or equal 12</td></tr>
- * <tr><td>-1</td><td>an integer greater or equal -1</td></tr>
- * <tr><td>-0.99</td><td>an real greater or equal -0.99</td></tr>
- * <tr><td>1.0</td><td>a positive real lower than or equal 1.0</td></tr>
+ * <tr><td>-1</td><td>an integer greater than -1</td></tr>
+ * <tr><td>-1.0</td><td>a double greater than -1.0</td></tr>
+ * <tr><td>-9.99</td><td>a two digit greater or equal than -9.99</td></tr>
+ * <tr><td>1.0</td><td>a positive double lower than or equal 1.0</td></tr>
  * <tr><td>"[a-z]*"</td><td>any string matching this regular expression</td></tr>
  * </table>
  * 
@@ -128,14 +132,22 @@ public class JSONR {
     protected static class TypeInteger implements Type {
         public static final TypeInteger singleton = new TypeInteger();
         public Object value (Object data) throws Error {
-            if (data instanceof Integer)
+            if (data instanceof Integer || data instanceof Long)
                 return data;
             else
                 throw new Error("not an integer");
         }
         public Object eval (String string) throws Error {
             if (string != null) {
-                return new Integer(string);
+                try {
+                    return new Integer(string);
+                } catch (Exception ie) {
+                    try {
+                        return new Long(string);
+                    } catch (Exception le) {
+                        throw new Error("not an integer");
+                    }
+                }
             } else
                 throw new Error("not an integer");
         }
@@ -157,6 +169,29 @@ public class JSONR {
                 throw new Error("not a double");
         }
         public Type copy() {return singleton;}
+    }
+
+    protected static class TypeDecimal implements Type {
+        private int scale;
+        private int round = BigDecimal.ROUND_HALF_DOWN;
+        public TypeDecimal (int scale) {
+            this.scale = scale;
+        } 
+        public Object value (Object data) throws Error {
+            if (data instanceof Double) {
+                return (
+                    new BigDecimal(((Double) data).doubleValue())
+                    ).setScale(scale, round);
+            } else
+                throw new Error("not a decimal");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null) {
+                return (new BigDecimal(string)).setScale(scale, round);
+            } else
+                throw new Error("not a decimal");
+        }
+        public Type copy() {return new TypeDecimal(scale);}
     }
 
     protected static class TypeString implements Type {
@@ -203,7 +238,7 @@ public class JSONR {
             else
                 throw new Error("irregular string");
         }
-        public Type copy() {return new TypeStringRegular(this.pattern);}
+        public Type copy() {return new TypeStringRegular(pattern);}
     }
     
     private static final Integer _integer_zero = new Integer(0);
@@ -220,12 +255,8 @@ public class JSONR {
                     return i;
                 else
                     throw new Error("positive integer overflow");
-            } else
-                throw new Error("not an integer");
-        }
-        public Object eval (String string) throws Error {
-            if (string != null) { 
-                Integer i = new Integer(string);
+            } else if (instance instanceof Long) {
+                Long i = (Long) instance;
                 if (i.compareTo(_integer_zero) < 0)
                     throw new Error("integer not positive");
                 else if (limit.compareTo(i) >= 0)
@@ -235,7 +266,33 @@ public class JSONR {
             } else
                 throw new Error("not an integer");
         }
-        public Type copy() {return new TypeIntegerLTE(this.limit);}
+        public Object eval (String string) throws Error {
+            if (string != null) {
+                try {
+                    Integer i = new Integer(string);
+                    if (i.compareTo(_integer_zero) < 0)
+                        throw new Error("integer not positive");
+                    else if (limit.compareTo(i) >= 0)
+                        return i;
+                    else
+                        throw new Error("positive integer overflow");
+                } catch (Exception ie) {
+                    try {
+                        Long i = new Long(string);
+                        if (i.compareTo(_integer_zero) < 0)
+                            throw new Error("integer not positive");
+                        else if (limit.compareTo(i) >= 0)
+                            return i;
+                        else
+                            throw new Error("positive integer overflow");
+                    } catch (Exception le) {
+                        throw new Error("not an integer");
+                    }
+                }
+            } else
+                throw new Error("not an integer");
+        }
+        public Type copy() {return new TypeIntegerLTE(limit);}
     }
 
     protected static class TypeIntegerGT implements Type {
@@ -247,21 +304,39 @@ public class JSONR {
                 if (limit.compareTo(i) < 0)
                     return i;
                 else
-                    throw new Error("integer overflow");
-            } else
-                throw new Error("not an integer");
-        }
-        public Object eval (String string) throws Error {
-            if (string != null) { 
-                Integer i = new Integer(string);
+                    throw new Error("negative integer overflow");
+            } else if (instance instanceof Long) {
+                Long i = (Long) instance;
                 if (limit.compareTo(i) < 0)
                     return i;
                 else
-                    throw new Error("integer overflow");
+                    throw new Error("negative integer overflow");
+            } else
+                    throw new Error("not an integer");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null) { 
+                try {
+                    Integer i = new Integer(string);
+                    if (limit.compareTo(i) < 0)
+                        return i;
+                    else
+                        throw new Error("negative integer overflow");
+                } catch (Exception ie) {
+                    try {
+                        Long i = new Long(string);
+                        if (limit.compareTo(i) < 0)
+                            return i;
+                        else
+                            throw new Error("negative integer overflow");
+                    } catch (Exception le) {
+                        throw new Error("not an integer");
+                    }
+                }
             } else
                 throw new Error("not an integer");
         }
-        public Type copy() {return new TypeIntegerGT(this.limit);}
+        public Type copy() {return new TypeIntegerGT(limit);}
     }
 
     private static final Double _double_zero = new Double(0.0);
@@ -293,7 +368,7 @@ public class JSONR {
             } else
                 throw new Error("not a double");
         }
-        public Type copy() {return new TypeDoubleLTE(this.limit);}
+        public Type copy() {return new TypeDoubleLTE(limit);}
     }
     
     protected static class TypeDoubleGT implements Type {
@@ -305,7 +380,7 @@ public class JSONR {
                 if (limit.compareTo(d) < 0)
                     return d;
                 else
-                    throw new Error("double overflow");
+                    throw new Error("negative double overflow");
             } else
                 throw new Error("not a double");
         }
@@ -315,11 +390,85 @@ public class JSONR {
                 if (limit.compareTo(d) < 0)
                     return d;
                 else
-                    throw new Error("double overflow");
+                    throw new Error("negative double overflow");
             } else
                 throw new Error("not a double");
         }
-        public Type copy() {return new TypeDoubleGT(this.limit);}
+        public Type copy() {return new TypeDoubleGT(limit);}
+    }
+    
+    protected static class TypeDecimalLTE implements Type {
+        Double limit;
+        private int scale;
+        private int round = BigDecimal.ROUND_HALF_DOWN;
+        public TypeDecimalLTE (Double gt, int scale) {
+            this.limit = gt;
+            this.scale = scale;
+        } 
+        public Object value (Object instance) throws Error {
+            if (instance instanceof Double) {
+                Double d = (Double) instance;
+                if (d.compareTo(_double_zero) < 0)
+                    throw new Error("decimal not positive");
+                else if (limit.compareTo(d) >= 0)
+                    return (
+                        new BigDecimal(d.doubleValue())
+                        ).setScale(scale, round);
+                else
+                    throw new Error("positive decimal overflow");
+            } else
+                throw new Error("not a decimal");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null) { 
+                Double d = new Double(string);
+                if (d.compareTo(_double_zero) < 0)
+                    throw new Error("decimal not positive");
+                else if (limit.compareTo(d) >= 0)
+                    return (
+                        new BigDecimal(d.doubleValue())
+                        ).setScale(scale, round);
+                else
+                    throw new Error("positive decimal overflow");
+            } else
+                throw new Error("not a decimal");
+        }
+        public Type copy() {return new TypeDecimalLTE(limit, scale);}
+    }
+    
+    protected static class TypeDecimalGT implements Type {
+        Double limit;
+        private int scale;
+        private int round = BigDecimal.ROUND_HALF_DOWN;
+        public TypeDecimalGT (Double gt, int scale) {
+            this.limit = gt;
+            this.scale = scale;
+        } 
+        public Object value (Object instance) throws Error {
+            if (instance instanceof Double) {
+                Double d = (Double) instance;
+                if (limit.compareTo(d) < 0)
+                    return (
+                        new BigDecimal(d.doubleValue())
+                        ).setScale(scale, round);
+                else
+                    throw new Error("negative decimal overflow");
+            } else
+                throw new Error("not a decimal");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null) { 
+                Double d = new Double(string);
+                if (limit.compareTo(d) < 0)
+                    return (
+                        new BigDecimal(d.doubleValue())
+                        ).setScale(scale, round);
+                else
+                    throw new Error("negative decimal overflow");
+            } else
+                throw new Error("not a decimal");
+        }
+        public Type copy() {return new TypeDecimalGT(limit, scale);}
     }
     
     protected static class TypeArray implements Type {
@@ -341,7 +490,7 @@ public class JSONR {
         public Iterator iterator() {return new Simple.ObjectIterator(types);}
         public Type copy() {
             return new TypeArray(types);
-            }
+        }
     }
     
     protected static class TypeObject implements Type {
@@ -564,19 +713,19 @@ public class JSONR {
                 if (next('r') && next('u') && next('e')) {
                     c = it.next(); return type.value(Boolean.TRUE);
                 } else
-                    throw error(" 'true' expected ", c);
+                    throw error(" 'true' expected ");
             }
             case 'f': {
                 if (next('a') && next('l') && next('s') && next('e')) {
                     c = it.next(); return type.value(Boolean.FALSE);
                 } else
-                    throw error(" 'false' expected ", c);
+                    throw error(" 'false' expected ");
             }
             case 'n': {
                 if (next('u') && next('l') && next('l')) {
                     c = it.next(); return type.value(null);
                 } else
-                    throw error(" 'null' expected ", c);
+                    throw error(" 'null' expected ");
             }
             case ',': {c = it.next(); return COMMA;} 
             case ':': {c = it.next(); return COLON;}
@@ -591,6 +740,8 @@ public class JSONR {
         
     }
     
+    static Pattern _decimal_pattern = Pattern.compile("^[0-9]+[.](9+)$");
+    
     protected static Type compile(Object regular) {
         if (regular == null) {
             return TypeUndefined.singleton;
@@ -602,7 +753,7 @@ public class JSONR {
                 return new TypeStringRegular(s);
         } else if (regular instanceof Integer) {
             Integer d = (Integer) regular;
-            int cmpr = d.compareTo(_double_zero); 
+            int cmpr = d.compareTo(_integer_zero); 
             if (cmpr == 0)
                 return TypeInteger.singleton;
             else if (cmpr > 0)
@@ -612,7 +763,16 @@ public class JSONR {
         } else if (regular instanceof Double) {
             Double d = (Double) regular;
             int cmpr = d.compareTo(_double_zero); 
-            if (cmpr == 0)
+            String decimals = 
+                _decimal_pattern.matcher(d.toString()).group(1);
+            if (decimals != null && decimals.length() > 0)
+                if (cmpr == 0)
+                    return new TypeDecimal(decimals.length());
+                else if (cmpr > 0)
+                    return new TypeDecimalLTE(d, decimals.length());
+                else
+                    return new TypeDecimalGT(d, decimals.length());
+            else if (cmpr == 0)
                 return TypeDouble.singleton;
             else if (cmpr > 0)
                 return new TypeDoubleLTE(d);

@@ -347,7 +347,12 @@ public class JSON {
                 digits();
                 return new Double(buf.toString());
             } else {
-                return new Integer(buf.toString());
+                String s = buf.toString();
+                try {
+                    return new Integer(s);
+                } catch (Exception e) {
+                    return new Long(s);
+                }
             }
         }
         
@@ -554,10 +559,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append((((Boolean) value).booleanValue() ? _true : _false));
-        else if (value instanceof Double) 
-            sb.append((Double) value);
-        else if (value instanceof Integer) 
-            sb.append((Integer) value);
+        else if (value instanceof Number) 
+            sb.append(value);
         else if (value instanceof String) 
             strb(sb, (String) value);
         else if (value instanceof Character) 
