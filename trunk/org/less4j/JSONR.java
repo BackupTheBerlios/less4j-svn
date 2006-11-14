@@ -82,6 +82,12 @@ import java.text.StringCharacterIterator;
  */
 public class JSONR {
     
+    protected static final String NOT_A_JSONR_ARRAY_TYPE = 
+        "not a JSONR array type";
+
+    protected static final String NOT_A_JSONR_OBJECT_TYPE = 
+        "not a JSONR object type";
+
     private static final long serialVersionUID = 0L; 
     
     private static final String _null_string = "";
@@ -534,6 +540,12 @@ public class JSONR {
      */
     public static class Interpreter extends JSON.Interpreter {
         
+        protected static final String IRREGULAR_ARRAY = " irregular array";
+        protected static final String IRREGULAR_OBJECT = " irregular object";
+        protected static final String PARTIAL_ARRAY = " partial array";
+        protected static final String ARRAY_OVERFLOW = " array overflow";
+        protected static final String NO_TYPE_FOR = " no type for ";
+
         public Interpreter() {super();}
         
         public Interpreter(int containers, int iterations) {
@@ -569,7 +581,7 @@ public class JSONR {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c != '{')
-                    throw error(" not an object");
+                    throw error(NOT_AN_OBJECT);
                 else
                     return (HashMap) object(type.namespace(), map);
             } finally {
@@ -586,7 +598,7 @@ public class JSONR {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c != '[')
-                    throw error(" not an array");
+                    throw error(NOT_AN_ARRAY);
                 else
                     return (ArrayList) array(type.iterator(), list);
             } finally {
@@ -601,33 +613,33 @@ public class JSONR {
             Object val;
             map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
-                throw error(" containers overflow");
+                throw error(CONTAINERS_OVERFLOW);
             
             Type type;
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
-                    throw error(" string expected ");
+                    throw error(STRING_EXPECTED);
                 
                 if (--iterations < 0) 
-                    throw error(" iterations overflow");
+                    throw error(ITERATIONS_OVERFLOW);
                 
                 name = (String) token;
                 type = (Type) namespace.get(name);
                 if (type == null)
-                    throw error(" no type for ", name);
+                    throw error(NO_TYPE_FOR, name);
                 
                 if (value() == COLON) {
                     val = value(type);
                     if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
-                        throw error(" value expected");
+                        throw error(VALUE_EXPECTED);
                     
                     map.put(name, val);
                     token = value();
                     if (token == COMMA)
                         token = value(type);
                 } else {
-                    throw error(" colon expected ", c);
+                    throw error(COLON_EXPECTED, c);
                 }
             }
             return map;
@@ -637,17 +649,17 @@ public class JSONR {
         throws JSON.Error {
             list = (list != null) ? list : new ArrayList();
             if (--containers < 0) 
-                throw error(" containers overflow");
+                throw error(CONTAINERS_OVERFLOW);
 
             Type type = (Type) types.next();
             Object token = value(type);
             if (types.hasNext()) {
                 while (token != ARRAY) {
                     if (token==COLON || token==COMMA || token==OBJECT)
-                        throw error(" value expected");
+                        throw error(VALUE_EXPECTED);
                     
                     if (--iterations < 0) 
-                        throw error(" iterations overflow");
+                        throw error(ITERATIONS_OVERFLOW);
                  
                     list.add(token);
                     token = value(); 
@@ -655,17 +667,17 @@ public class JSONR {
                         if (types.hasNext())
                             token = value((Type) types.next());
                         else
-                            throw error(" array overflow");
+                            throw error(ARRAY_OVERFLOW);
                 }
                 if (types.hasNext())
-                    throw error(" partial array");
+                    throw error(PARTIAL_ARRAY);
             } else {
                 while (token != ARRAY) {
                     if (token==COLON || token==COMMA || token==OBJECT)
-                        throw error(" value expected");
+                        throw error(VALUE_EXPECTED);
                     
                     if (--iterations < 0) 
-                        throw error(" iterations overflow");
+                        throw error(ITERATIONS_OVERFLOW);
                  
                     list.add(token);
                     token = value(); 
@@ -690,7 +702,7 @@ public class JSONR {
                         return object(namespace, null);
                     }
                 else
-                    throw error(" irregular object");
+                    throw error(IRREGULAR_OBJECT);
                 }
             case '[': {
                 if (type instanceof TypeArray) { 
@@ -701,7 +713,7 @@ public class JSONR {
                     else
                         return array(null);
                 } else 
-                throw error(" irregular array");
+                throw error(IRREGULAR_ARRAY);
                 }
             case '"': {c = it.next(); return type.value(string());}
             case '0': case '1': case '2': case '3': case '4':  
@@ -713,28 +725,28 @@ public class JSONR {
                 if (next('r') && next('u') && next('e')) {
                     c = it.next(); return type.value(Boolean.TRUE);
                 } else
-                    throw error(" 'true' expected ");
+                    throw error(TRUE_EXPECTED);
             }
             case 'f': {
                 if (next('a') && next('l') && next('s') && next('e')) {
                     c = it.next(); return type.value(Boolean.FALSE);
                 } else
-                    throw error(" 'false' expected ");
+                    throw error(FALSE_EXPECTED);
             }
             case 'n': {
                 if (next('u') && next('l') && next('l')) {
                     c = it.next(); return type.value(null);
                 } else
-                    throw error(" 'null' expected ");
+                    throw error(NULL_EXPECTED);
             }
             case ',': {c = it.next(); return COMMA;} 
             case ':': {c = it.next(); return COLON;}
             case ']': {c = it.next(); return ARRAY;} 
             case '}': {c = it.next(); return OBJECT;}
             case JSON.DONE:
-                throw error(" unexpected end");
+                throw error(UNEXPECTED_END);
             default: 
-                throw error(" unexpected character ", c);
+                throw error(UNEXPECTED_CHARACTER, c);
             }
         }
         
@@ -830,7 +842,7 @@ public class JSONR {
             new Interpreter(containers, iterations)
             ).object(json, ((TypeObject) type), null);
     else
-        throw new Error("not a JSONR object type");
+        throw new Error(NOT_A_JSONR_OBJECT_TYPE);
     }
             
     public ArrayList array(String json, int containers, int iterations) 
@@ -840,13 +852,13 @@ public class JSONR {
             new Interpreter(containers, iterations)
             ).array(json, ((TypeArray) type), null);
     else
-        throw new Error("not a JSONR array type");
+        throw new Error(NOT_A_JSONR_ARRAY_TYPE);
     }
             
     public HashMap filter(Map query) 
     throws Error {
         if (!(type instanceof TypeObject))
-            throw new Error("not a JSONR object type");
+            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
         
         Type type;
         String name;
@@ -868,7 +880,7 @@ public class JSONR {
     public HashMap match(Map query) 
     throws Error {
         if (!(type instanceof TypeObject))
-            throw new Error("not a JSONR object type");
+            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
         
         Type type;
         String name;

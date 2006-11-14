@@ -26,77 +26,10 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
 /**
- * <p>One convenience and static methods to serialize java objects as JSON,
- * and a few more to evaluate a strict JSON expression as a <em>limited</em> 
- * tree of basic Java instances, enforcing safety limits on the number of 
- * containers and iterations evaluated, protecting the JVM, CPU and RAM 
- * from malicious input.</p>
- * 
- * <h3>Evaluate Safely</h3>
- * 
- * <p>To evaluate and validate a JSON string as a single object, without
- * depth and with at most 25 simple properties, do:
- * 
- * <blockquote>
- * <pre>HashMap object = JSON.object("{...}", 1, 25);</pre>
- * </blockquote>
- * 
- * To evaluate and validate a JSON string as a single array, without depth 
- * and with at most 50 items, do:
- * 
- * <blockquote>
- * <pre>ArrayList object = JSON.array("[...]", 1, 50);</pre>
- * </blockquote>
- * 
- * To evaluate and validate a JSON string as an single array of at most
- * 5 records containing an average of 10 fields, do:
- * 
- * <blockquote>
- * <pre>ArrayList object = JSON.array("[...]", 6, 55);</pre>
- * </blockquote>
- * 
- * Of course this would also validate one object with five arrays of 
- * different sizes, for instance 6, 12, 3, 19 and 8. The purpose is not
- * to validate complex structure but to prevent abuse of a network interface
- * that could otherwise instanciate thousands of instances from a 16KB JSON 
- * string, straining the JVM stack, the garbage collector and the J2EE 
- * container most precious resources: memory!</p>
- * 
- * <p>Note that this is a simple recursive-end-tail interpreter, not a stream
- * parser. JSON strings are expected to be complete, which is the desired
- * use case of JSON in the synchronized web controller of some entreprise 
- * database application.</p>
- * 
- * <h3>JSON Serialization</h3>
- * 
- * <p>...</p>
- * 
- * <h3>A Simple Convenience</h3>
- * 
- * <p>...
- * 
- * <blockquote>
- * <pre>JSON serialized = JSON("[1,2,3,{},\"...\"]");</pre>
- * </blockquote>
- * 
- * or
- * 
- * <blockquote>
- * <pre>ArrayList list = new ArrayList();
- *list.add(1); list.add(2); list.add(3);
- *list.add(new HashMap()); list.add("...");
- *JSON serialized = JSON(list);</pre>
- * </blockquote>
- * 
- * ...
- * 
- * <blockquote>
- * <pre>HashMap object = new HashMap;
- *object.put("name", serialized);
- *JSON.repr(object);</pre>
- * </blockquote>
- * 
- * ...</p>
+ * <p>A convenience with static methods to serialize java objects as JSON
+ * strings and to evaluate a strict JSON expression as a <em>limited</em> 
+ * tree of basic Java instances, protecting the JVM, CPU and RAM from 
+ * malicious input.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -105,6 +38,7 @@ import java.text.StringCharacterIterator;
  */
 public class JSON {
     
+    private static final String NULL_JSON_STRING = "null JSON string";
     protected static final char DONE = CharacterIterator.DONE;
     
     public static class Error extends Exception {
@@ -114,13 +48,14 @@ public class JSON {
     
     /**
      * <p>A strict JSON intepreter to evaluate a UNICODE string as a limited
-     * tree of the six Java types
+     * tree of the seven Java types
      * 
      * <blockquote>
      * <code>HashMap</code>, 
      * <code>ArrayList</code>, 
      * <code>String</code>, 
      * <code>Double</code>, 
+     * <code>Long</code>, 
      * <code>Integer</code>, 
      * <code>Boolean</code>
      * </blockquote>
@@ -141,6 +76,35 @@ public class JSON {
      * @version 0.1.0
      */
     public static class Interpreter {
+        
+        protected static final String ILLEGAL_UNICODE_SEQUENCE = 
+            " illegal UNICODE sequence";
+        protected static final String ILLEGAL_ESCAPE_SEQUENCE = 
+            " illegal escape sequence ";
+        protected static final String COLON_EXPECTED = 
+            " colon expected ";
+        protected static final String VALUE_EXPECTED = 
+            " value expected";
+        protected static final String ITERATIONS_OVERFLOW = 
+            " iterations overflow";
+        protected static final String STRING_EXPECTED = 
+            " string expected ";
+        protected static final String CONTAINERS_OVERFLOW = 
+            " containers overflow";
+        protected static final String UNEXPECTED_CHARACTER = 
+            " unexpected character ";
+        protected static final String UNEXPECTED_END = 
+            " unexpected end";
+        protected static final String NULL_EXPECTED = 
+            " 'null' expected ";
+        protected static final String FALSE_EXPECTED = 
+            " 'false' expected ";
+        protected static final String TRUE_EXPECTED = 
+            " 'true expected ";
+        protected static final String NOT_AN_OBJECT = 
+            " not an object";
+        protected static final String NOT_AN_ARRAY = 
+            " not an array";
         
         protected char c;
         protected CharacterIterator it;
@@ -179,7 +143,7 @@ public class JSON {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c != '{')
-                    throw error(" not an object");
+                    throw error(NOT_AN_OBJECT);
                 else
                     return (HashMap) object(map);
             } finally {
@@ -195,7 +159,7 @@ public class JSON {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c != '[')
-                    throw error(" not an array");
+                    throw error(NOT_AN_ARRAY);
                 else
                     return (ArrayList) array(list);
             } finally {
@@ -244,28 +208,28 @@ public class JSON {
                 if (next('r') && next('u') && next('e')) {
                     c = it.next(); return Boolean.TRUE;
                 } else
-                    throw error(" 'true' expected ", c);
+                    throw error(TRUE_EXPECTED, c);
             }
             case 'f': {
                 if (next('a') && next('l') && next('s') && next('e')) {
                     c = it.next(); return Boolean.FALSE;
                 } else
-                    throw error(" 'false' expected ", c);
+                    throw error(FALSE_EXPECTED, c);
             }
             case 'n': {
                 if (next('u') && next('l') && next('l')) {
                     c = it.next(); return null;
                 } else
-                    throw error(" 'null' expected ", c);
+                    throw error(NULL_EXPECTED, c);
             }
             case ',': {c = it.next(); return COMMA;} 
             case ':': {c = it.next(); return COLON;}
             case ']': {c = it.next(); return ARRAY;} 
             case '}': {c = it.next(); return OBJECT;}
             case DONE:
-                throw error(" unexpected end");
+                throw error(UNEXPECTED_END);
             default: 
-                throw error(" unexpected character ", c);
+                throw error(UNEXPECTED_CHARACTER, c);
             }
         }
         
@@ -274,28 +238,28 @@ public class JSON {
             Object val;
             map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
-                throw error(" containers overflow");
+                throw error(CONTAINERS_OVERFLOW);
             
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
-                    throw error(" string expected ");
+                    throw error(STRING_EXPECTED);
                 
                 if (--iterations < 0) 
-                    throw error(" iterations overflow");
+                    throw error(ITERATIONS_OVERFLOW);
                 
                 key = (String) token;
                 if (value() == COLON) {
                     val = value();
                     if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
-                        throw error(" value expected");
+                        throw error(VALUE_EXPECTED);
                     
                     map.put(key, val);
                     token = value();
                     if (token == COMMA)
                         token = value();
                 } else {
-                    throw error(" colon expected ", c);
+                    throw error(COLON_EXPECTED, c);
                 }
             }
             return map;
@@ -304,15 +268,15 @@ public class JSON {
         protected Object array(ArrayList list) throws Error {
             list = (list != null) ? list : new ArrayList();
             if (--containers < 0) 
-                throw error(" containers overflow");
+                throw error(CONTAINERS_OVERFLOW);
             
             Object token = value();
             while (token != ARRAY) {
                 if (token==COLON || token==COMMA || token==OBJECT)
-                    throw error(" value expected");
+                    throw error(VALUE_EXPECTED);
                 
                 if (--iterations < 0) 
-                    throw error(" iterations overflow");
+                    throw error(ITERATIONS_OVERFLOW);
                 
                 list.add(token);
                 token = value(); 
@@ -372,10 +336,10 @@ public class JSON {
                         case 'r': buf.append('\r'); break;
                         case 't': buf.append('\t'); break;
                         default: 
-                            throw error(" illegal escape sequence ", c);
+                            throw error(ILLEGAL_ESCAPE_SEQUENCE, c);
                     }
                 } else if (c == DONE) {
-                    throw error(" unexpected end");
+                    throw error(UNEXPECTED_END);
                 } else {
                     buf.append(c); 
                 }
@@ -405,9 +369,9 @@ public class JSON {
                     val = (val << 4) + c - 'K';
                     break;
                 case DONE:
-                    throw error(" unexpected end");
+                    throw error(UNEXPECTED_END);
                 default:
-                    throw error(" illegal UNICODE sequence");
+                    throw error(ILLEGAL_UNICODE_SEQUENCE);
                 }
             }
             return (char) val;
@@ -420,7 +384,7 @@ public class JSON {
         if (json != null)
             return (new Interpreter(containers, iterations)).eval(json);
         else
-            throw new Error("null JSON string");
+            throw new Error(NULL_JSON_STRING);
     }
     
     public static HashMap object(
@@ -431,7 +395,7 @@ public class JSON {
                 new Interpreter(containers, iterations)
                 ).update(json, null);
         else
-            throw new Error("null JSON string");
+            throw new Error(NULL_JSON_STRING);
         }
         
     public static ArrayList array(
@@ -442,7 +406,7 @@ public class JSON {
                 new Interpreter(containers, iterations)
                 ).append(json, null);
         else
-            throw new Error("null JSON string");
+            throw new Error(NULL_JSON_STRING);
     }
             
     public static boolean update(
@@ -630,7 +594,7 @@ public class JSON {
     
     protected static void repr(StringBuffer sb, Object value, String indent) {
         if (value == null) 
-            sb.append("null");
+            sb.append(_null);
         else if (value instanceof Boolean)
             sb.append((
                 ((Boolean) value).booleanValue() ? "true": "false"
