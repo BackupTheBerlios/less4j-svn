@@ -441,7 +441,7 @@ public class JSON {
     protected static final String _ctrl_r = "\\r";
     protected static final String _ctrl_t = "\\t";
     
-    public static void strb(StringBuffer sb, String s) {
+    public static StringBuffer strb(StringBuffer sb, String s) {
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
         for (char c = it.first(); c != DONE; c = it.next()) {
@@ -462,12 +462,13 @@ public class JSON {
             }
         }
         sb.append('"');
+        return sb;
     }
     
     protected static final String _unicode = "\\u";
     protected static final char[] _hex = "0123456789ABCDEF".toCharArray();
     
-    protected static void unicode(StringBuffer sb, char c) {
+    protected static StringBuffer unicode(StringBuffer sb, char c) {
         sb.append(_unicode);
         int n = c;
         for (int i = 0; i < 4; ++i) {
@@ -475,6 +476,7 @@ public class JSON {
             sb.append(_hex[digit]);
             n <<= 4;
         }
+        return sb;
     }
 
     protected static final String _object = "{}";
@@ -483,12 +485,12 @@ public class JSON {
     protected static final String _true = "true";
     protected static final String _false = "false";
     
-    public static void strb(StringBuffer sb, Map map) {
+    public static StringBuffer strb(StringBuffer sb, Map map) {
         Object key; 
         Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
             sb.append(_object);
-            return;
+            return sb;
         }
         sb.append('{');
         key = it.next();
@@ -503,12 +505,13 @@ public class JSON {
             strb(sb, map.get(key));
         }
         sb.append('}');
+        return sb;
     }
     
-    public static void strb(StringBuffer sb, Iterator it) {
+    public static StringBuffer strb(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
-            return;
+            return sb;
         }
         sb.append('[');
         strb(sb, it.next());
@@ -517,9 +520,10 @@ public class JSON {
             strb(sb, it.next());
         }
         sb.append(']');
+        return sb;
     }
     
-    public static void strb(StringBuffer sb, Object value) {
+    public static StringBuffer strb(StringBuffer sb, Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -538,23 +542,24 @@ public class JSON {
             strb(sb, ((JSON) value).string);
         else 
             strb(sb, value.toString());
+        return sb;
     }
     
     public static String str(Object value) {
-        StringBuffer sb = new StringBuffer();
-        strb(sb, value);
-        return sb.toString();
+        return strb(new StringBuffer(), value).toString();
     }
     
     protected static final String _crlf = "\r\n";
     protected static final String _indent = "  ";
     
-    protected static void repr(StringBuffer sb, Map map, String indent) {
+    protected static StringBuffer repr(
+        StringBuffer sb, Map map, String indent
+        ) {
         Object key; 
         Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
             sb.append("{}");
-            return;
+            return sb;
         }
         indent += _indent;
         sb.append('{');
@@ -573,12 +578,15 @@ public class JSON {
         }
         sb.append(indent);
         sb.append('}');
+        return sb;
     }
     
-    protected static void repr(StringBuffer sb, Iterator it, String indent) {
+    protected static StringBuffer repr(
+        StringBuffer sb, Iterator it, String indent
+        ) {
         if (!it.hasNext()) {
             sb.append("[]");
-            return;
+            return sb;
         }
         sb.append('[');
         indent += _indent;
@@ -591,9 +599,12 @@ public class JSON {
         }
         sb.append(indent);
         sb.append(']');
+        return sb;
     }
     
-    protected static void repr(StringBuffer sb, Object value, String indent) {
+    protected static StringBuffer repr(
+        StringBuffer sb, Object value, String indent
+        ) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -614,12 +625,11 @@ public class JSON {
             strb(sb, ((JSON) value).string);
         else 
             strb(sb, value.toString());
+        return sb;
     }
     
     public static String repr(Object value) {
-        StringBuffer sb = new StringBuffer();
-        repr(sb, value, _crlf);
-        return sb.toString();
+        return repr(new StringBuffer(), value, _crlf).toString();
     }
     
     public String string;
