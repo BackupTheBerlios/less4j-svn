@@ -60,7 +60,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue; // Yet, all is well that ends well.
 
 /**
- * <p>A "full-stack" framework that provides a simple flat API to develop 
+ * <p>A "full-stack" framework that provides a convenient API to develop 
  * XML and JSON interfaces for J2EE controllers of entreprise SQL and LDAP 
  * resources, starting with no-nonsense logging and a cross-plateform protocol 
  * of identification and authorization in time, ending with a general audit 
