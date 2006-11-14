@@ -25,8 +25,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
 /**
- * <p>A servlet class to derive application controllers, configure, test and 
- * apply the <code>Actor</code>'s programming intefaces.</p>
+ * <p>A stateless servlet to configure, test and apply the <code>Actor</code>
+ * programming intefaces, the base class from which to derive RESTfull
+ * application resource controllers (aka SOA).</p>
  * 
  * <h3>Usage</h3>
  * 
