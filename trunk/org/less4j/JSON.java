@@ -58,8 +58,8 @@ public class JSON {
     }
     
     /**
-     * <p>A strict JSON intepreter to evaluate a UNICODE string as a  
-     * tree of basic Java instances with maximum limits on the number
+     * <p>A relatively strict JSON intepreter to evaluate a UNICODE string 
+     * as a tree of basic Java instances with maximum limits on the number
      * of containers and iterations, protecting the JVM, CPU and RAM from 
      * malicious input.</p>
      * 
