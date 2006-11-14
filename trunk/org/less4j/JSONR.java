@@ -27,8 +27,9 @@ import java.util.regex.Pattern;
 import java.text.StringCharacterIterator;
 
 /**
- * Regular patterns to evaluate and validate JSON input safely, as it is 
- * intepreted.
+ * Compile JSON Regular patterns to validate the input values against 
+ * practical numeric ranges, regular expression patterns, object declarations, 
+ * variable length collections and fixed length records definitions.
  * 
  * <p>...</p>
  * 
@@ -530,7 +531,7 @@ public class JSONR {
     
     /**
      * <p>A strict JSON intepreter to evaluate and validate a UNICODE string 
-     * as a limited tree of Java instances that matches a regular JSON pattern
+     * as a limited tree of Java instances that matches a regular pattern
      * of types and values.</p> 
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>

@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * A few simple utilities. Probably too simple for language experts, but 
- * damn usefull for J2EE application developers ... 
+ * A few utilities too simple for language experts, but damn usefull for 
+ * application developers.
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -138,7 +138,6 @@ public class Simple {
      * was read, if the buffer has overflowed or if an exception was raised.
 
       * @param name the file's name
-      * @param encoding to decode UNICODE string from the bytes read
       * @return a UNICODE String or null 
      */
      static public String fileBuffer (String name) {

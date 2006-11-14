@@ -25,8 +25,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
 /**
- * <p>A servlet class to derive application resource and action controllers
- * using the <code>Actor</code> API.</p>
+ * <p>A servlet class to derive application controllers, configure, test and 
+ * apply the <code>Actor</code>'s programming intefaces.</p>
  * 
  * <h3>Usage</h3>
  * 

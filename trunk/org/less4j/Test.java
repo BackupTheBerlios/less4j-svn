@@ -22,6 +22,13 @@ import java.util.Iterator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * A simple test suite of less4j base classes: Simple, SHA1, Netunicode, 
+ * PublicNames, JSON and JSONR.
+ * 
+ * @author Laurent Szyster
+ *
+ */
 public class Test {
     
     private static String sha1Text = (

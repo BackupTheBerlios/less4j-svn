@@ -27,9 +27,20 @@ import java.text.StringCharacterIterator;
 
 /**
  * <p>A convenience with static methods to serialize java objects as JSON
- * strings and to evaluate a strict JSON expression as a <em>limited</em> 
- * tree of basic Java instances, protecting the JVM, CPU and RAM from 
- * malicious input.</p>
+ * strings and to evaluate a strict JSON expression as a limited
+ * tree of the seven Java types
+ * 
+ * <blockquote>
+ * <code>HashMap</code>, 
+ * <code>ArrayList</code>, 
+ * <code>String</code>, 
+ * <code>Double</code>, 
+ * <code>Long</code>, 
+ * <code>Integer</code>, 
+ * <code>Boolean</code>
+ * </blockquote>
+ * 
+ * and the untyped <code>null</code> value.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -47,20 +58,10 @@ public class JSON {
     }
     
     /**
-     * <p>A strict JSON intepreter to evaluate a UNICODE string as a limited
-     * tree of the seven Java types
-     * 
-     * <blockquote>
-     * <code>HashMap</code>, 
-     * <code>ArrayList</code>, 
-     * <code>String</code>, 
-     * <code>Double</code>, 
-     * <code>Long</code>, 
-     * <code>Integer</code>, 
-     * <code>Boolean</code>
-     * </blockquote>
-     * 
-     * and the untyped <code>null</code> value.</p> 
+     * <p>A strict JSON intepreter to evaluate a UNICODE string as a  
+     * tree of basic Java instances with maximum limits on the number
+     * of containers and iterations, protecting the JVM, CPU and RAM from 
+     * malicious input.</p>
      * 
      * <p>Direct instanciation of an Interpreter is usefull to evaluate many 
      * strings under the same global constraints on their cumulated numbers 
