@@ -538,6 +538,8 @@ public class JSON {
             strb(sb, (Map) value);
         else if (value instanceof List) 
             strb(sb, ((List) value).iterator());
+        else if (value instanceof Object[]) 
+            strb(sb, Simple.iterator((Object[]) value));
         else if (value instanceof JSON) 
             strb(sb, ((JSON) value).string);
         else 
