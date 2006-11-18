@@ -51,13 +51,9 @@ import javax.naming.directory.BasicAttributes;
 
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest; // ... and only a few good men.
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Cookie;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue; // Yet, all is well that ends well.
+import javax.servlet.http.Cookie; // ... and too few functions.
 
 /**
  * <p>A "full-stack" framework that provides a convenient API to develop 
@@ -304,7 +300,7 @@ public class Actor extends Simple {
     /**
      * The JSON object associated with the Actor's request and/or response.
      */
-    public JSONObject json = null;
+    public HashMap json = null;
     
     /**
      * An open JDBC connection or <code>null</code>.
@@ -1100,12 +1096,15 @@ public class Actor extends Simple {
     private static final
     String less4jXJSON = "X-JSON";
     
-    public boolean jsonGET() {
+    public boolean jsonGET(int containers, int iterations) {
         String xjson = request.getHeader(less4jXJSON);
-        if (xjson != null)
-            json = (JSONObject) JSONValue.parse(xjson);
+        if (xjson != null) try {
+            json = JSON.object(xjson, containers, iterations);
+        } catch (JSON.Error e) {;}
         return (json != null);
     }
+    
+    public boolean jsonGET() {return jsonGET(1, 256);}
     
     /**
      * <p>Try to read and parse the body of a POST request, assuming it 
@@ -1124,13 +1123,13 @@ public class Actor extends Simple {
      * 
      * @return true if successfull, false otherwise
      */
-    public boolean jsonPOST (int limit) {
+    public boolean jsonPOST (int limit, int containers, int iterations) {
         /*
          * Instead of parsing a JSON of any size as it is streamed,
          * fill a buffer and instanciate objects only if it is 
          * complete and not overflowed.
          * */
-        if (request.getContentLength() > limit) 
+        if (request.getContentLength() > limit)
             return false;
         
         byte[] body = new byte[limit];
@@ -1149,34 +1148,26 @@ public class Actor extends Simple {
             }
             if (off > 0 && off < limit) {
                 // parse JSON when the buffer is filled but not overflowed
-                json = (JSONObject) JSONValue.parse(
-                    new String(body, 0, off, less4jCharacterSet)
-                    );
+                try {
+                    json = JSON.object(
+                        new String(body, 0, off, less4jCharacterSet),
+                        containers, iterations
+                        );
+                } catch (JSON.Error je) {
+                    // TODO: logError(je.getMessage());
+                    return false;
+                }
             } else 
                 // TODO: logError("POST limit overflow");
                 return false;
             
             return (json != null);
             
-        } catch (IOException e) {
-            logError(e);
+        } catch (IOException ioe) {
+            logError(ioe);
             return false;
             
         }
-    }
-    
-    /**
-     * <p>Try to read and parse the body of a POST request, assuming it 
-     * contains a content of type <code>application/json</code> encoded
-     * in UTF-8. Return true on success or log an error and return false.</p>
-     */
-    public boolean jsonPOST () {
-        try {
-            json = (JSONObject) JSONValue.parse(request.getReader());
-        } catch (IOException e) {
-            logError(e);
-        }
-        return (json != null);
     }
     
     /**
@@ -1195,7 +1186,7 @@ public class Actor extends Simple {
     public void json200Ok () {
         /* the response body must be short enough to be buffered fully */
         byte[] body;
-        String s = json.toString();
+        String s = JSON.str(json);
         try {
             body = s.getBytes(less4jCharacterSet);
         } catch (UnsupportedEncodingException e) {
@@ -1288,7 +1279,7 @@ public class Actor extends Simple {
      * @return
      * @throws SQLException
      */
-    private static ArrayList jdbc2java (ResultSet rs)
+    private static ArrayList jdbc2array (ResultSet rs)
     throws SQLException {
         int i;
         ArrayList rows = null;
@@ -1309,6 +1300,43 @@ public class Actor extends Simple {
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement, fetch the first relation, return an Object array or 
+     * null if the result set was empty. In any case, close the statement 
+     * JDBC statement to prevent any leak in the connections pool.
+     * 
+     * @param statement
+     * @return an array of Object or null
+     * @throws SQLException
+     */
+    public Object[] sqlQuery (String statement) 
+    throws SQLException {
+        if (test) logInfo(statement, TEST);
+        Object[] row = null;
+        Statement st = null;
+        try {
+            st = sql.createStatement();
+            st.setFetchSize(1);
+            ResultSet rs = st.executeQuery(statement);
+            if (rs.next()) {
+                ResultSetMetaData mt = rs.getMetaData();
+                int l = mt.getColumnCount();
+                row = new Object[l];
+                for (int i = 0; i < l; i++) row[i] = rs.getObject(i);
+            }
+            rs.close();
+            st.close(); 
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;} 
+                st = null;
+            }
+        }
+        return row;
+    }
+    
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
      * statement, return an ArrayList of rows or null if the result
      * set was empty. In any case, close the statement JDBC statement
      * and result set to prevent any leak in the connections pool.
@@ -1317,20 +1345,20 @@ public class Actor extends Simple {
      * @return an ArrayList of Object[] or null
      * @throws SQLException
      */
-    public ArrayList sqlQuery (String statement) 
+    public ArrayList sqlQuery (String statement, int fetch) 
     throws SQLException {
         if (test) logInfo(statement, TEST);
         ArrayList rows = null;
         Statement st = null;
         try {
             st = sql.createStatement();
-            st.setFetchSize(less4jFetch);
-            rows = jdbc2java(st.executeQuery(statement));
+            st.setFetchSize(fetch);
+            rows = jdbc2array(st.executeQuery(statement));
             st.close(); 
             st = null;
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException se) {;} 
+                try {st.close();} catch (SQLException e) {;} 
                 st = null;
             }
         }
@@ -1348,7 +1376,7 @@ public class Actor extends Simple {
      * @return an ArrayList of Object[] or null
      * @throws SQLException
      */
-    public ArrayList sqlQuery (String statement, Object[] args) 
+    public ArrayList sqlQuery (String statement, Object[] args, int fetch) 
     throws SQLException {
         if (test) logInfo(statement, TEST);
         ArrayList rows = null;
@@ -1356,33 +1384,33 @@ public class Actor extends Simple {
         try {
             int i;
             st = sql.prepareStatement(statement);
-            st.setFetchSize(less4jFetch);
+            st.setFetchSize(fetch);
             for (i = 0; i < args.length; i++) st.setObject(i, args[i]);
-            rows = jdbc2java(st.executeQuery(statement));
+            rows = jdbc2array(st.executeQuery(statement));
             st.close(); 
             st = null;
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException se) {;} 
+                try {st.close();} catch (SQLException e) {;} 
                 st = null;
             }
         }
         return rows;
     }
 
-    private static JSONObject jdbc2json (ResultSet rs)
+    private static HashMap jdbc2object (ResultSet rs)
     throws SQLException {
         int i;
-        JSONArray row;
+        ArrayList row;
         ResultSetMetaData mt = rs.getMetaData();
         int l = mt.getColumnCount();
-        JSONObject model = new JSONObject ();
-        row = new JSONArray();
+        HashMap model = new HashMap();
+        row = new ArrayList();
         for (i = 0; i < l; i++) row.add(mt.getColumnName(i));
         model.put("columns", row);
-        JSONArray rows = new JSONArray();
+        ArrayList rows = new ArrayList();
         while (rs.next()) {
-            row = new JSONArray();
+            row = new ArrayList();
             for (i = 0; i < l; i++) row.add(rs.getObject(i));
             rows.add(row);
         }
@@ -1391,6 +1419,30 @@ public class Actor extends Simple {
         return model;
     }
     
+    public HashMap sqlQuery (String statement, ArrayList args, int fetch) 
+    throws SQLException {
+        if (test) logInfo(statement, TEST);
+        HashMap model = null;
+        PreparedStatement st = null;
+        try {
+            st = sql.prepareStatement(statement);
+            st.setFetchSize(fetch);
+            Iterator iter = args.iterator();
+            int i = 0;
+            while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
+            ResultSet rs = st.executeQuery(statement);
+            model = jdbc2object(rs);
+            st.close(); 
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;} 
+                st = null;
+            }
+        }
+        return model;
+    }
+
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
      * statement and named arguments, return a JSONObject model or null if 
@@ -1403,20 +1455,20 @@ public class Actor extends Simple {
      * @return a JSONObject with a simple relational model
      * @throws SQLException
      */
-    public JSONObject sqlQuery (
-        String statement, HashMap args, String[] names
+    public HashMap sqlQuery (
+        String statement, HashMap args, String[] names, int fetch
         ) 
     throws SQLException {
         if (test) logInfo(statement, TEST);
-        JSONObject model = null;
+        HashMap model = null;
         PreparedStatement st = null;
         try {
             int i;
             st = sql.prepareStatement(statement);
-            st.setFetchSize(less4jFetch);
+            st.setFetchSize(fetch);
             for (i = 0; i < names.length; i++) 
                 st.setObject(i, args.get(names[i]));
-            model = jdbc2json(st.executeQuery(statement));
+            model = jdbc2object(st.executeQuery(statement));
             st.close(); 
             st = null;
         } finally {
@@ -1428,47 +1480,23 @@ public class Actor extends Simple {
         return model;
     }
 
-    public JSONObject sqlQuery (String statement, JSONArray args) 
-    throws SQLException {
-        if (test) logInfo(statement, TEST);
-        JSONObject model = null;
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            st.setFetchSize(less4jFetch);
-            Iterator iter = args.iterator();
-            int i = 0;
-            while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
-            ResultSet rs = st.executeQuery(statement);
-            model = jdbc2json(rs);
-            st.close(); 
-            st = null;
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
-                st = null;
-            }
-        }
-        return model;
-    }
-
-    public JSONObject sqlQuery (
-        String statement, JSONObject args, Iterator names
+    public HashMap sqlQuery (
+        String statement, HashMap args, Iterator names, int fetch
         )
     throws SQLException {
         if (test) logInfo(statement, TEST);
-        JSONObject model = null;
+        HashMap model = null;
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
-            st.setFetchSize(less4jFetch);
+            st.setFetchSize(fetch);
             int i = 0;
             while(names.hasNext()) {
                 st.setObject(i, args.get(names.next())); 
                 i++;
                 }
             ResultSet rs = st.executeQuery(statement);
-            model = jdbc2json(rs);
+            model = jdbc2object(rs);
             st.close(); 
             st = null;
         } finally {
@@ -1478,45 +1506,6 @@ public class Actor extends Simple {
             }
         }
         return model;
-    }
-    
-    public JSONObject sqlQuery (
-        String statement, JSONObject args, String[] names
-        )
-        throws SQLException {
-        return sqlQuery(statement, args, iterator(names));
-    }
-
-    /* The ultimate convenience, for the one liner
-     *
-     *     $.rest200Ok(
-     *         $.sqlQueryJSON(STATEMENT, $.actions, ARGUMENTS),
-     *         "application/json", 600
-     *         );
-     *     
-     * opens a JDBC connection, prepare and execute a statement, fetch a 
-     * result set, serialize it as a JSON string and send it as body of
-     * a RESTfull 200 Ok HTTP response.
-     * 
-     * Any exception arising from the transaction is logged to the
-     * controller's STDERR and echoed to the JSON user agent as:
-     * 
-     *    {error: "message"}
-     */
-    
-    public void sqlQueryJSON (
-        String statement, HashMap args, String[] names
-        ) {
-        
-    }
-    
-    /* A more specialized convenience for X-JSON transactions
-     * 
-     */
-    public void sqlQueryJSON (
-        String statement, JSONObject args, String[] names
-        ) {
-        
     }
     
     /**
@@ -1582,7 +1571,7 @@ public class Actor extends Simple {
      *         or the numbers of rows updated, deleted or inserted.
      * @throws SQLException
      */
-    public int sqlUpdate (String statement, JSONArray args) 
+    public int sqlUpdate (String statement, ArrayList args) 
     throws SQLException {
         int result = -1;
         if (test) logInfo (statement, TEST);
@@ -1614,7 +1603,7 @@ public class Actor extends Simple {
      * @throws SQLException
      */
     public int sqlUpdate (
-        String statement, JSONObject args, Iterator names
+        String statement, HashMap args, Iterator names
         ) 
     throws SQLException {
         int result = -1;
@@ -1649,21 +1638,21 @@ public class Actor extends Simple {
      * @throws SQLException
      */
     public int sqlUpdate (
-        String statement, JSONObject args, Object[] names
+        String statement, HashMap args, Object[] names
         ) 
     throws SQLException {
         return sqlUpdate(statement, args, iterator(names));
     }
     
-    public JSONArray sqlUpdate (String statement, JSONArray args, int id) 
-    throws SQLException {return new JSONArray();}
+    public ArrayList sqlUpdate (String statement, ArrayList args, int id) 
+    throws SQLException {return new ArrayList();}
     
-    public JSONArray sqlUpdate (
-        String statement, JSONObject args, Iterator names, int id
+    public ArrayList sqlUpdate (
+        String statement, HashMap args, Iterator names, int id
         ) 
-    throws SQLException {return new JSONArray();}
+    throws SQLException {return new ArrayList();}
             
-    public int sqlBatch (String statement, JSONArray rows) 
+    public int sqlBatch (String statement, ArrayList rows) 
         throws SQLException {return 0;}
                 
     /**
@@ -1730,7 +1719,7 @@ public class Actor extends Simple {
      * @return true if the name was resolved, false otherwise
      */
     public boolean ldapResolve (
-        String dn, JSONObject object, Iterator names
+        String dn, HashMap object, Iterator names
         ) {
         if (test) logInfo ("resolve LDAP dn=" + dn, TEST);
         Attributes attributes;
@@ -1759,7 +1748,7 @@ public class Actor extends Simple {
      * @param object the JSONObject to update
      * @return true if the name was resolve, false otherwise
      */
-    public boolean ldapResolve (String dn, JSONObject object) {
+    public boolean ldapResolve (String dn, HashMap object) {
         return ldapResolve(dn, object, object.keySet().iterator());
     }
     
@@ -1774,7 +1763,7 @@ public class Actor extends Simple {
      * @return true, false
      */
     public boolean ldapCreate (
-        String dn, JSONObject object, Iterator names
+        String dn, HashMap object, Iterator names
         ) {
         if (test) logInfo ("create LDAP dn=" + dn, TEST);
         String key;
@@ -1787,9 +1776,9 @@ public class Actor extends Simple {
             value = object.get(key);
             if (value == null) {
                 ;
-            } else if (value instanceof JSONArray) {
+            } else if (value instanceof ArrayList) {
                 Object item;
-                Iterator j = ((JSONArray) object.get(key)).iterator();
+                Iterator j = ((ArrayList) object.get(key)).iterator();
                 while (j.hasNext()) {
                     item = j.next();
                     if (
@@ -1830,18 +1819,18 @@ public class Actor extends Simple {
      * @param object the JSON object from which to set the attribute values
      * @return true, false
      */
-    public boolean ldapCreate (String dn, JSONObject object) {
+    public boolean ldapCreate (String dn, HashMap object) {
         return ldapCreate (dn, object, object.keySet().iterator());
     }
     
     public boolean ldapUpdate (
-        String dn, JSONObject object, Iterator names
+        String dn, HashMap object, Iterator names
         ) {
         if (test) logInfo("update LDAP dn=" + dn, TEST);
         return true;
     }
     
-    public boolean ldapUpdate (String dn, JSONObject object) {
+    public boolean ldapUpdate (String dn, HashMap object) {
         return ldapUpdate(dn, object, object.keySet().iterator());
     }
     
