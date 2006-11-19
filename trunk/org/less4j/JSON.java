@@ -16,31 +16,37 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
-
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
 /**
  * <p>A convenience with static methods to serialize java objects as JSON
  * strings and to evaluate a strict JSON expression as a limited
- * tree of the seven Java types
+ * tree of the eight Java types
  * 
  * <blockquote>
  * <code>HashMap</code>, 
  * <code>ArrayList</code>, 
  * <code>String</code>, 
  * <code>Double</code>, 
+ * <code>BigDecimal</code>, 
  * <code>Long</code>, 
  * <code>Integer</code>, 
  * <code>Boolean</code>
  * </blockquote>
  * 
  * and the untyped <code>null</code> value.</p>
+ * 
+ * <p>The additional distinction between JSON number types is made quite
+ * simply by considering numbers with an exponent as Doubles, the ones
+ * with decimals as BigDecimal and the others as Integer or Long, depending
+ * on their values (Integers are 16bit and Long represent 32bits).</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -302,8 +308,10 @@ public class JSON {
                         buf.append(c); c = it.next();
                     }
                     digits();
+                    return new Double(buf.toString());
+                } else {
+                    return new BigDecimal(buf.toString()); 
                 }
-                return new Double(buf.toString());
             } else if (c == 'e' || c == 'E') {
                 buf.append(c); c = it.next();
                 if (c == '+' || c == '-') {

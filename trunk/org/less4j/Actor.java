@@ -151,7 +151,7 @@ import javax.servlet.http.Cookie; // ... and too few functions.
  * @author Laurent Szyster
  * @version 0.1.0
  */
-public class Actor extends Simple {
+public class Actor {
     
     public static final String TEST = "Test";
     
@@ -185,23 +185,6 @@ public class Actor extends Simple {
     less4jLimit = 16384; // can't configure this!
     
     /**
-     * The number of rows to fetch at once from a JDBC connection,
-     * set by default to fit 66 lines of 72 characters, one dense page
-     * at once only or a few detailed pages at once if the controller 
-     * allows wider queries than simple table filters.
-     * 
-     * <p>I did not choose 66 and 72, but it's an industry standard that
-     * fits and looks well a broad kind of typography. Eventually, all 
-     * J2EE application views must be printable (not printed, but fitting
-     * a broad typography and layout for network consoles and printers).</p>
-     * 
-     * <p>Note that this is not a limit on the number of rows selected,
-     * that's something to set in the SQL statements or its arguments.</p>
-     */
-    public static final int
-    less4jFetch = 66; // can't configure this!
-    
-    /**
      * <p>The default charset encoding in less4j, something supported by
      * web 2.0 browsers (IE6, Firefox, etc ...) and java runtime
      * environments. Also the defacto standard for JSON encoding.</p>
@@ -211,9 +194,8 @@ public class Actor extends Simple {
     private static final String less4jTrue = "true";
     private static final String less4jTest = "less4j.test";
 
-    private static final String less4jDigestName = "D1IRTD";
+    private static final String less4jDigestName = "IRTD2";
     private static final String less4jDigestDelimiter = ":";
-    private static final byte[] less4jDigestDelimiterBytes = new byte[]{':'};
     private static final String less4jDigestSalt = "less4j.digest.salt";
     private static final String less4jDigestTimeout = "less4j.digest.timeout";
     private static final String less4jDigestedSalt = "less4j.digested.salt";
@@ -260,14 +242,14 @@ public class Actor extends Simple {
 
     /**
      * The authenticated identity of this Actor's web user, as set from
-     * the HTTP request's <code>D1IRTD</code> cookie by a call to the 
+     * the HTTP request's <code>IRTD2</code> cookie by a call to the 
      * <code>notAuthorized</code> or <code>Authorize</code> method. 
      */
     public String identity = ""; // "user@domain", the user's principal
 
     /**
      * The authenticated rights of this Actor's web user, as set from
-     * the HTTP request's <code>D1IRTD</code> cookie by a call to the 
+     * the HTTP request's <code>IRTD2</code> cookie by a call to the 
      * <code>notAuthorized</code> or the <code>Authorize</code> method.
      */
     public String rights = ""; // whatever fits your application 
@@ -280,14 +262,14 @@ public class Actor extends Simple {
     
     /**
      * The authentication and audit digest of the previous request, as set 
-     * from the HTTP request's <code>D1IRTD</code> cookie by a call to the 
+     * from the HTTP request's <code>IRTD2</code> cookie by a call to the 
      * <code>notAuthorized</code> or <code>Authorize</code> method.
      */
     public String digested = null; // the previous digest
     
     /**
      * The authentication and audit digest of this response, as set 
-     * from the HTTP request's <code>D1IRTD</code> cookie by a call to the 
+     * from the HTTP request's <code>IRTD2</code> cookie by a call to the 
      * <code>notAuthorized</code> or <code>Authorize</code> method.
      */
     public String digest = null; // this digest
@@ -369,10 +351,12 @@ public class Actor extends Simple {
             if (tp != null) {
                 value = (String) query.get(name);
                 if (tp[1] == null) {
-                    validated.put(name, cast((Integer) tp[0], value));
+                    validated.put(name, Simple.cast((Integer) tp[0], value));
                 } else if (((Pattern) tp[1]).matcher(value).matches()) {
                     if (tp[0] != null) {
-                        validated.put(name, cast((Integer) tp[0], value));
+                        validated.put(
+                            name, Simple.cast((Integer) tp[0], value)
+                            );
                     } else {
                         validated.put(name, value);
                     }
@@ -574,54 +558,50 @@ public class Actor extends Simple {
     private static final int less4jCookieMaxAge = 86400; 
     
     /**
-     * Literally "digest a cookie": transform the D1IRTD cookie sent with
+     * Literally "digest a cookie": transform the IRTD2 cookie sent with
      * the request into a new cookie to send with the response.
      * 
      * <p>The cookie value is a formatted string made as follow
      * 
      * <blockquote>
-     * <pre>Cookie: D1IRTD=<strong>digest:identity:roles:time:digested</strong>; </pre>
+     * <pre>Cookie: IRTD2=<strong>identity:roles:time:digested:digest</strong>; </pre>
      * </blockquote>
      * 
      * ...</p>
      *
      */
     private void digestCookie() {
+        StringBuffer sb = new StringBuffer();
         String timeString = Long.toString(time);
         SHA1 md = new SHA1();
-        if (identity.length() > 0) md.update(identity.getBytes());
-        md.update(less4jDigestDelimiterBytes);
-        if (rights.length() > 0) md.update(rights.getBytes());
-        md.update(less4jDigestDelimiterBytes);
-        md.update(timeString.getBytes());
-        md.update(less4jDigestDelimiterBytes);
-        if (digested != null) md.update(digested.getBytes());
+        sb.append(identity);
+        sb.append(':');
+        sb.append(rights);
+        sb.append(':');
+        sb.append(timeString);
+        sb.append(':');
+        if (digested != null) sb.append(digested);
+        md.update(sb.toString().getBytes());
         md.update(salt);
         digest = md.hexdigest();
-        StringBuffer sb = new StringBuffer();
+        sb.append(':');
         sb.append(digest);
-        sb.append(less4jDigestDelimiter);
-        sb.append(identity);
-        sb.append(less4jDigestDelimiter);
-        sb.append(rights);
-        sb.append(less4jDigestDelimiter);
-        sb.append(timeString);
-        sb.append(less4jDigestDelimiter);
-        if (digested != null) sb.append(digested);
-        Cookie d1irtd = new Cookie(less4jDigestName, sb.toString());
-        d1irtd.setDomain(request.getServerName());
-        d1irtd.setMaxAge(less4jCookieMaxAge); 
-        response.addCookie(d1irtd);
+        Cookie irtd2 = new Cookie(less4jDigestName, sb.toString());
+        irtd2.setDomain(request.getServerName());
+        irtd2.setMaxAge(less4jCookieMaxAge); 
+        response.addCookie(irtd2);
     }
     
+    protected static Pattern less4jDigestSplit = Pattern.compile(":");
+    
     /**
-     * <p>Try to collect a D1IRTD cookie in the request and test it and its 
+     * <p>Try to collect a IRTD2 cookie in the request and test it and its 
      * digest against the timeout and the secret(s) set by configuration for 
      * this actor's controller. Digest a new cookie and returns false only 
      * if a the digested cookie is still valid in time and bears the  
      * signature of this servlet.</p> 
      * 
-     * <p>There are three benefits to expect from D1RTD cookies for
+     * <p>There are three benefits to expect from IRTD2 cookies for
      * J2EE public applications:</p>
      * 
      * <ol>
@@ -643,31 +623,39 @@ public class Actor extends Simple {
         try {
             /* the ever usefull ;-) */
             int i; 
-            /* get the request's D1IRTD authorization cookies ... */
-            Cookie d1irtdCookie = null; 
+            /* get the request's IRTD2 authorization cookies ... */
+            Cookie irtd2Cookie = null; 
             Cookie[] cookies = request.getCookies();
             if (cookies != null) for (i = 0; i < cookies.length; i++) {
                 if (cookies[i].getName().equals(less4jDigestName)) {
-                    d1irtdCookie = cookies[i];
+                    irtd2Cookie = cookies[i];
                     break;
                 }
             }
-            if (d1irtdCookie == null) {
+            if (irtd2Cookie == null)
                 return true; 
-                /* ... do not authorize if no IRTD cookie found. */
-            }
-            String[] d1irtd = d1irtdCookie.getValue().split(
-                less4jDigestDelimiter, 2
-                );
-            digested = d1irtd[0];
-            byte[] irtd = d1irtd[1].getBytes();
-            String[] attributes = d1irtd[1].split(less4jDigestDelimiter, 4);
-            identity = attributes[0];
-            rights = attributes[1];
-            long lastTime = Long.parseLong(attributes[2]);
+                /* ... do not authorize if no IRTD2 cookie found. */
+            
+            String[] irtd2 = less4jDigestSplit.split(irtd2Cookie.getValue());
+            if (irtd2.length != 5)
+                return true; 
+
             long timeout = Long.parseLong(
-                (String) configuration.get(less4jDigestTimeout)
-                );
+                    (String) configuration.get(less4jDigestTimeout)
+                    );
+            StringBuffer sb = new StringBuffer();
+            identity = irtd2[0];
+            sb.append(identity);
+            sb.append(':');
+            rights = irtd2[1];
+            sb.append(rights);
+            sb.append(':');
+            long lastTime = Long.parseLong(irtd2[2]);
+            sb.append(irtd2[2]);
+            sb.append(':');
+            sb.append(irtd2[3]);
+            byte[] irtd = sb.toString().getBytes();
+            digested = irtd2[4];
             if (time - lastTime > timeout) {
                 return true;
                 /* ... do not authorize after timeout. */
@@ -677,7 +665,7 @@ public class Actor extends Simple {
             md.update(irtd);
             md.update(salt);
             String d = md.hexdigest();
-            if (!d.endsWith(digested)) {
+            if (!d.equals(digested)) {
                 // try the previously digested salt instead
                 String salted = (String) configuration.get(less4jDigestedSalt);
                 if (salted == null) 
@@ -703,10 +691,10 @@ public class Actor extends Simple {
     
     /**
      * <p>Set the Actor's <code>identity</code> and grant <code>rights</code>
-     * digested into an HTTP cookie named <code>D1RTD</code>, like this:
+     * digested into an HTTP cookie named <code>IRTD2</code>, like this:
      * 
      * <blockquote>
-     * <pre>Cookie: D1IRTD=digest:identity:roles:time:digested; </pre>
+     * <pre>Cookie: IRTD2=digest:identity:roles:time:digested; </pre>
      * </blockquote>
      * 
      * that authenticate a one-time digest for the next invokation of
@@ -730,7 +718,7 @@ public class Actor extends Simple {
      * <p>For instance:
      * 
      * <blockquote>
-     * <pre>digest identity roles time digested GET url HTTP/1.1 200</pre>
+     * <pre>identity roles time digested digest GET url HTTP/1.1 200</pre>
      * </blockquote>
      * 
      * using by convention strings without whitespace for the identity
@@ -748,8 +736,6 @@ public class Actor extends Simple {
     private void audit (int status) {
         StringBuffer sb = new StringBuffer();
         sb.append(less4jAudit);
-        sb.append(digest);
-        sb.append(less4jAuditDelimiter);
         sb.append(identity);
         sb.append(less4jAuditDelimiter);
         sb.append(rights);
@@ -757,6 +743,8 @@ public class Actor extends Simple {
         sb.append(Long.toString(time));
         sb.append(less4jAuditDelimiter);
         sb.append(digested);
+        sb.append(less4jAuditDelimiter);
+        sb.append(digest);
         sb.append(less4jAuditDelimiter);
         sb.append(request.getMethod());
         sb.append(less4jAuditDelimiter);
@@ -801,7 +789,7 @@ public class Actor extends Simple {
      */
     public Iterator httpDispatch (HashMap resources) {
         String s = request.getContextPath();
-        return iterator(s.split("/"));
+        return Simple.iterator(s.split("/"));
     }
     
     /**
@@ -1106,6 +1094,34 @@ public class Actor extends Simple {
     
     public boolean jsonGET() {return jsonGET(1, 256);}
     
+    public byte[] httpPOST(int limit) {
+        int contentLength = request.getContentLength(); 
+        if (contentLength > 0 && contentLength < limit)
+            return null;
+        
+        byte[] body = new byte[contentLength];
+        try {
+            // first fill that buffer ASAP
+            ServletInputStream is = request.getInputStream();
+            int len;
+            int off = 0;
+            while (off < contentLength) {
+                len = is.read(body, off, contentLength - off); // block ...
+                if (len > -1) {
+                    off += len; 
+                } else {
+                    break; // ... maybe break, but when and what about zero?
+                }
+            }
+            return body;
+            
+        } catch (IOException ioe) {
+            logError(ioe);
+            return null;
+            
+        }
+    }
+    
     /**
      * <p>Try to read and parse the body of a POST request, assuming it 
      * contains a content of type <code>application/json</code> encoded
@@ -1129,45 +1145,22 @@ public class Actor extends Simple {
          * fill a buffer and instanciate objects only if it is 
          * complete and not overflowed.
          * */
-        if (request.getContentLength() > limit)
+        byte[] body = httpPOST(limit);
+        if (body != null) {
+            // parse JSON when the buffer is filled but not overflowed
+            try {
+                json = JSON.object(
+                    new String(body, less4jCharacterSet),
+                    containers, iterations
+                    );
+            } catch (Exception e) {
+                logError(e);
+                return false;
+            }
+        } else 
             return false;
         
-        byte[] body = new byte[limit];
-        try {
-            // first fill that buffer ASAP
-            ServletInputStream is = request.getInputStream();
-            int len;
-            int off = 0;
-            while (off < limit) {
-                len = is.read(body, off, limit - off); // block ...
-                if (len > -1) {
-                    off += len; 
-                } else {
-                    break; // ... maybe break, but when and what about zero?
-                }
-            }
-            if (off > 0 && off < limit) {
-                // parse JSON when the buffer is filled but not overflowed
-                try {
-                    json = JSON.object(
-                        new String(body, 0, off, less4jCharacterSet),
-                        containers, iterations
-                        );
-                } catch (JSON.Error je) {
-                    // TODO: logError(je.getMessage());
-                    return false;
-                }
-            } else 
-                // TODO: logError("POST limit overflow");
-                return false;
-            
-            return (json != null);
-            
-        } catch (IOException ioe) {
-            logError(ioe);
-            return false;
-            
-        }
+        return (json != null);
     }
     
     /**
@@ -1179,21 +1172,19 @@ public class Actor extends Simple {
     String less4jJSONContentType = "application/json;charset=UTF-8";
     
     /**
-     * <p>Try to complete a 200 Ok HTTP/1.X response with the actor's JSON 
-     * object as body encoded in UTF-8 and audit the response, or log
-     * an error.</p>
+     * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON value 
+     * encoded in UTF-8 as body and audit the response, or log an error.</p>
      */
-    public void json200Ok () {
+    public void json200Ok (Object value) {
         /* the response body must be short enough to be buffered fully */
         byte[] body;
-        String s = JSON.str(json);
+        String s = JSON.str(value);
         try {
             body = s.getBytes(less4jCharacterSet);
         } catch (UnsupportedEncodingException e) {
             body = s.getBytes();
         }
         int l = body.length;
-        if (l>less4jLimit) l = less4jLimit;
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(less4jJSONContentType);
         response.setContentLength(l);
@@ -1208,6 +1199,13 @@ public class Actor extends Simple {
             logError(e);
         }
     }
+    
+    /**
+     * <p>Try to complete a 200 Ok HTTP/1.X response with the actor's JSON 
+     * object encoded in UTF-8 as body and audit the response, or log
+     * an error.</p>
+     */
+    public void json200Ok () {json200Ok(json);}
     
     // The simplest URL action dispatcher 
     
@@ -1641,7 +1639,7 @@ public class Actor extends Simple {
         String statement, HashMap args, Object[] names
         ) 
     throws SQLException {
-        return sqlUpdate(statement, args, iterator(names));
+        return sqlUpdate(statement, args, Simple.iterator(names));
     }
     
     public ArrayList sqlUpdate (String statement, ArrayList args, int id) 

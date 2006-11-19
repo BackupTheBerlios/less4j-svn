@@ -17,13 +17,11 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j; // less java for more applications
 
 import java.math.BigDecimal;
-
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.regex.Pattern;
-
 import java.text.StringCharacterIterator;
 
 /**
@@ -37,7 +35,8 @@ import java.text.StringCharacterIterator;
  * <tr><td>null</td><td>an undefined type and value</td></tr>
  * <tr><td>true</td><td>a boolean value, true or false</td></tr>
  * <tr><td>0</td><td>any integer value</td></tr>
- * <tr><td>0.0</td><td>any double value</td></tr>
+ * <tr><td>0e+</td><td>any double value</td></tr>
+ * <tr><td>0.0</td><td>any number rounded to a precision of one decimal</td></tr>
  * <tr><td>10.1</td><td>a one digit decimal value lower than 10.1</td></tr>
  * <tr><td>""</td><td>any non empty string</td></tr>
  * <tr><td>[]</td><td>a list of undefined types an values</td></tr>
@@ -49,9 +48,9 @@ import java.text.StringCharacterIterator;
  * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
  * <tr><td>12</td><td>a positive integer lower than or equal 12</td></tr>
  * <tr><td>-1</td><td>an integer greater than -1</td></tr>
- * <tr><td>-1.0</td><td>a double greater than -1.0</td></tr>
+ * <tr><td>-1.0</td><td>a decimal greater than -1.0, maybe rounded</td></tr>
  * <tr><td>-9.99</td><td>a two digit greater or equal than -9.99</td></tr>
- * <tr><td>1.0</td><td>a positive double lower than or equal 1.0</td></tr>
+ * <tr><td>1.0e+</td><td>a positive double lower than or equal 1.0</td></tr>
  * <tr><td>"[a-z]*"</td><td>any string matching this regular expression</td></tr>
  * </table>
  * 
@@ -59,7 +58,7 @@ import java.text.StringCharacterIterator;
  * 
  * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
  * <tr><td>[12]</td><td>a list of zero or more integers between 1 and 12</td></tr>
- * <tr><td>[-1.0]</td><td>a list of zero or more reals above -1.0</td></tr>
+ * <tr><td>[1.0e-1]</td><td>a list of zero or more doubles above -1.0</td></tr>
  * <tr><td>[""]</td><td>a list of zero or more non-empty strings</td></tr>
  * <tr>
  * <td>["[a-z]*"]</td>
@@ -405,15 +404,23 @@ public class JSONR {
     }
     
     protected static class TypeDecimalLTE implements Type {
-        Double limit;
+        BigDecimal limit;
         private int scale;
         private int round = BigDecimal.ROUND_HALF_DOWN;
-        public TypeDecimalLTE (Double gt, int scale) {
+        public TypeDecimalLTE (BigDecimal gt) {
             this.limit = gt;
-            this.scale = scale;
+            this.scale = gt.scale();
         } 
         public Object value (Object instance) throws Error {
-            if (instance instanceof Double) {
+            if (instance instanceof BigDecimal) {
+                BigDecimal b = (BigDecimal) instance;
+                if (b.compareTo(_double_zero) < 0)
+                    throw new Error("decimal not positive");
+                else if (limit.compareTo(b) >= 0)
+                    return b.setScale(scale, round);
+                else
+                    throw new Error("positive decimal overflow");
+            } else if (instance instanceof Double) {
                 Double d = (Double) instance;
                 if (d.compareTo(_double_zero) < 0)
                     throw new Error("decimal not positive");
@@ -440,19 +447,25 @@ public class JSONR {
             } else
                 throw new Error("not a decimal");
         }
-        public Type copy() {return new TypeDecimalLTE(limit, scale);}
+        public Type copy() {return new TypeDecimalLTE(limit);}
     }
     
     protected static class TypeDecimalGT implements Type {
-        Double limit;
+        BigDecimal limit;
         private int scale;
         private int round = BigDecimal.ROUND_HALF_DOWN;
-        public TypeDecimalGT (Double gt, int scale) {
+        public TypeDecimalGT (BigDecimal gt) {
             this.limit = gt;
-            this.scale = scale;
+            this.scale = gt.scale();
         } 
         public Object value (Object instance) throws Error {
-            if (instance instanceof Double) {
+            if (instance instanceof BigDecimal) {
+                BigDecimal b = (BigDecimal) instance;
+                if (limit.compareTo(b) < 0)
+                    return b.setScale(scale, round);
+                else
+                    throw new Error("negative decimal overflow");
+            } else if (instance instanceof Double) {
                 Double d = (Double) instance;
                 if (limit.compareTo(d) < 0)
                     return (
@@ -475,7 +488,7 @@ public class JSONR {
             } else
                 throw new Error("not a decimal");
         }
-        public Type copy() {return new TypeDecimalGT(limit, scale);}
+        public Type copy() {return new TypeDecimalGT(limit);}
     }
     
     protected static class TypeArray implements Type {
@@ -753,8 +766,6 @@ public class JSONR {
         
     }
     
-    static Pattern _decimal_pattern = Pattern.compile("^[0-9]+[.](9+)$");
-    
     protected static Type compile(Object regular) {
         if (regular == null) {
             return TypeUndefined.singleton;
@@ -773,19 +784,19 @@ public class JSONR {
                 return new TypeIntegerLTE(d);
             else
                 return new TypeIntegerGT(d);
+        } else if (regular instanceof BigDecimal) {
+            BigDecimal b = (BigDecimal) regular;
+            int cmpr = b.compareTo(_double_zero); 
+            if (cmpr == 0)
+                return new TypeDecimal(b.scale());
+            else if (cmpr > 0)
+                return new TypeDecimalLTE(b);
+            else
+                return new TypeDecimalGT(b);
         } else if (regular instanceof Double) {
             Double d = (Double) regular;
             int cmpr = d.compareTo(_double_zero); 
-            String decimals = 
-                _decimal_pattern.matcher(d.toString()).group(1);
-            if (decimals != null && decimals.length() > 0)
-                if (cmpr == 0)
-                    return new TypeDecimal(decimals.length());
-                else if (cmpr > 0)
-                    return new TypeDecimalLTE(d, decimals.length());
-                else
-                    return new TypeDecimalGT(d, decimals.length());
-            else if (cmpr == 0)
+            if (cmpr == 0)
                 return TypeDouble.singleton;
             else if (cmpr > 0)
                 return new TypeDoubleLTE(d);

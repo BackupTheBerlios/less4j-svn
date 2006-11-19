@@ -125,6 +125,7 @@ public class Controller extends HttpServlet {
     private HashMap configuration = new HashMap ();
         
     public void setConfiguration(ServletConfig config) {
+        // TODO: move to JSON configuration ...
         String property;
         Enumeration properties = getServletConfig().getInitParameterNames ();
         while (properties.hasMoreElements()) {
