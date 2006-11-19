@@ -56,11 +56,11 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie; // ... and too few functions.
 
 /**
- * <p>A "full-stack" framework that provides a convenient API to develop 
- * XML and JSON interfaces for J2EE controllers of entreprise SQL and LDAP 
- * resources, starting with no-nonsense logging and a cross-plateform protocol 
- * of identification and authorization in time, ending with a general audit 
- * that can track any paths of user interaction ... and detect fraud attempts.</p>
+ * <p>A "full-stack" API to develop XML and JSON interfaces for J2EE 
+ * controllers of entreprise SQL and LDAP resources, starting with 
+ * no-nonsense logging and a cross-plateform protocol of identification 
+ * and authorization in time, ending with a general audit that can track 
+ * any paths of user interaction.</p>
  * 
  * <h3>Table of Content</h3>
  * 
@@ -195,7 +195,6 @@ public class Actor {
     private static final String less4jTest = "less4j.test";
 
     private static final String less4jDigestName = "IRTD2";
-    private static final String less4jDigestDelimiter = ":";
     private static final String less4jDigestSalt = "less4j.digest.salt";
     private static final String less4jDigestTimeout = "less4j.digest.timeout";
     private static final String less4jDigestedSalt = "less4j.digested.salt";
