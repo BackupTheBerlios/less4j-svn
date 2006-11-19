@@ -122,7 +122,7 @@ public class JSONR {
             if (data instanceof Boolean)
                 return data;
             else
-                throw new Error("boolean error");
+                throw new Error("not a Boolean");
         }
         public Object eval (String string) throws Error {
             if (string.equals(JSON._true))
@@ -130,7 +130,7 @@ public class JSONR {
             else if (string.equals(JSON._false))
                 return Boolean.FALSE;
             else
-                throw new Error("boolean error");
+                throw new Error("not a Boolean");
         }
         public Type copy() {return singleton;}
     }
@@ -141,7 +141,7 @@ public class JSONR {
             if (data instanceof Integer || data instanceof Long)
                 return data;
             else
-                throw new Error("not an integer");
+                throw new Error("not an Integer or Long type");
         }
         public Object eval (String string) throws Error {
             if (string != null) {
@@ -151,11 +151,11 @@ public class JSONR {
                     try {
                         return new Long(string);
                     } catch (Exception le) {
-                        throw new Error("not an integer");
+                        throw new Error("not an Integer or Long value");
                     }
                 }
             } else
-                throw new Error("not an integer");
+                throw new Error("not an Integer or Long value");
         }
         public Type copy() {return singleton;}
     }
@@ -166,13 +166,13 @@ public class JSONR {
             if (data instanceof Double)
                 return data;
             else
-                throw new Error("not a double");
+                throw new Error("not a Double type");
         }
         public Object eval (String string) throws Error {
             if (string != null) {
                 return new Double(string);
             } else
-                throw new Error("not a double");
+                throw new Error("not a Double value");
         }
         public Type copy() {return singleton;}
     }
@@ -183,19 +183,22 @@ public class JSONR {
         public TypeDecimal (int scale) {
             this.scale = scale;
         } 
-        public Object value (Object data) throws Error {
-            if (data instanceof Double) {
-                return (
-                    new BigDecimal(((Double) data).doubleValue())
-                    ).setScale(scale, round);
+        public Object value (Object instance) throws Error {
+            BigDecimal b;
+            if (instance instanceof BigDecimal) {
+                b = (BigDecimal) instance;
+            } else if (instance instanceof Double) {
+                b = new BigDecimal(((Double) instance).doubleValue());
             } else
-                throw new Error("not a decimal");
+                throw new Error("not a decimal type");
+            b.setScale(scale, round);
+            return b;
         }
         public Object eval (String string) throws Error {
             if (string != null) {
                 return (new BigDecimal(string)).setScale(scale, round);
             } else
-                throw new Error("not a decimal");
+                throw new Error("not a decimal value");
         }
         public Type copy() {return new TypeDecimal(scale);}
     }
@@ -210,7 +213,7 @@ public class JSONR {
                 else
                     throw new Error("null string");
             } else
-                throw new Error("not a string");
+                throw new Error("not a String type");
         }
         public Object eval (String string) throws Error {
             if (string == null || _null_string.equals(string)) 
@@ -234,15 +237,15 @@ public class JSONR {
                 if (pattern.matcher((String) instance).matches())
                     return instance;
                 else
-                    throw new Error("irregular string");
+                    throw new Error("irregular string value");
             } else
-                throw new Error("not a string");
+                throw new Error("not a String type");
         }
         public Object eval (String string) throws Error {
             if (string == null && pattern.matcher(string).matches()) 
                 return string;
             else
-                throw new Error("irregular string");
+                throw new Error("irregular string value");
         }
         public Type copy() {return new TypeStringRegular(pattern);}
     }
@@ -403,86 +406,76 @@ public class JSONR {
         public Type copy() {return new TypeDoubleGT(limit);}
     }
     
-    protected static class TypeDecimalLTE implements Type {
+    private static final BigDecimal _decimal_zero = BigDecimal.valueOf(0);
+    
+    protected static class TypeDecimalLT implements Type {
         BigDecimal limit;
         private int scale;
         private int round = BigDecimal.ROUND_HALF_DOWN;
-        public TypeDecimalLTE (BigDecimal gt) {
-            this.limit = gt;
-            this.scale = gt.scale();
+        public TypeDecimalLT (BigDecimal lt) {
+            this.limit = lt;
+            this.scale = lt.scale();
         } 
         public Object value (Object instance) throws Error {
+            BigDecimal b;
             if (instance instanceof BigDecimal) {
-                BigDecimal b = (BigDecimal) instance;
-                if (b.compareTo(_double_zero) < 0)
-                    throw new Error("decimal not positive");
-                else if (limit.compareTo(b) >= 0)
-                    return b.setScale(scale, round);
-                else
-                    throw new Error("positive decimal overflow");
+                b = (BigDecimal) instance;
             } else if (instance instanceof Double) {
-                Double d = (Double) instance;
-                if (d.compareTo(_double_zero) < 0)
-                    throw new Error("decimal not positive");
-                else if (limit.compareTo(d) >= 0)
-                    return (
-                        new BigDecimal(d.doubleValue())
-                        ).setScale(scale, round);
-                else
-                    throw new Error("positive decimal overflow");
+                b = new BigDecimal(((Double) instance).doubleValue());
             } else
-                throw new Error("not a decimal");
+                throw new Error("not a decimal type");
+            b.setScale(scale, round);
+            if (b.compareTo(_decimal_zero) < 0)
+                throw new Error("decimal not positive");
+            else if (limit.compareTo(b) > 0)
+                return b;
+            else
+                throw new Error("positive decimal overflow");
         }
         public Object eval (String string) throws Error {
             if (string != null) { 
-                Double d = new Double(string);
-                if (d.compareTo(_double_zero) < 0)
+                BigDecimal b = new BigDecimal(string);
+                b.setScale(scale, round);
+                if (b.compareTo(_decimal_zero) < 0)
                     throw new Error("decimal not positive");
-                else if (limit.compareTo(d) >= 0)
-                    return (
-                        new BigDecimal(d.doubleValue())
-                        ).setScale(scale, round);
+                else if (limit.compareTo(b) > 0)
+                    return b;
                 else
                     throw new Error("positive decimal overflow");
             } else
                 throw new Error("not a decimal");
         }
-        public Type copy() {return new TypeDecimalLTE(limit);}
+        public Type copy() {return new TypeDecimalLT(limit);}
     }
     
     protected static class TypeDecimalGT implements Type {
         BigDecimal limit;
         private int scale;
-        private int round = BigDecimal.ROUND_HALF_DOWN;
+        private static final int round = BigDecimal.ROUND_HALF_UP;
         public TypeDecimalGT (BigDecimal gt) {
             this.limit = gt;
             this.scale = gt.scale();
         } 
         public Object value (Object instance) throws Error {
+            BigDecimal b;
             if (instance instanceof BigDecimal) {
-                BigDecimal b = (BigDecimal) instance;
-                if (limit.compareTo(b) < 0)
-                    return b.setScale(scale, round);
-                else
-                    throw new Error("negative decimal overflow");
+                b = (BigDecimal) instance;
             } else if (instance instanceof Double) {
-                Double d = (Double) instance;
-                if (limit.compareTo(d) < 0)
-                    return (
-                        new BigDecimal(d.doubleValue())
-                        ).setScale(scale, round);
-                else
-                    throw new Error("negative decimal overflow");
+                b = new BigDecimal(((Double) instance).doubleValue());
             } else
-                throw new Error("not a decimal");
+                throw new Error("not a decimal type");
+            b.setScale(scale, round);
+            if (limit.compareTo(b) < 0)
+                return b.setScale(scale, round);
+            else
+                throw new Error("negative decimal overflow");
         }
         public Object eval (String string) throws Error {
             if (string != null) { 
-                Double d = new Double(string);
-                if (limit.compareTo(d) < 0)
-                    return (
-                        new BigDecimal(d.doubleValue())
-                        ).setScale(scale, round);
+                BigDecimal b = new BigDecimal(string);
+                b.setScale(scale, round);
+                if (limit.compareTo(b) < 0)
+                    return b;
                 else
                     throw new Error("negative decimal overflow");
             } else
@@ -790,7 +783,7 @@ public class JSONR {
             if (cmpr == 0)
                 return new TypeDecimal(b.scale());
             else if (cmpr > 0)
-                return new TypeDecimalLTE(b);
+                return new TypeDecimalLT(b);
             else
                 return new TypeDecimalGT(b);
         } else if (regular instanceof Double) {
