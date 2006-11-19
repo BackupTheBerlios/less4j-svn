@@ -22,10 +22,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 /**
- * <p>The java implemtation of a simple protocol to uniformely encode 
- * and validate well-articulated context graphs of UNICODE strings (may
- * bring some intelligent order to the semantic chaos of network application 
- * interfaces names).</p>
+ * <p>A simple protocol to uniformely encode and validate well-articulated 
+ * context graphs of UNICODE strings (may bring some intelligent order to 
+ * the semantic chaos of network application interfaces names).</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 

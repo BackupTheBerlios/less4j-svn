@@ -4,9 +4,9 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * The java implementation of a simple protocol to encode and iterate strings
- * without escaping characters, the fast and easy way to serialize and parse
- * sequences of UNICODE strings (see netstrings, the 8-bit byte original).
+ * A simple protocol to encode and iterate strings without escaping characters, 
+ * the fast and easy way to serialize and parse sequences of UNICODE strings 
+ * (see netstrings, the 8-bit byte original).
  * 
  * @author Laurent Szyster
  *
