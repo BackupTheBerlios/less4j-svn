@@ -17,6 +17,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j; // less java for more applications
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
@@ -28,7 +29,7 @@ import java.text.StringCharacterIterator;
 /**
  * <p>A convenience with static methods to serialize java objects as JSON
  * strings and to evaluate a strict JSON expression as a limited
- * tree of the eight Java types
+ * tree of the seven Java types
  * 
  * <blockquote>
  * <code>HashMap</code>, 
@@ -36,8 +37,7 @@ import java.text.StringCharacterIterator;
  * <code>String</code>, 
  * <code>Double</code>, 
  * <code>BigDecimal</code>, 
- * <code>Long</code>, 
- * <code>Integer</code>, 
+ * <code>BigInteger</code>, 
  * <code>Boolean</code>
  * </blockquote>
  * 
@@ -320,12 +320,7 @@ public class JSON {
                 digits();
                 return new Double(buf.toString());
             } else {
-                String s = buf.toString();
-                try {
-                    return new Integer(s);
-                } catch (Exception e) {
-                    return new Long(s);
-                }
+                return new BigInteger(buf.toString());
             }
         }
         
@@ -335,7 +330,8 @@ public class JSON {
                 if (c == '\\') {
                     c = it.next(); 
                     switch(c) {
-                        case 'u': buf.append(unicode()); break;
+                        case 'u': buf.append(unicode(4)); break;
+                        case 'x': buf.append(unicode(2)); break;
                         case '\\': buf.append('\\'); break;
                         case '"': buf.append('"'); break;
                         case '/': buf.append('/'); break;
@@ -362,9 +358,9 @@ public class JSON {
             while (Character.isDigit(c)) {buf.append(c); c = it.next();}
         }
         
-        protected char unicode() throws Error {
+        protected char unicode(int length) throws Error {
             int val = 0;
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < length; ++i) {
                 c = it.next();
                 switch (c) {
                 case '0': case '1': case '2': case '3': case '4': 
@@ -385,6 +381,7 @@ public class JSON {
             }
             return (char) val;
         }
+
     }
 
     public static Object eval(

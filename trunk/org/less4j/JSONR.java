@@ -17,6 +17,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j; // less java for more applications
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -84,7 +85,6 @@ public class JSONR {
     
     protected static final String NOT_A_JSONR_ARRAY_TYPE = 
         "not a JSONR array type";
-
     protected static final String NOT_A_JSONR_OBJECT_TYPE = 
         "not a JSONR object type";
 
@@ -122,7 +122,7 @@ public class JSONR {
             if (data instanceof Boolean)
                 return data;
             else
-                throw new Error("not a Boolean");
+                throw new Error("not a Boolean type");
         }
         public Object eval (String string) throws Error {
             if (string.equals(JSON._true))
@@ -130,7 +130,7 @@ public class JSONR {
             else if (string.equals(JSON._false))
                 return Boolean.FALSE;
             else
-                throw new Error("not a Boolean");
+                throw new Error("not a boolean value");
         }
         public Type copy() {return singleton;}
     }
@@ -138,7 +138,7 @@ public class JSONR {
     protected static class TypeInteger implements Type {
         public static final TypeInteger singleton = new TypeInteger();
         public Object value (Object data) throws Error {
-            if (data instanceof Integer || data instanceof Long)
+            if (data instanceof BigInteger)
                 return data;
             else
                 throw new Error("not an Integer or Long type");
@@ -146,25 +146,23 @@ public class JSONR {
         public Object eval (String string) throws Error {
             if (string != null) {
                 try {
-                    return new Integer(string);
-                } catch (Exception ie) {
-                    try {
-                        return new Long(string);
-                    } catch (Exception le) {
-                        throw new Error("not an Integer or Long value");
-                    }
+                    return new BigInteger(string);
+                } catch (Exception e) {
+                    throw new Error("not a BigInteger type");
                 }
             } else
-                throw new Error("not an Integer or Long value");
+                throw new Error("not an integer value");
         }
         public Type copy() {return singleton;}
     }
 
     protected static class TypeDouble implements Type {
         public static final TypeDouble singleton = new TypeDouble();
-        public Object value (Object data) throws Error {
-            if (data instanceof Double)
-                return data;
+        public Object value (Object instance) throws Error {
+            if (instance instanceof Double)
+                return instance;
+            else if (instance instanceof Number)
+                return new Double(((Number) instance).doubleValue());
             else
                 throw new Error("not a Double type");
         }
@@ -172,7 +170,7 @@ public class JSONR {
             if (string != null) {
                 return new Double(string);
             } else
-                throw new Error("not a Double value");
+                throw new Error("not a double value");
         }
         public Type copy() {return singleton;}
     }
@@ -187,8 +185,8 @@ public class JSONR {
             BigDecimal b;
             if (instance instanceof BigDecimal) {
                 b = (BigDecimal) instance;
-            } else if (instance instanceof Double) {
-                b = new BigDecimal(((Double) instance).doubleValue());
+            } else if (instance instanceof Number) {
+                b = new BigDecimal(((Number) instance).doubleValue());
             } else
                 throw new Error("not a decimal type");
             b.setScale(scale, round);
@@ -253,19 +251,11 @@ public class JSONR {
     private static final Integer _integer_zero = new Integer(0);
     
     protected static class TypeIntegerLTE implements Type {
-        Integer limit;
-        public TypeIntegerLTE (Integer gt) {this.limit = gt;}
+        BigInteger limit;
+        public TypeIntegerLTE (BigInteger gt) {this.limit = gt;}
         public Object value (Object instance) throws Error {
-            if (instance instanceof Integer) {
-                Integer i = (Integer) instance;
-                if (i.compareTo(_integer_zero) < 0)
-                    throw new Error("integer not positive");
-                else if (limit.compareTo(i) >= 0)
-                    return i;
-                else
-                    throw new Error("positive integer overflow");
-            } else if (instance instanceof Long) {
-                Long i = (Long) instance;
+            if (instance instanceof BigInteger) {
+                BigInteger i = (BigInteger) instance;
                 if (i.compareTo(_integer_zero) < 0)
                     throw new Error("integer not positive");
                 else if (limit.compareTo(i) >= 0)
@@ -273,77 +263,53 @@ public class JSONR {
                 else
                     throw new Error("positive integer overflow");
             } else
-                throw new Error("not an integer");
+                throw new Error("not an Integer type");
         }
         public Object eval (String string) throws Error {
             if (string != null) {
                 try {
-                    Integer i = new Integer(string);
+                    BigInteger i = new BigInteger(string);
                     if (i.compareTo(_integer_zero) < 0)
                         throw new Error("integer not positive");
                     else if (limit.compareTo(i) >= 0)
                         return i;
                     else
                         throw new Error("positive integer overflow");
-                } catch (Exception ie) {
-                    try {
-                        Long i = new Long(string);
-                        if (i.compareTo(_integer_zero) < 0)
-                            throw new Error("integer not positive");
-                        else if (limit.compareTo(i) >= 0)
-                            return i;
-                        else
-                            throw new Error("positive integer overflow");
-                    } catch (Exception le) {
-                        throw new Error("not an integer");
-                    }
+                } catch (Exception e) {
+                    throw new Error("not an integer value");
                 }
             } else
-                throw new Error("not an integer");
+                throw new Error("not an integer value");
         }
         public Type copy() {return new TypeIntegerLTE(limit);}
     }
 
     protected static class TypeIntegerGT implements Type {
-        Integer limit;
-        public TypeIntegerGT (Integer gt) {this.limit = gt;}
+        BigInteger limit;
+        public TypeIntegerGT (BigInteger gt) {this.limit = gt;}
         public Object value (Object instance) throws Error {
-            if (instance instanceof Integer) {
-                Integer i = (Integer) instance;
-                if (limit.compareTo(i) < 0)
-                    return i;
-                else
-                    throw new Error("negative integer overflow");
-            } else if (instance instanceof Long) {
-                Long i = (Long) instance;
+            if (instance instanceof BigInteger) {
+                BigInteger i = (BigInteger) instance;
                 if (limit.compareTo(i) < 0)
                     return i;
                 else
                     throw new Error("negative integer overflow");
             } else
-                    throw new Error("not an integer");
+                    throw new Error("not an integer type");
         }
         public Object eval (String string) throws Error {
             if (string != null) { 
                 try {
-                    Integer i = new Integer(string);
+                    BigInteger i = new BigInteger(string);
                     if (limit.compareTo(i) < 0)
                         return i;
                     else
                         throw new Error("negative integer overflow");
-                } catch (Exception ie) {
-                    try {
-                        Long i = new Long(string);
-                        if (limit.compareTo(i) < 0)
-                            return i;
-                        else
-                            throw new Error("negative integer overflow");
-                    } catch (Exception le) {
-                        throw new Error("not an integer");
-                    }
+                } catch (Exception e) {
+                    throw new Error("not an integer value");
                 }
             } else
-                throw new Error("not an integer");
+                throw new Error("not an integer value");
         }
         public Type copy() {return new TypeIntegerGT(limit);}
     }
@@ -363,7 +329,7 @@ public class JSONR {
                 else
                     throw new Error("positive double overflow");
             } else
-                throw new Error("not a double");
+                throw new Error("not a Double type");
         }
         public Object eval (String string) throws Error {
             if (string != null) { 
@@ -375,7 +341,7 @@ public class JSONR {
                 else
                     throw new Error("positive double overflow");
             } else
-                throw new Error("not a double");
+                throw new Error("not a double value");
         }
         public Type copy() {return new TypeDoubleLTE(limit);}
     }
@@ -391,7 +357,7 @@ public class JSONR {
                 else
                     throw new Error("negative double overflow");
             } else
-                throw new Error("not a double");
+                throw new Error("not a Double type");
         }
         public Object eval (String string) throws Error {
             if (string != null) { 
@@ -401,30 +367,20 @@ public class JSONR {
                 else
                     throw new Error("negative double overflow");
             } else
-                throw new Error("not a double");
+                throw new Error("not a double value");
         }
         public Type copy() {return new TypeDoubleGT(limit);}
     }
     
     private static final BigDecimal _decimal_zero = BigDecimal.valueOf(0);
     
-    protected static class TypeDecimalLT implements Type {
+    protected static class TypeDecimalLT extends TypeDecimal {
         BigDecimal limit;
-        private int scale;
-        private int round = BigDecimal.ROUND_HALF_DOWN;
         public TypeDecimalLT (BigDecimal lt) {
+            super(lt.scale());
             this.limit = lt;
-            this.scale = lt.scale();
         } 
-        public Object value (Object instance) throws Error {
-            BigDecimal b;
-            if (instance instanceof BigDecimal) {
-                b = (BigDecimal) instance;
-            } else if (instance instanceof Double) {
-                b = new BigDecimal(((Double) instance).doubleValue());
-            } else
-                throw new Error("not a decimal type");
-            b.setScale(scale, round);
+        private Object test (BigDecimal b) throws Error {
             if (b.compareTo(_decimal_zero) < 0)
                 throw new Error("decimal not positive");
             else if (limit.compareTo(b) > 0)
@@ -432,54 +388,32 @@ public class JSONR {
             else
                 throw new Error("positive decimal overflow");
         }
+        public Object value (Object instance) throws Error {
+            return test((BigDecimal) super.value(instance));
+        }
         public Object eval (String string) throws Error {
-            if (string != null) { 
-                BigDecimal b = new BigDecimal(string);
-                b.setScale(scale, round);
-                if (b.compareTo(_decimal_zero) < 0)
-                    throw new Error("decimal not positive");
-                else if (limit.compareTo(b) > 0)
-                    return b;
-                else
-                    throw new Error("positive decimal overflow");
-            } else
-                throw new Error("not a decimal");
+            return test((BigDecimal) super.eval(string));
         }
         public Type copy() {return new TypeDecimalLT(limit);}
     }
     
-    protected static class TypeDecimalGT implements Type {
+    protected static class TypeDecimalGT extends TypeDecimal {
         BigDecimal limit;
-        private int scale;
-        private static final int round = BigDecimal.ROUND_HALF_UP;
         public TypeDecimalGT (BigDecimal gt) {
+            super(gt.scale());
             this.limit = gt;
-            this.scale = gt.scale();
         } 
-        public Object value (Object instance) throws Error {
-            BigDecimal b;
-            if (instance instanceof BigDecimal) {
-                b = (BigDecimal) instance;
-            } else if (instance instanceof Double) {
-                b = new BigDecimal(((Double) instance).doubleValue());
-            } else
-                throw new Error("not a decimal type");
-            b.setScale(scale, round);
+        private Object test (BigDecimal b) throws Error {
             if (limit.compareTo(b) < 0)
-                return b.setScale(scale, round);
+                return b;
             else
                 throw new Error("negative decimal overflow");
         }
+        public Object value (Object instance) throws Error {
+            return test((BigDecimal) super.value(instance));
+        }
         public Object eval (String string) throws Error {
-            if (string != null) { 
-                BigDecimal b = new BigDecimal(string);
-                b.setScale(scale, round);
-                if (limit.compareTo(b) < 0)
-                    return b;
-                else
-                    throw new Error("negative decimal overflow");
-            } else
-                throw new Error("not a decimal");
+            return test((BigDecimal) super.eval(string));
         }
         public Type copy() {return new TypeDecimalGT(limit);}
     }
@@ -491,7 +425,7 @@ public class JSONR {
             if (instance instanceof ArrayList)
                 return instance;
             else
-                throw new Error("not an array");
+                throw new Error("not an array type");
             }
         public Object eval (String instance) throws Error {
             try {
@@ -513,7 +447,7 @@ public class JSONR {
             if (instance instanceof HashMap)
                 return instance;
             else
-                throw new Error("not an object");
+                throw new Error("not an object type");
             }
         public Object eval (String instance) throws Error {
             try {
@@ -768,15 +702,15 @@ public class JSONR {
                 return TypeString.singleton;
             else
                 return new TypeStringRegular(s);
-        } else if (regular instanceof Integer) {
-            Integer d = (Integer) regular;
-            int cmpr = d.compareTo(_integer_zero); 
+        } else if (regular instanceof BigInteger) {
+            BigInteger i = (BigInteger) regular;
+            int cmpr = i.compareTo(_integer_zero); 
             if (cmpr == 0)
                 return TypeInteger.singleton;
             else if (cmpr > 0)
-                return new TypeIntegerLTE(d);
+                return new TypeIntegerLTE(i);
             else
-                return new TypeIntegerGT(d);
+                return new TypeIntegerGT(i);
         } else if (regular instanceof BigDecimal) {
             BigDecimal b = (BigDecimal) regular;
             int cmpr = b.compareTo(_double_zero); 
