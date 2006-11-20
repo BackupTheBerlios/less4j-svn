@@ -117,8 +117,9 @@ import javax.servlet.http.Cookie; // ... and too few functions.
  * </dt><dd>
  * ...
  * </dd></di>
- * <di><dt>JSON:
+ * <di><dt>JSON and JSONR:
  * <code>json</code>,
+ * <code>jsonr</code>,
  * <code>jsonGET</code>,
  * <code>jsonPOST</code>,
  * <code>json200Ok</code>.
@@ -525,7 +526,7 @@ public class Actor {
      * @param controller
      * @return true if the test was successfull, false otherwise
      */
-    public boolean testConfiguration (Controller controller) {
+    public boolean testConfiguration () {
         if (!configuration.containsKey(less4jDigestSalt)) {
             logInfo("add salt to digest cookies!", "Configuration");
             return false;

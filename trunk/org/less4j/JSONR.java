@@ -106,28 +106,46 @@ public class JSONR {
      * <p>Custom type classes must implement the <code>value</code>,
      * <code>eval</code> and <code>copy</code> methods:
      * 
+     * <blockquote>
      * <pre>import org.less4j.JSONR;
      *import java.text.SimpleDateFormat;
      *public TypeDateInSecondsTZ implements JSONR.Type {
-     *    private static final format = new SimpleDateFormat("yyyyMMddHHmmssZ");
-     *    public static final JSONR.Type singleton = new TypeDateInSecondsTZ(); 
-     *    public Object cast (String string) throws JSONR.Error {
+     *    private static final 
+     *    format = new SimpleDateFormat("yyyyMMddHHmmssZ");
+     *    private static final
+     *    NOT_A_SIMPLEDATEFORMAT = "not a valid SimpleDateFormat"; 
+     *    public Object value (Object instance) throws JSONR.Error {
+     *        if (instance instanceof String) try {
+     *            return format.parse((String) string);
+     *        } catch (Exception e) {
+     *            throw new JSONR.Error();
+     *        } else 
+     *          throw new JSONR.Error(JSONR.Type.NOT_A_STRING);
+     *    }
+     *    public Object eval (String string) throws JSONR.Error {
      *        try {
      *            return format.parse(string);
      *        } catch (Exception e) {
-     *            throw new JSONR.Error();
+     *            throw new JSONR.Error(NOT_A_SIMPLEDATEFORMAT);
      *        }
+     *    public static final 
+     *    JSONR.Type singleton = new TypeDateInSecondsTZ();
      *    public Type copy() {return this.singleton;}
      *    } 
      *}</pre>
+     * </blockquote>
      * 
      * can be mapped to this name 
      * 
+     * <blockquote>
      * <pre>"yyyyMMddHHmmssZ"</pre>
+     * </blockquote>
      * 
      * to cast a JSON string like
      * 
+     * <blockquote>
      * <pre>"20060704120856-0700"</pre>
+     * </blockquote>
      * 
      * into the appropriate <code>java.util.Date</code> instance.</p>
      * 

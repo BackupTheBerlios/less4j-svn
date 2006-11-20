@@ -160,7 +160,7 @@ public class Controller extends HttpServlet {
         super.init(config);
         setConfiguration(config);
         Actor $ = new Actor (configuration);
-        if (!$.testConfiguration(this)) {
+        if (!$.testConfiguration()) {
             throw new ServletException(
                 "less4j configuration failed at runtime"
             );
