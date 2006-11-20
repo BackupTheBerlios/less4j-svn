@@ -43,6 +43,48 @@ import java.text.StringCharacterIterator;
  * 
  * and the untyped <code>null</code> value.</p>
  * 
+ * <h3>Synopsis</h3>
+ * 
+ * <p>...
+ * 
+ * <blockquote>
+ * <pre>try {
+ *    Object value = JSON.eval("null");
+ *    HashMap map = JSON.object("{}");
+ *    ArrayList list = JSON.array("[1,2,3]");
+ *} catch (JSON.Error e) {
+ *    System.out.println(e.getMessage())
+ *}</pre>
+ * </blockquote>
+ * 
+ * ...
+ * 
+ * <blockquote>
+ * <pre>System.out.println(JSON.str(value));
+ *System.out.println(JSON.str(map));
+ *System.out.println(JSON.str(list));</pre>
+ * </blockquote>
+ * 
+ * <blockquote>
+ * <pre>StringBuffer sb = new StringBuffer();
+ *sb.append("{\"size\":");
+ *JSON.strb(sb, value);
+ *sb.append(",\"map\": ");
+ *JSON.strb(sb, map);
+ *sb.append(",\"list\": ");
+ *JSON.strb(sb, list.iterator());
+ *sb.append("}");
+ *System.out.println(sb.toString());</pre>
+ *</blockquote>
+ * 
+ * <blockquote>
+ * <pre>System.out.println(JSON.repr(value));
+ *System.out.println(JSON.repr(map));
+ *System.out.println(JSON.repr(list));</pre>
+ * </blockquote>
+ * 
+ * ...</p>
+ * 
  * <p>The additional distinction between JSON number types is made quite
  * simply by considering numbers with an exponent as Doubles, the ones
  * with decimals as BigDecimal and the others as Integer or Long, depending
@@ -58,6 +100,15 @@ public class JSON {
     private static final String NULL_JSON_STRING = "null JSON string";
     protected static final char DONE = CharacterIterator.DONE;
     
+    /**
+     * A simple JSON exception throwed for any syntax error found by the
+     * interpreter. 
+     * 
+     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * 
+     * @author Laurent Szyster
+     * @version 0.1.0
+     */
     public static class Error extends Exception {
         private static final long serialVersionUID = 0L;
         public Error(String message) {super(message);}
@@ -69,13 +120,54 @@ public class JSON {
      * of containers and iterations, protecting the JVM, CPU and RAM from 
      * malicious input.</p>
      * 
+     * <h3>Synopsis</h3>
+     * 
      * <p>Direct instanciation of an Interpreter is usefull to evaluate many 
      * strings under the same global constraints on their cumulated numbers 
      * of containers and iterations.</p>
      * 
-     * <p>For a more common use, to evaluate a single string, the
-     * static methods JSON.eval, JSON.object and JSON.array should be
-     * used instead.</p> 
+     * <p>It's practical to evaluate distinct JSON values
+     * 
+     * <blockquote>
+     * <pre>JSON.Interpreter ji = new JSON.Interpreter(16, 256);
+     *try {
+     *    Object one = ji.eval("{\"size\": 0}");
+     *    Object two = ji.eval("[1.0, true, null]");
+     *    Object three = ji.eval("1.0");
+     *    Object four = ji.eval("true");
+     *    Object five = ji.eval("null");
+     *} catch (JSON.Error e) {
+     *    System.out.println(e.getMessage());
+     *}</pre>
+     * </blockquote>
+     * 
+     * to update a <code>HashMap</code> with the members of many JSON objects:
+     * 
+     * <blockquote>
+     * <pre>JSON.Interpreter ji = new JSON.Interpreter(16, 256);
+     *try {
+     *    HashMap object = ji.update(new HashMap(), "{\"width\": 200}");
+     *    ji.update(object, "{\"height\": 10}");
+     *} catch (JSON.Error e) {
+     *    System.out.println(e.getMessage());
+     *}</pre>
+     * </blockquote>
+     * 
+     * or to extend an <code>ArrayList</code> with the collection of many 
+     * JSON arrays:
+     * 
+     * <blockquote>
+     * <pre>JSON.Interpreter ji = new JSON.Interpreter(16, 256);
+     *try {
+     *    ArrayList array = ji.extend(new ArrayList(), "[1,2,3]");
+     *    ji.extend(array, "[null, true, 1.0]");
+     *} catch (JSON.Error e) {
+     *    System.out.println(e.getMessage());
+     *}</pre>
+     * </blockquote>
+     * 
+     * For a more common use, to evaluate a one string only, the
+     * static <code>JSON</code> methods should be used instead.</p> 
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
@@ -119,8 +211,19 @@ public class JSON {
         protected int containers = 65355;
         protected int iterations = 65355;
         
+        /**
+         * Instanciate a JSON interpreter with limits set to 65355 on 
+         * the number of both containers and iterations.
+         */
         public Interpreter() {}
         
+        /**
+         * Instanciate a JSON interpreter with the given limits on 
+         * the number of both containers and iterations.
+         *
+         * @param containers a limit on the number of objects and arrays
+         * @param iterations a limit on the total count of values
+         */
         public Interpreter(
             int containers, int iterations
             ) {
@@ -128,6 +231,21 @@ public class JSON {
             this.iterations = (iterations > 0 ? iterations: 1);
         }
         
+        /**
+         * Evaluates a JSON string as an untyped value, returns a 
+         * <code>HashMap</code>, 
+         * <code>ArrayList</code>, 
+         * <code>String</code>,
+         * <code>BigDecimal</code>, 
+         * <code>BigInteger</code>, 
+         * <code>Double</code>,
+         * <code>Boolean</code>,
+         * null or throws a JSON.Error if a syntax error occured.
+         * 
+         * @param json the string to evaluate
+         * @return an untyped Object
+         * @throws Error
+         */
         public Object eval(String json) throws Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
@@ -143,7 +261,17 @@ public class JSON {
             }
         }
         
-        public HashMap update(String json, HashMap map) throws Error {
+        /**
+         * Evaluates a JSON string as an object, returns the updated 
+         * <code>map</code> or throws a JSON.Error if the string does not
+         * represent a valid object. 
+         * 
+         * @param map the <code>HashMap</code> to update
+         * @param json the string to evaluate
+         * @return an updated <code>map</code>
+         * @throws Error
+         */
+        public HashMap update(HashMap map, String json) throws Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -159,7 +287,17 @@ public class JSON {
             }
         }
         
-        public ArrayList append(String json, ArrayList list) throws Error {
+        /**
+         * Evaluates a JSON string as an array, returns the extended
+         * <code>list</code> or throws a JSON.Error if the string does not
+         * represent a valid array. 
+         * 
+         * @param list the <code>ArrayList</code> to extend
+         * @param json the string to evaluate
+         * @return an updated <code>map</code>
+         * @throws Error
+         */
+        public ArrayList extend(ArrayList list, String json) throws Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -384,6 +522,23 @@ public class JSON {
 
     }
 
+    /**
+     * Evaluates a JSON string as an untyped value, returns a 
+     * <code>HashMap</code>, 
+     * <code>ArrayList</code>, 
+     * <code>String</code>,
+     * <code>BigDecimal</code>, 
+     * <code>BigInteger</code>, 
+     * <code>Double</code>,
+     * <code>Boolean</code>,
+     * null or throws a JSON.Error if a syntax error occured.
+     * 
+     * @param json the string to evaluate
+     * @param containers the maximum number of containers allowed 
+     * @param containers the limit on the count of values 
+     * @return an untyped Object
+     * @throws Error
+     */
     public static Object eval(
         String json, int containers, int iterations
         ) throws Error {
@@ -393,44 +548,88 @@ public class JSON {
             throw new Error(NULL_JSON_STRING);
     }
     
+    /**
+     * Evaluates a JSON object, returns a new <code>HashMap</code>   
+     * or throws a JSON.Error if the string does not represent a valid object. 
+     * 
+     * @param json the string to evaluate
+     * @param containers the maximum number of containers allowed 
+     * @param containers the limit on the count of values 
+     * @return a new <code>HashMap</code>
+     * @throws Error
+     */
     public static HashMap object(
         String json, int containers, int iterations
         ) throws Error {
         if (json != null)
             return (
                 new Interpreter(containers, iterations)
-                ).update(json, null);
+                ).update(null, json);
         else
             throw new Error(NULL_JSON_STRING);
         }
         
+    /**
+     * Evaluates a JSON array, returns a new <code>ArrayList</code>   
+     * or throws a JSON.Error if the string does not represent a valid array. 
+     * 
+     * @param json the string to evaluate
+     * @param containers the maximum number of containers allowed 
+     * @param containers the limit on the count of values 
+     * @return a new <code>ArrayList</code>
+     * @throws Error
+     */
     public static ArrayList array(
         String json, int containers, int iterations
         ) throws Error {
         if (json != null)
             return (
                 new Interpreter(containers, iterations)
-                ).append(json, null);
+                ).extend(null, json);
         else
             throw new Error(NULL_JSON_STRING);
     }
             
+    /**
+     * Evaluates a JSON string as an object, returns the updated 
+     * <code>map</code> or throws a JSON.Error if the string does not
+     * represent a valid object. 
+     * 
+     * @param map the <code>HashMap</code> to update
+     * @param json the string to evaluate
+     * @param containers the maximum number of containers allowed 
+     * @param containers the limit on the count of values 
+     * @return an updated <code>map</code>
+     * @throws Error
+     */
     public static boolean update(
-        String json, int containers, int iterations, HashMap map
+        HashMap map, String json, int containers, int iterations
         ) {
         if (json != null) try {
-            (new Interpreter(containers, iterations)).update(json, map);
+            (new Interpreter(containers, iterations)).update(map, json);
             return false;
             
         } catch (Error e) {}
         return false;
     }
             
-    public static boolean append(
-        String json, int containers, int iterations, ArrayList list 
+    /**
+     * Evaluates a JSON string as an array, returns the extended
+     * <code>list</code> or throws a JSON.Error if the string does not
+     * represent a valid array. 
+     * 
+     * @param list the <code>ArrayList</code> to extend
+     * @param json the string to evaluate
+     * @param containers the maximum number of containers allowed 
+     * @param containers the limit on the count of values 
+     * @return an updated <code>map</code>
+     * @throws Error
+     */
+    public static boolean extend(
+        ArrayList list, String json, int containers, int iterations 
         ) throws Error {
         if (json != null) try {
-            (new Interpreter(containers, iterations)).append(json, null);
+            (new Interpreter(containers, iterations)).extend(list, json);
             return false;
             
         } catch (Error e) {}

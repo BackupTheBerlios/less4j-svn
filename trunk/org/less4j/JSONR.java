@@ -97,7 +97,45 @@ public class JSONR {
         public Error(String message) {super(message);}
     }
     
-    protected static interface Type {
+    /**
+     * The interface is made public to allow extension of the framework by 
+     * mappings regular expressions or names to a specialized regular type.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>Custom type classes must implement the <code>value</code>,
+     * <code>eval</code> and <code>copy</code> methods:
+     * 
+     * <pre>import org.less4j.JSONR;
+     *import java.text.SimpleDateFormat;
+     *public TypeDateInSecondsTZ implements JSONR.Type {
+     *    private static final format = new SimpleDateFormat("yyyyMMddHHmmssZ");
+     *    public static final JSONR.Type singleton = new TypeDateInSecondsTZ(); 
+     *    public Object cast (String string) throws JSONR.Error {
+     *        try {
+     *            return format.parse(string);
+     *        } catch (Exception e) {
+     *            throw new JSONR.Error();
+     *        }
+     *    public Type copy() {return this.singleton;}
+     *    } 
+     *}</pre>
+     * 
+     * can be mapped to this name 
+     * 
+     * <pre>"yyyyMMddHHmmssZ"</pre>
+     * 
+     * to cast a JSON string like
+     * 
+     * <pre>"20060704120856-0700"</pre>
+     * 
+     * into the appropriate <code>java.util.Date</code> instance.</p>
+     * 
+     * @author Laurent Szyster
+     *
+     */
+    public static interface Type {
+        public final static Type singleton = null;
         public Object value(Object instance) throws Error ;
         public Object eval(String string) throws Error;
         public Type copy();
@@ -141,14 +179,14 @@ public class JSONR {
             if (data instanceof BigInteger)
                 return data;
             else
-                throw new Error("not an Integer or Long type");
+                throw new Error("not a BigInteger type");
         }
         public Object eval (String string) throws Error {
             if (string != null) {
                 try {
                     return new BigInteger(string);
                 } catch (Exception e) {
-                    throw new Error("not a BigInteger type");
+                    throw new Error("not an integer value");
                 }
             } else
                 throw new Error("not an integer value");
@@ -222,33 +260,34 @@ public class JSONR {
         public Type copy() {return singleton;}
     }
     
-    protected static class TypeStringRegular implements Type {
-        Pattern pattern;
-        public TypeStringRegular (Pattern pattern) {
+    protected static class TypeRegular implements Type {
+        private Pattern pattern = null;
+        private TypeRegular (Pattern pattern) {
             this.pattern = pattern;
         } 
-        public TypeStringRegular (String expression) {
+        public TypeRegular (String expression) {
             pattern = Pattern.compile(expression);
         } 
-        public Object value (Object instance) throws Error {
-            if (instance instanceof String) {
-                if (pattern.matcher((String) instance).matches())
-                    return instance;
-                else
-                    throw new Error("irregular string value");
-            } else
-                throw new Error("not a String type");
-        }
-        public Object eval (String string) throws Error {
-            if (string == null && pattern.matcher(string).matches()) 
+        private Object test (String string) throws Error {
+            if (pattern.matcher(string).matches())
                 return string;
             else
                 throw new Error("irregular string value");
         }
-        public Type copy() {return new TypeStringRegular(pattern);}
+        public Object value (Object instance) throws Error {
+            if (instance instanceof String) {
+                return this.test((String) instance);
+            } else
+                throw new Error("not a String type");
+        }
+        public Object eval (String string) throws Error {
+            if (string != null)
+                return this.test(string);
+            else
+                return null;
+        }
+        public Type copy() {return new TypeRegular(pattern);}
     }
-    
-    private static final Integer _integer_zero = new Integer(0);
     
     protected static class TypeIntegerLTE implements Type {
         BigInteger limit;
@@ -256,7 +295,7 @@ public class JSONR {
         public Object value (Object instance) throws Error {
             if (instance instanceof BigInteger) {
                 BigInteger i = (BigInteger) instance;
-                if (i.compareTo(_integer_zero) < 0)
+                if (i.compareTo(BigInteger.ZERO) < 0)
                     throw new Error("integer not positive");
                 else if (limit.compareTo(i) >= 0)
                     return i;
@@ -269,7 +308,7 @@ public class JSONR {
             if (string != null) {
                 try {
                     BigInteger i = new BigInteger(string);
-                    if (i.compareTo(_integer_zero) < 0)
+                    if (i.compareTo(BigInteger.ZERO) < 0)
                         throw new Error("integer not positive");
                     else if (limit.compareTo(i) >= 0)
                         return i;
@@ -701,10 +740,10 @@ public class JSONR {
             if (_null_string.equals(s))
                 return TypeString.singleton;
             else
-                return new TypeStringRegular(s);
+                return new TypeRegular(s);
         } else if (regular instanceof BigInteger) {
             BigInteger i = (BigInteger) regular;
-            int cmpr = i.compareTo(_integer_zero); 
+            int cmpr = i.compareTo(BigInteger.ZERO); 
             if (cmpr == 0)
                 return TypeInteger.singleton;
             else if (cmpr > 0)
@@ -839,7 +878,7 @@ public class JSONR {
     }
     
     public boolean update(
-        String json, int containers, int iterations, HashMap map
+        HashMap map, String json, int containers, int iterations
         ) 
         throws JSON.Error {
         if (type instanceof TypeObject) try { 
@@ -852,8 +891,8 @@ public class JSONR {
         return false;
     }
             
-    public boolean append(
-        String json, int containers, int iterations, ArrayList list
+    public boolean extend(
+        ArrayList list, String json, int containers, int iterations
         ) 
     throws JSON.Error {
         if (type instanceof TypeArray) try { 
