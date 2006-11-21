@@ -523,7 +523,6 @@ public class Actor {
      * <p>Application developers that extend the namespace of less4j's 
      * configuration and the Actor class must overload this method.</p>
      * 
-     * @param controller
      * @return true if the test was successfull, false otherwise
      */
     public boolean testConfiguration () {
