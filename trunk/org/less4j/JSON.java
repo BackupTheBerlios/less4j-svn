@@ -45,7 +45,9 @@ import java.text.StringCharacterIterator;
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>...
+ * <p>The JSON static methods allow to evaluate strings as an untyped
+ * <code>Object</code> or validate and cast them as an <code>ArrayList</code>
+ * or a <code>HashMap</code>, for JSON arrays and objects respectively:
  * 
  * <blockquote>
  * <pre>try {
@@ -57,13 +59,31 @@ import java.text.StringCharacterIterator;
  *}</pre>
  * </blockquote>
  * 
- * ...
+ * Lower limits than the defaults maximum of 65355 can be set for the
+ * number of objects and arrays and the count of values, for containers
+ * and iterations:
+ * 
+ * <blockquote>
+ * <pre>try {
+ *    ArrayList list = JSON.array("[{},{},{},{},{},{}]", 1, 4);
+ *    HashMap map = JSON.object("[{},{},{},{},{},{}]", 1, 100);
+ *} catch (JSON.Error e) {
+ *    System.out.println(e.getMessage())
+ *}</pre>
+ * </blockquote>
+ * 
+ * making JSON evaluation safe for public interfaces.</p>
+ * 
+ * <p>There are also static methods to serialize java instances as
+ * JSON strings
  * 
  * <blockquote>
  * <pre>System.out.println(JSON.str(value));
  *System.out.println(JSON.str(map));
  *System.out.println(JSON.str(list));</pre>
  * </blockquote>
+ * 
+ * to append distinct values into a <code>StringBuffer</code>
  * 
  * <blockquote>
  * <pre>StringBuffer sb = new StringBuffer();
@@ -76,6 +96,9 @@ import java.text.StringCharacterIterator;
  *sb.append("}");
  *System.out.println(sb.toString());</pre>
  *</blockquote>
+ *
+ * using templates for constants, or to pretty print an indented
+ * representation of a java instance in JSON 
  * 
  * <blockquote>
  * <pre>System.out.println(JSON.repr(value));
@@ -83,12 +106,24 @@ import java.text.StringCharacterIterator;
  *System.out.println(JSON.repr(list));</pre>
  * </blockquote>
  * 
- * ...</p>
+ * Instances of JSON class itself are made to serialize partial instance 
+ * tree and assemble reponses from java objects and JSON strings:
  * 
- * <p>The additional distinction between JSON number types is made quite
- * simply by considering numbers with an exponent as Doubles, the ones
- * with decimals as BigDecimal and the others as Integer or Long, depending
- * on their values (Integers are 16bit and Long represent 32bits).</p>
+ * <blockquote>
+ * <pre>try {
+ *    HashMap map = JSON.object("{}");
+ *    map.put("list", JSON.array("[1,2,3]");
+ *    json = new JSON();
+ *    json.string = "{\"constant\": null"}";
+ *    map.put("value", json);
+ *    System.out.println(JSON.str(map));
+ *} catch (JSON.Error e) {
+ *    System.out.println(e.getMessage())
+ *}</pre>
+ * 
+ * Note that the additional distinction between JSON number types is made 
+ * by considering numbers with an exponent as Doubles, the ones with decimals 
+ * as BigDecimal and the others as BigInteger.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -839,8 +874,6 @@ public class JSON {
     }
     
     public String string;
-    
-    public JSON(String literal) {this.string = literal;}
     
     public JSON(Object value) {this.string = str(value);}
     
