@@ -167,4 +167,41 @@ public class Controller extends HttpServlet {
         }
     }
     
+    // TODO: add common J2EE acts for SQL database administration and
+    //       simple LDAP access, crafted so that a JSONR model can be
+    //       scaffolded as:
+    //
+    //       GET  /database                   -> DATABASE metadata
+    //       POST /database                   -> SQL CREATE or UPDATE TABLE
+    //       GET  /database/table             -> TABLE metadata
+    //       POST /database/table             -> SQL INSERT or UPDATE many 
+    //       GET  /database/table?insert&...  -> INSERT one
+    //       GET  /database/table?update&...  -> UPDATE one
+    //       GET  /database/table?select&...  -> SELECT where
+    
+    /*
+     * sqlDatabaseGET();
+     * sqlDatabasePOST();
+     * sqlGET("table");
+     * sqlPOST("table", model);
+     * sqlInsert("table", model);
+     * sqlUpdate("table", model);
+     * sqlSelect("table", model);
+     * 
+     * This Controller should be all you ever need to scaffold an instant 
+     * database application prototyped from the browser as a loose JSON model 
+     * first and quickly put to test with a strict JSON Regular expression.
+     * 
+     * Assembly of the user interface takes place in the browser, not in Java.
+     * 
+     * Any other J2EE API you need to support can be placed in the Controller  
+     * doGet and doPost methods, as subclass redefine how the Actor actions
+     * on entreprise resources are controlled.
+     * 
+     * If you can't cut straight to the database or the directory, if the
+     * controller must remote or message legacy beans, this is the place
+     * to do it, not in the generic Actor. Because in that case, interfacing
+     * with legacy *is* the application itself.
+     * 
+     */
 }

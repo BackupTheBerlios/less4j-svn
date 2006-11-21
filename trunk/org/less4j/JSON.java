@@ -65,7 +65,7 @@ import java.text.StringCharacterIterator;
  * 
  * <blockquote>
  * <pre>try {
- *    ArrayList list = JSON.array("[{},{},{},{},{},{}]", 1, 4);
+ *    ArrayList list = JSON.array("[1,2,3,4,5]", 1, 4);
  *    HashMap map = JSON.object("[{},{},{},{},{},{}]", 1, 100);
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
