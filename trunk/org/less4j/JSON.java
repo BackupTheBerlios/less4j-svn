@@ -120,6 +120,7 @@ import java.text.StringCharacterIterator;
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
+ *</blockquote>
  * 
  * Note that the additional distinction between JSON number types is made 
  * by considering numbers with an exponent as Doubles, the ones with decimals 
@@ -570,7 +571,7 @@ public class JSON {
      * 
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
-     * @param containers the limit on the count of values 
+     * @param iterations the limit on the count of values 
      * @return an untyped Object
      * @throws Error
      */
@@ -589,7 +590,7 @@ public class JSON {
      * 
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
-     * @param containers the limit on the count of values 
+     * @param iterations the limit on the count of values 
      * @return a new <code>HashMap</code>
      * @throws Error
      */
@@ -610,7 +611,7 @@ public class JSON {
      * 
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
-     * @param containers the limit on the count of values 
+     * @param iterations the limit on the count of values 
      * @return a new <code>ArrayList</code>
      * @throws Error
      */
@@ -633,7 +634,7 @@ public class JSON {
      * @param map the <code>HashMap</code> to update
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
-     * @param containers the limit on the count of values 
+     * @param iterations the limit on the count of values 
      * @return an updated <code>map</code>
      * @throws Error
      */
@@ -656,7 +657,7 @@ public class JSON {
      * @param list the <code>ArrayList</code> to extend
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
-     * @param containers the limit on the count of values 
+     * @param iterations the limit on the count of values 
      * @return an updated <code>map</code>
      * @throws Error
      */
