@@ -153,6 +153,26 @@ public class JSONR {
      *
      */
     public static interface Type {
+        public static final String NOT_A_BOOLEAN_VALUE = 
+            "not a boolean value";
+        public static final String NOT_A_BOOLEAN_TYPE = 
+            "not a Boolean type";
+        public static final String NOT_AN_INTEGER_VALUE = 
+            "not an integer value";
+        public static final String NOT_AN_INTEGER_TYPE = 
+            "not an integer type";
+        public static final String NOT_A_DOUBLE_VALUE = 
+            "not a double value";
+        public static final String NOT_A_DOUBLE_TYPE = 
+            "not a double type";
+        public static final String NOT_A_DECIMAL_VALUE = 
+            "not a decimal value";
+        public static final String NOT_A_DECIMAL_TYPE = 
+            "not a decimal type";
+        public static final String NULL_STRING = 
+            "null string";
+        public static final String NOT_A_STRING_TYPE = 
+            "not a string type";
         public final static Type singleton = null;
         public Object value(Object instance) throws Error ;
         public Object eval(String string) throws Error;
@@ -178,7 +198,7 @@ public class JSONR {
             if (data instanceof Boolean)
                 return data;
             else
-                throw new Error("not a Boolean type");
+                throw new Error(NOT_A_BOOLEAN_TYPE);
         }
         public Object eval (String string) throws Error {
             if (string.equals(JSON._true))
@@ -186,7 +206,7 @@ public class JSONR {
             else if (string.equals(JSON._false))
                 return Boolean.FALSE;
             else
-                throw new Error("not a boolean value");
+                throw new Error(NOT_A_BOOLEAN_VALUE);
         }
         public Type copy() {return singleton;}
     }
@@ -197,17 +217,17 @@ public class JSONR {
             if (data instanceof BigInteger)
                 return data;
             else
-                throw new Error("not a BigInteger type");
+                throw new Error(NOT_AN_INTEGER_TYPE);
         }
         public Object eval (String string) throws Error {
             if (string != null) {
                 try {
                     return new BigInteger(string);
                 } catch (Exception e) {
-                    throw new Error("not an integer value");
+                    throw new Error(NOT_AN_INTEGER_VALUE);
                 }
             } else
-                throw new Error("not an integer value");
+                throw new Error(NOT_AN_INTEGER_VALUE);
         }
         public Type copy() {return singleton;}
     }
@@ -220,17 +240,44 @@ public class JSONR {
             else if (instance instanceof Number)
                 return new Double(((Number) instance).doubleValue());
             else
-                throw new Error("not a Double type");
+                throw new Error(NOT_A_DOUBLE_TYPE);
         }
         public Object eval (String string) throws Error {
             if (string != null) {
                 return new Double(string);
             } else
-                throw new Error("not a double value");
+                throw new Error(NOT_A_DOUBLE_VALUE);
         }
         public Type copy() {return singleton;}
     }
 
+    protected static class TypeString implements Type {
+        public static final TypeString singleton = new TypeString();
+        public Object value (Object instance) throws Error {
+            if (instance instanceof String) {
+                String s = (String) instance;
+                if (s.length() > 0)
+                    return instance;
+                else
+                    throw new Error(NULL_STRING);
+            } else
+                throw new Error(NOT_A_STRING_TYPE);
+        }
+        public Object eval (String string) throws Error {
+            if (string == null || _null_string.equals(string)) 
+                throw new Error(NULL_STRING);
+            else
+                return string;
+        }
+        public Type copy() {return singleton;}
+    }
+    
+    public static final Type UNDEFINED = TypeUndefined.singleton;
+    public static final Type BOOLEAN = TypeBoolean.singleton;
+    public static final Type INTEGER = TypeInteger.singleton;
+    public static final Type DOUBLE = TypeDouble.singleton;
+    public static final Type STRING = TypeString.singleton;
+    
     protected static class TypeDecimal implements Type {
         private int scale;
         private int round = BigDecimal.ROUND_HALF_DOWN;
@@ -244,7 +291,7 @@ public class JSONR {
             } else if (instance instanceof Number) {
                 b = new BigDecimal(((Number) instance).doubleValue());
             } else
-                throw new Error("not a decimal type");
+                throw new Error(NOT_A_DECIMAL_TYPE);
             b.setScale(scale, round);
             return b;
         }
@@ -252,32 +299,11 @@ public class JSONR {
             if (string != null) {
                 return (new BigDecimal(string)).setScale(scale, round);
             } else
-                throw new Error("not a decimal value");
+                throw new Error(NOT_A_DECIMAL_VALUE);
         }
         public Type copy() {return new TypeDecimal(scale);}
     }
 
-    protected static class TypeString implements Type {
-        public static final TypeString singleton = new TypeString();
-        public Object value (Object instance) throws Error {
-            if (instance instanceof String) {
-                String s = (String) instance;
-                if (s.length() > 0)
-                    return instance;
-                else
-                    throw new Error("null string");
-            } else
-                throw new Error("not a String type");
-        }
-        public Object eval (String string) throws Error {
-            if (string == null || _null_string.equals(string)) 
-                throw new Error("null string");
-            else
-                return string;
-        }
-        public Type copy() {return singleton;}
-    }
-    
     protected static class TypeRegular implements Type {
         private Pattern pattern = null;
         private TypeRegular (Pattern pattern) {
@@ -296,7 +322,7 @@ public class JSONR {
             if (instance instanceof String) {
                 return this.test((String) instance);
             } else
-                throw new Error("not a String type");
+                throw new Error(NOT_A_STRING_TYPE);
         }
         public Object eval (String string) throws Error {
             if (string != null)
@@ -320,7 +346,7 @@ public class JSONR {
                 else
                     throw new Error("positive integer overflow");
             } else
-                throw new Error("not an Integer type");
+                throw new Error(NOT_AN_INTEGER_TYPE);
         }
         public Object eval (String string) throws Error {
             if (string != null) {
@@ -333,10 +359,10 @@ public class JSONR {
                     else
                         throw new Error("positive integer overflow");
                 } catch (Exception e) {
-                    throw new Error("not an integer value");
+                    throw new Error(NOT_AN_INTEGER_VALUE);
                 }
             } else
-                throw new Error("not an integer value");
+                throw new Error(NOT_AN_INTEGER_VALUE);
         }
         public Type copy() {return new TypeIntegerLTE(limit);}
     }
@@ -352,7 +378,7 @@ public class JSONR {
                 else
                     throw new Error("negative integer overflow");
             } else
-                    throw new Error("not an integer type");
+                    throw new Error(NOT_AN_INTEGER_TYPE);
         }
         public Object eval (String string) throws Error {
             if (string != null) { 
@@ -363,10 +389,10 @@ public class JSONR {
                     else
                         throw new Error("negative integer overflow");
                 } catch (Exception e) {
-                    throw new Error("not an integer value");
+                    throw new Error(NOT_AN_INTEGER_VALUE);
                 }
             } else
-                throw new Error("not an integer value");
+                throw new Error(NOT_AN_INTEGER_VALUE);
         }
         public Type copy() {return new TypeIntegerGT(limit);}
     }
@@ -753,21 +779,32 @@ public class JSONR {
     protected static Type compile(Object regular) {
         if (regular == null) {
             return TypeUndefined.singleton;
+        } else if (regular instanceof Boolean) {
+            return BOOLEAN;
         } else if (regular instanceof String) {
             String s = (String) regular;
             if (_null_string.equals(s))
-                return TypeString.singleton;
+                return STRING;
             else
                 return new TypeRegular(s);
         } else if (regular instanceof BigInteger) {
             BigInteger i = (BigInteger) regular;
             int cmpr = i.compareTo(BigInteger.ZERO); 
             if (cmpr == 0)
-                return TypeInteger.singleton;
+                return INTEGER;
             else if (cmpr > 0)
                 return new TypeIntegerLTE(i);
             else
                 return new TypeIntegerGT(i);
+        } else if (regular instanceof Double) {
+            Double d = (Double) regular;
+            int cmpr = d.compareTo(_double_zero); 
+            if (cmpr == 0)
+                return DOUBLE;
+            else if (cmpr > 0)
+                return new TypeDoubleLTE(d);
+            else
+                return new TypeDoubleGT(d);
         } else if (regular instanceof BigDecimal) {
             BigDecimal b = (BigDecimal) regular;
             int cmpr = b.compareTo(_double_zero); 
@@ -777,17 +814,6 @@ public class JSONR {
                 return new TypeDecimalLT(b);
             else
                 return new TypeDecimalGT(b);
-        } else if (regular instanceof Double) {
-            Double d = (Double) regular;
-            int cmpr = d.compareTo(_double_zero); 
-            if (cmpr == 0)
-                return TypeDouble.singleton;
-            else if (cmpr > 0)
-                return new TypeDoubleLTE(d);
-            else
-                return new TypeDoubleGT(d);
-        } else if (regular instanceof Boolean) {
-            return TypeBoolean.singleton;
         } else if (regular instanceof ArrayList) {
             ArrayList array = (ArrayList) regular;
             int l = array.size();
@@ -851,77 +877,69 @@ public class JSONR {
         throw new Error(NOT_A_JSONR_ARRAY_TYPE);
     }
             
-    public HashMap filter(Map query) 
-    throws Error {
-        if (!(type instanceof TypeObject))
-            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
-        
-        Type type;
-        String name;
-        String[] strings;
-        HashMap namespace = ((TypeObject) this.type).namespace();
-        HashMap valid = new HashMap();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            type = (Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (type != null && strings != null && strings.length > 0) {
-                valid.put(name, type.eval(strings[0]));
-            }
-        }
-        return valid;
-    }
-    
-    public HashMap match(Map query) 
-    throws Error {
-        if (!(type instanceof TypeObject))
-            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
-        
-        Type type;
-        String name;
-        String[] strings;
-        HashMap namespace = ((TypeObject) this.type).namespace();
-        HashMap valid = new HashMap();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            type = (Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (type != null && strings != null && strings.length > 0) {
-                valid.put(name, type.eval(strings[0]));
-            }
-        }
-        return valid;
-    }
-    
-    public boolean update(
+    public HashMap update(
         HashMap map, String json, int containers, int iterations
-        ) 
-        throws JSON.Error {
-        if (type instanceof TypeObject) try { 
-            (
+        ) throws JSON.Error {
+        if (type instanceof TypeObject) 
+            return (
                 new Interpreter(containers, iterations)
                 ).object(json, ((TypeObject) type), map);
-            return true;
-            
-        } catch (JSON.Error e) {}
-        return false;
+        else
+            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
     }
             
-    public boolean extend(
+    public ArrayList extend(
         ArrayList list, String json, int containers, int iterations
-        ) 
-    throws JSON.Error {
-        if (type instanceof TypeArray) try { 
-            (
+        ) throws JSON.Error {
+        if (type instanceof TypeArray)
+            return (
                 new Interpreter(containers, iterations)
                 ).array(json, ((TypeArray) type), list);
-            return true;
-            
-        } catch (JSON.Error e) {}
-        return false;
+        else
+            throw new Error(NOT_A_JSONR_ARRAY_TYPE);
     }
             
+    public HashMap filter(Map query) throws Error {
+        if (!(type instanceof TypeObject))
+            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
+        
+        Type type;
+        String name;
+        String[] strings;
+        HashMap namespace = ((TypeObject) this.type).namespace();
+        HashMap valid = new HashMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            type = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (type != null && strings != null && strings.length > 0) {
+                valid.put(name, type.eval(strings[0]));
+            }
+        }
+        return valid;
+    }
+    
+    public HashMap match(Map query) throws Error {
+        if (!(type instanceof TypeObject))
+            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
+        
+        Type type;
+        String name;
+        String[] strings;
+        HashMap namespace = ((TypeObject) this.type).namespace();
+        HashMap valid = new HashMap();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            type = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (type != null && strings != null && strings.length > 0) {
+                valid.put(name, type.eval(strings[0]));
+            }
+        }
+        return valid;
+    }
+    
 }
 

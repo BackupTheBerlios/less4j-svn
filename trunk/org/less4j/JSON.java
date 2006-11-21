@@ -636,17 +636,16 @@ public class JSON {
      * @param containers the maximum number of containers allowed 
      * @param iterations the limit on the count of values 
      * @return an updated <code>map</code>
-     * @throws Error
      */
-    public static boolean update(
+    public static HashMap update(
         HashMap map, String json, int containers, int iterations
-        ) {
-        if (json != null) try {
-            (new Interpreter(containers, iterations)).update(map, json);
-            return false;
-            
-        } catch (Error e) {}
-        return false;
+        ) throws Error {
+        if (json != null) {
+            return (
+                new Interpreter(containers, iterations)
+                ).update(map, json);
+        } else
+            throw new Error(NULL_JSON_STRING);
     }
             
     /**
@@ -659,17 +658,16 @@ public class JSON {
      * @param containers the maximum number of containers allowed 
      * @param iterations the limit on the count of values 
      * @return an updated <code>map</code>
-     * @throws Error
      */
-    public static boolean extend(
+    public static ArrayList extend(
         ArrayList list, String json, int containers, int iterations 
         ) throws Error {
-        if (json != null) try {
-            (new Interpreter(containers, iterations)).extend(list, json);
-            return false;
-            
-        } catch (Error e) {}
-        return false;
+        if (json != null) {
+            return (
+                new Interpreter(containers, iterations)
+                ).extend(list, json);
+        } else
+            throw new Error(NULL_JSON_STRING);
     }
                 
     protected static final String _quote = "\\\"";
