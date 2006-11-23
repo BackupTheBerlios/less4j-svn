@@ -29,88 +29,9 @@ import javax.servlet.http.HttpServlet;
  * programming intefaces, the base class from which to derive RESTfull
  * application resource controllers (aka SOA).</p>
  * 
- * <h3>Usage</h3>
- * 
- * <h4>REST</h4>
+ * <h3>Synopsis</h3>
  * 
  * <p>...</p>
- * 
- * <blockquote>
- * <pre>class World extends Controller {
- *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) { 
- *        <strong>(new Actor(getConfiguration()), req, res)).rest200Ok(
- *            "&lt;World/&gt;", 600
- *            );</strong>
- *    }
- *}</pre>
- * </blockquote>
- * 
- * <h4>d'irtd</h4>
- * 
- * <p>That bizarre acronym stands for: Digest Identity Roles Time Digested,
- * a simple relation to chain authentic signatures of an original digest
- * back to their source, auditing user interactions and effectively tracking 
- * impersonation fraud attempts.</p>
- * 
- * <p>Here is a simplistic Guest resource, that identify an "anonymous" user
- * and grants him the rights of a "guest":
- * 
- * <blockquote>
- * <pre>class Guest extends Controller {
- *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
- *        Actor $ = new Actor(getConfiguration()), req, res));
- *        <strong>if ($.notAuthorized()) {
- *            $.authorize("", "guest");
- *        } else {
- *            $.authorize("guest");
- *        }</strong>
- *        $.rest200Ok("&lt;World/&gt;", 600);
- *    }
- *}</pre>
- * </blockquote>
- *
- * Note that HTTP cookies are used, must be supported by the user agent and 
- * that d'irtd digests are bound to a domain, maybe to a path (by default
- * cookies are digested for the "/" root path).</p>
- * 
- * <h4>JSON</h4>
- * 
- * <p>The request for globals of the JavaScript client state and the request
- * for stateless interactions with the server use the GET method of HTTP:
- * 
- * <blockquote>
- * <pre>class Hello extends Controller {
- *    public void doGet(HttpServlertRequest req, HttpServlertResponse res) {
- *        Actor $ = new Actor(getConfiguration()), req, res));
- *        <strong>if ($.noAuthorized("guest")) {
- *            $.rest302Redirect("/Guest");
- *        } else if ($.httpIdempotent()) {
- *            $.rest200Ok("{method: \"hello\"}", "application/json", 600);
- *        } else (if $.httpActions() && $.hasAction("hello")) {
- *            $.json200Ok(new Object[]{"hello", $.identity});
- *        } else {
- *            $.rest302Redirect();
- *        }</strong>
- *    }
- *    public void doPost(HttpServlertRequest req, HttpServlertResponse res) {
- *        Actor $ = new Actor(getConfiguration()), req, res));
- *        <strong>if ($.jsonPOST()) {
- *            $.json200Ok();
- *        } else {
- *            $.rest302Redirect();
- *        }</strong>
- *    }
- *}</pre>
- * </blockquote>
- * 
- * Application controllers don't need and should not handle more than two 
- * HTTP response states: 200 Ok and 302 Redirect. Failure is not an option
- * on this side.</p>
- * 
- * <p>The POST method implemented in the example echoes the JSON object
- * posted, as a simple test of the full stack between a browser and the
- * controller. Real applications use POST to commit transactions which don't
- * fit a URL query string (practically, anything bigger than 2048 bytes).</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
