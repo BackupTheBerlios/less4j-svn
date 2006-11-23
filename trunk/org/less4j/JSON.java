@@ -133,12 +133,27 @@ import java.text.StringCharacterIterator;
  */
 public class JSON {
     
-    private static final String NULL_JSON_STRING = "null JSON string";
-    protected static final char DONE = CharacterIterator.DONE;
+    public static final String EMPTY_STRING = 
+        "null JSON string";
+    
+    protected static final char _done = CharacterIterator.DONE;
     
     /**
      * A simple JSON exception throwed for any syntax error found by the
-     * interpreter. 
+     * interpreter.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * There is just enough in a JSON.Error to identify the error and 
+     * 
+     * <pre>String string = "...";
+     *try {
+     *    HashMap object = JSON.object(string)
+     *} catch (JSON.Error e) {
+     *    System.out.print(e.getMessage());
+     *    System.out.print(" at character ");
+     *    System.out.println(e.index);
+     *}</pre>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
@@ -147,7 +162,31 @@ public class JSON {
      */
     public static class Error extends Exception {
         private static final long serialVersionUID = 0L;
+        /**
+         * The position of the JSON syntax error, -1 by default.
+         */
+        public int jsonIndex = -1;
+        /**
+         * The name of the JSON error value, if any.
+         */
+        public ArrayList jsonNames = new ArrayList();
+        /**
+         * Instanciate a JSON error with an error message.
+         * 
+         * @param message the error message
+         */
         public Error(String message) {super(message);}
+        /**
+         * Instanciate a JSON error with an error message and the index 
+         * in the JSON string at which the error occured.
+         * 
+         * @param message the error message
+         * @param index position at which the error occured
+         */
+        public Error(String message, int index) {
+            super(message);
+            jsonIndex = index;
+            }
     }
     
     /**
@@ -212,34 +251,34 @@ public class JSON {
      */
     public static class Interpreter {
         
-        protected static final String ILLEGAL_UNICODE_SEQUENCE = 
-            " illegal UNICODE sequence";
-        protected static final String ILLEGAL_ESCAPE_SEQUENCE = 
-            " illegal escape sequence ";
-        protected static final String COLON_EXPECTED = 
-            " colon expected ";
-        protected static final String VALUE_EXPECTED = 
-            " value expected";
-        protected static final String ITERATIONS_OVERFLOW = 
-            " iterations overflow";
-        protected static final String STRING_EXPECTED = 
-            " string expected ";
-        protected static final String CONTAINERS_OVERFLOW = 
-            " containers overflow";
-        protected static final String UNEXPECTED_CHARACTER = 
-            " unexpected character ";
-        protected static final String UNEXPECTED_END = 
-            " unexpected end";
-        protected static final String NULL_EXPECTED = 
-            " 'null' expected ";
-        protected static final String FALSE_EXPECTED = 
-            " 'false' expected ";
-        protected static final String TRUE_EXPECTED = 
-            " 'true expected ";
         protected static final String NOT_AN_OBJECT = 
-            " not an object";
+            "not an object";
         protected static final String NOT_AN_ARRAY = 
-            " not an array";
+            "not an array";
+        protected static final String ILLEGAL_UNICODE_SEQUENCE = 
+            "illegal UNICODE sequence";
+        protected static final String ILLEGAL_ESCAPE_SEQUENCE = 
+            "illegal escape sequence";
+        protected static final String COLON_EXPECTED = 
+            "colon expected";
+        protected static final String VALUE_EXPECTED = 
+            "value expected";
+        protected static final String STRING_EXPECTED = 
+            "string expected ";
+        protected static final String UNEXPECTED_CHARACTER = 
+            "unexpected character";
+        protected static final String UNEXPECTED_END = 
+            "unexpected end";
+        protected static final String NULL_EXPECTED = 
+            "null expected";
+        protected static final String FALSE_EXPECTED = 
+            "false expected";
+        protected static final String TRUE_EXPECTED = 
+            "true expected";
+        protected static final String CONTAINERS_OVERFLOW = 
+            "containers overflow";
+        protected static final String ITERATIONS_OVERFLOW = 
+            "iterations overflow";
         
         protected char c;
         protected CharacterIterator it;
@@ -287,7 +326,7 @@ public class JSON {
             it = new StringCharacterIterator(json);
             try {
                 c = it.first();
-                if (c == DONE)
+                if (c == _done)
                     return null;
                 else
                     return value();
@@ -350,18 +389,7 @@ public class JSON {
         }
         
         protected Error error(String message) {
-            StringBuffer sb = new StringBuffer();
-            sb.append(it.getIndex());
-            sb.append(message);
-            return new Error(sb.toString());
-        }
-        
-        protected Error error(String message, char arg) {
-            StringBuffer sb = new StringBuffer();
-            sb.append(it.getIndex());
-            sb.append(message);
-            sb.append(arg);
-            return new Error(sb.toString());
+            return new Error(message, it.getIndex());
         }
         
         protected boolean next(char test) {
@@ -389,33 +417,33 @@ public class JSON {
                 if (next('r') && next('u') && next('e')) {
                     c = it.next(); return Boolean.TRUE;
                 } else
-                    throw error(TRUE_EXPECTED, c);
+                    throw error(TRUE_EXPECTED);
             }
             case 'f': {
                 if (next('a') && next('l') && next('s') && next('e')) {
                     c = it.next(); return Boolean.FALSE;
                 } else
-                    throw error(FALSE_EXPECTED, c);
+                    throw error(FALSE_EXPECTED);
             }
             case 'n': {
                 if (next('u') && next('l') && next('l')) {
                     c = it.next(); return null;
                 } else
-                    throw error(NULL_EXPECTED, c);
+                    throw error(NULL_EXPECTED);
             }
             case ',': {c = it.next(); return COMMA;} 
             case ':': {c = it.next(); return COLON;}
             case ']': {c = it.next(); return ARRAY;} 
             case '}': {c = it.next(); return OBJECT;}
-            case DONE:
+            case _done:
                 throw error(UNEXPECTED_END);
             default: 
-                throw error(UNEXPECTED_CHARACTER, c);
+                throw error(UNEXPECTED_CHARACTER);
             }
         }
         
         protected Object object(HashMap map) throws Error {
-            String key; 
+            String name; 
             Object val;
             map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
@@ -429,18 +457,24 @@ public class JSON {
                 if (--iterations < 0) 
                     throw error(ITERATIONS_OVERFLOW);
                 
-                key = (String) token;
+                name = (String) token;
                 if (value() == COLON) {
-                    val = value();
+                    try {
+                        val = value();
+                    } catch (Error e) {
+                        e.jsonIndex = it.getIndex();
+                        e.jsonNames.add(0, name);
+                        throw e;
+                    }
                     if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
                         throw error(VALUE_EXPECTED);
                     
-                    map.put(key, val);
+                    map.put(name, val);
                     token = value();
                     if (token == COMMA)
                         token = value();
                 } else {
-                    throw error(COLON_EXPECTED, c);
+                    throw error(COLON_EXPECTED);
                 }
             }
             return map;
@@ -515,9 +549,9 @@ public class JSON {
                         case 'r': buf.append('\r'); break;
                         case 't': buf.append('\t'); break;
                         default: 
-                            throw error(ILLEGAL_ESCAPE_SEQUENCE, c);
+                            throw error(ILLEGAL_ESCAPE_SEQUENCE);
                     }
-                } else if (c == DONE) {
+                } else if (c == _done) {
                     throw error(UNEXPECTED_END);
                 } else {
                     buf.append(c); 
@@ -547,7 +581,7 @@ public class JSON {
                 case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
                     val = (val << 4) + c - 'K';
                     break;
-                case DONE:
+                case _done:
                     throw error(UNEXPECTED_END);
                 default:
                     throw error(ILLEGAL_UNICODE_SEQUENCE);
@@ -581,7 +615,7 @@ public class JSON {
         if (json != null)
             return (new Interpreter(containers, iterations)).eval(json);
         else
-            throw new Error(NULL_JSON_STRING);
+            throw new Error(EMPTY_STRING, 0);
     }
     
     /**
@@ -602,7 +636,7 @@ public class JSON {
                 new Interpreter(containers, iterations)
                 ).update(null, json);
         else
-            throw new Error(NULL_JSON_STRING);
+            throw new Error(EMPTY_STRING, -1);
         }
         
     /**
@@ -623,7 +657,7 @@ public class JSON {
                 new Interpreter(containers, iterations)
                 ).extend(null, json);
         else
-            throw new Error(NULL_JSON_STRING);
+            throw new Error(EMPTY_STRING, -1);
     }
             
     /**
@@ -645,7 +679,7 @@ public class JSON {
                 new Interpreter(containers, iterations)
                 ).update(map, json);
         } else
-            throw new Error(NULL_JSON_STRING);
+            throw new Error(EMPTY_STRING, -1);
     }
             
     /**
@@ -667,7 +701,7 @@ public class JSON {
                 new Interpreter(containers, iterations)
                 ).extend(list, json);
         } else
-            throw new Error(NULL_JSON_STRING);
+            throw new Error(EMPTY_STRING, -1);
     }
                 
     protected static final String _quote = "\\\"";
@@ -682,7 +716,7 @@ public class JSON {
     public static StringBuffer strb(StringBuffer sb, String s) {
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
-        for (char c = it.first(); c != DONE; c = it.next()) {
+        for (char c = it.first(); c != _done; c = it.next()) {
             switch(c) {
             case '"':  sb.append(_quote); break;
             case '\\': sb.append(_back); break;
