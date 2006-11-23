@@ -442,6 +442,24 @@ public class JSON {
             }
         }
         
+        protected Object value(String name) throws Error {
+            try {
+                return value();
+            } catch (Error e) {
+                e.jsonNames.add(0, name);
+                throw e;
+            }
+        }
+        
+        protected Object value(int index) throws Error {
+            try {
+                return value();
+            } catch (Error e) {
+                e.jsonNames.add(0, BigInteger.valueOf(index));
+                throw e;
+            }
+        }
+        
         protected Object object(HashMap map) throws Error {
             String name; 
             Object val;
@@ -459,13 +477,7 @@ public class JSON {
                 
                 name = (String) token;
                 if (value() == COLON) {
-                    try {
-                        val = value();
-                    } catch (Error e) {
-                        e.jsonIndex = it.getIndex();
-                        e.jsonNames.add(0, name);
-                        throw e;
-                    }
+                    val = value(name);
                     if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
                         throw error(VALUE_EXPECTED);
                     
@@ -481,11 +493,12 @@ public class JSON {
         }
         
         protected Object array(ArrayList list) throws Error {
-            list = (list != null) ? list : new ArrayList();
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
-            Object token = value();
+            int i = 0;
+            list = (list != null) ? list : new ArrayList();
+            Object token = value(i++);
             while (token != ARRAY) {
                 if (token==COLON || token==COMMA || token==OBJECT)
                     throw error(VALUE_EXPECTED);
@@ -496,7 +509,7 @@ public class JSON {
                 list.add(token);
                 token = value(); 
                 if (token == COMMA) 
-                    token = value();
+                    token = value(i++);
             }
             return list;
         }

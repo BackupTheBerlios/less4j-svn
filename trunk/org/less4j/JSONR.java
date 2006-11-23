@@ -95,10 +95,12 @@ public class JSONR {
      * a syntax and a regular error, allowing the interpreter to recover
      * valid JSON from an invalid JSONR (ie: to do error handling).
      * 
-     * <pre>String string = "...";
-     *try {
-     *    HashMap object = JSON.object(string)
+     * <pre>try {
+     *    ...
+     *} catch (JSONR.Error e) {
+     *    // pass
      *} catch (JSON.Error e) {
+     *    ...
      *}</pre>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
@@ -319,7 +321,7 @@ public class JSONR {
                 throw new Error(NOT_A_STRING_TYPE);
         }
         public Object eval (String string) throws Error {
-            if (string == null || _null_string.equals(string)) 
+            if (string == null || string.length() == 0) 
                 throw new Error(NULL_STRING);
             else
                 return string;
@@ -336,33 +338,19 @@ public class JSONR {
     protected static class TypeIntegerLTE implements Type {
         BigInteger limit;
         public TypeIntegerLTE (BigInteger gt) {this.limit = gt;}
+        protected Object test (BigInteger i) throws Error {
+            if (i.compareTo(BigInteger.ZERO) < 0)
+                throw new Error("integer not positive");
+            else if (limit.compareTo(i) >= 0)
+                return i;
+            else
+                throw new Error("positive integer overflow");
+        } 
         public Object value (Object instance) throws Error {
-            if (instance instanceof BigInteger) {
-                BigInteger i = (BigInteger) instance;
-                if (i.compareTo(BigInteger.ZERO) < 0)
-                    throw new Error("integer not positive");
-                else if (limit.compareTo(i) >= 0)
-                    return i;
-                else
-                    throw new Error("positive integer overflow");
-            } else
-                throw new Error(NOT_AN_INTEGER_TYPE);
+            return test((BigInteger) INTEGER.value(instance));
         }
         public Object eval (String string) throws Error {
-            if (string != null) {
-                try {
-                    BigInteger i = new BigInteger(string);
-                    if (i.compareTo(BigInteger.ZERO) < 0)
-                        throw new Error("integer not positive");
-                    else if (limit.compareTo(i) >= 0)
-                        return i;
-                    else
-                        throw new Error("positive integer overflow");
-                } catch (Exception e) {
-                    throw new Error(NOT_AN_INTEGER_VALUE);
-                }
-            } else
-                throw new Error(NOT_AN_INTEGER_VALUE);
+            return test((BigInteger) INTEGER.eval(string));
         }
         public Type copy() {return new TypeIntegerLTE(limit);}
     }
@@ -370,29 +358,17 @@ public class JSONR {
     protected static class TypeIntegerGT implements Type {
         BigInteger limit;
         public TypeIntegerGT (BigInteger gt) {this.limit = gt;}
+        protected Object test (BigInteger i) throws Error {
+            if (limit.compareTo(i) < 0)
+                return i;
+            else
+                throw new Error("negative integer overflow");
+        } 
         public Object value (Object instance) throws Error {
-            if (instance instanceof BigInteger) {
-                BigInteger i = (BigInteger) instance;
-                if (limit.compareTo(i) < 0)
-                    return i;
-                else
-                    throw new Error("negative integer overflow");
-            } else
-                    throw new Error(NOT_AN_INTEGER_TYPE);
+            return test((BigInteger) INTEGER.value(instance));
         }
         public Object eval (String string) throws Error {
-            if (string != null) { 
-                try {
-                    BigInteger i = new BigInteger(string);
-                    if (limit.compareTo(i) < 0)
-                        return i;
-                    else
-                        throw new Error("negative integer overflow");
-                } catch (Exception e) {
-                    throw new Error(NOT_AN_INTEGER_VALUE);
-                }
-            } else
-                throw new Error(NOT_AN_INTEGER_VALUE);
+            return test((BigInteger) INTEGER.eval(string));
         }
         public Type copy() {return new TypeIntegerGT(limit);}
     }
@@ -402,29 +378,19 @@ public class JSONR {
     protected static class TypeDoubleLTE implements Type {
         Double limit;
         public TypeDoubleLTE (Double gt) {this.limit = gt;}
+        protected Object test (Double d) throws Error {
+            if (d.compareTo(_double_zero) < 0)
+                throw new Error("double not positive");
+            else if (limit.compareTo(d) >= 0)
+                return d;
+            else
+                throw new Error("positive double overflow");
+        } 
         public Object value (Object instance) throws Error {
-            if (instance instanceof Double) {
-                Double d = (Double) instance;
-                if (d.compareTo(_double_zero) < 0)
-                    throw new Error("double not positive");
-                else if (limit.compareTo(d) >= 0)
-                    return d;
-                else
-                    throw new Error("positive double overflow");
-            } else
-                throw new Error("not a Double type");
+            return test((Double) DOUBLE.value(instance));
         }
         public Object eval (String string) throws Error {
-            if (string != null) { 
-                Double d = new Double(string);
-                if (d.compareTo(_double_zero) < 0)
-                    throw new Error("double not positive");
-                else if (limit.compareTo(d) >= 0)
-                    return d;
-                else
-                    throw new Error("positive double overflow");
-            } else
-                throw new Error("not a double value");
+            return test((Double) DOUBLE.eval(string));
         }
         public Type copy() {return new TypeDoubleLTE(limit);}
     }
@@ -432,32 +398,24 @@ public class JSONR {
     protected static class TypeDoubleGT implements Type {
         Double limit;
         public TypeDoubleGT (Double gt) {this.limit = gt;}
+        protected Object test (Double d) throws Error {
+            if (limit.compareTo(d) < 0)
+                return d;
+            else
+                throw new Error("negative double overflow");
+        } 
         public Object value (Object instance) throws Error {
-            if (instance instanceof Double) {
-                Double d = (Double) instance;
-                if (limit.compareTo(d) < 0)
-                    return d;
-                else
-                    throw new Error("negative double overflow");
-            } else
-                throw new Error("not a Double type");
+            return test((Double) DOUBLE.value(instance));
         }
         public Object eval (String string) throws Error {
-            if (string != null) { 
-                Double d = new Double(string);
-                if (limit.compareTo(d) < 0)
-                    return d;
-                else
-                    throw new Error("negative double overflow");
-            } else
-                throw new Error("not a double value");
+            return test((Double) DOUBLE.eval(string));
         }
         public Type copy() {return new TypeDoubleGT(limit);}
     }
     
     private static final BigDecimal _decimal_zero = BigDecimal.valueOf(0);
     
-    protected static class TypeDecimalLT extends TypeDecimal {
+    protected static class TypeDecimalLT implements Type {
         BigDecimal limit;
         int scale;
         public TypeDecimalLT (BigDecimal lt) {
@@ -474,15 +432,15 @@ public class JSONR {
                 throw new Error("positive decimal overflow");
         }
         public Object value (Object instance) throws Error {
-            return test((BigDecimal) super.value(instance));
+            return test((BigDecimal) DECIMAL.value(instance));
         }
         public Object eval (String string) throws Error {
-            return test((BigDecimal) super.eval(string));
+            return test((BigDecimal) DECIMAL.eval(string));
         }
         public Type copy() {return new TypeDecimalLT(limit);}
     }
     
-    protected static class TypeDecimalGT extends TypeDecimal {
+    protected static class TypeDecimalGT implements Type {
         BigDecimal limit;
         int scale;
         public TypeDecimalGT (BigDecimal gt) {
@@ -497,10 +455,10 @@ public class JSONR {
                 throw new Error("negative decimal overflow");
         }
         public Object value (Object instance) throws Error {
-            return test((BigDecimal) super.value(instance));
+            return test((BigDecimal) DECIMAL.value(instance));
         }
         public Object eval (String string) throws Error {
-            return test((BigDecimal) super.eval(string));
+            return test((BigDecimal) DECIMAL.eval(string));
         }
         public Type copy() {return new TypeDecimalGT(limit);}
     }
@@ -656,93 +614,6 @@ public class JSONR {
             }
         }
         
-        protected Object object(HashMap namespace, HashMap map) 
-        throws JSON.Error {
-            String name; 
-            Object val;
-            map = (map != null) ? map : new HashMap();
-            if (--containers < 0) 
-                throw error(CONTAINERS_OVERFLOW);
-            
-            Type type;
-            Object token = value();
-            while (token != OBJECT) {
-                if (!(token instanceof String))
-                    throw error(STRING_EXPECTED);
-                
-                if (--iterations < 0) 
-                    throw error(ITERATIONS_OVERFLOW);
-                
-                name = (String) token;
-                type = (Type) namespace.get(name);
-                if (type == null)
-                    throw error(NO_TYPE_FOR);
-                
-                if (value() == COLON) {
-                    try {
-                        val = value(type);
-                    } catch (JSON.Error e) {
-                        e.jsonIndex = it.getIndex();
-                        e.jsonNames.add(0, name);
-                        throw e;
-                    }
-                    if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
-                        throw error(VALUE_EXPECTED);
-                    
-                    map.put(name, val);
-                    token = value();
-                    if (token == COMMA)
-                        token = value(type);
-                } else {
-                    throw error(COLON_EXPECTED);
-                }
-            }
-            return map;
-        }
-        
-        protected Object array(Iterator types, ArrayList list) 
-        throws JSON.Error {
-            list = (list != null) ? list : new ArrayList();
-            if (--containers < 0) 
-                throw error(CONTAINERS_OVERFLOW);
-
-            Type type = (Type) types.next();
-            Object token = value(type);
-            if (types.hasNext()) {
-                while (token != ARRAY) {
-                    if (token==COLON || token==COMMA || token==OBJECT)
-                        throw error(VALUE_EXPECTED);
-                    
-                    if (--iterations < 0) 
-                        throw error(ITERATIONS_OVERFLOW);
-                 
-                    list.add(token);
-                    token = value(); 
-                    if (token == COMMA)
-                        if (types.hasNext())
-                            token = value((Type) types.next());
-                        else
-                            throw error(ARRAY_OVERFLOW);
-                }
-                if (types.hasNext())
-                    throw error(PARTIAL_ARRAY);
-            } else {
-                while (token != ARRAY) {
-                    if (token==COLON || token==COMMA || token==OBJECT)
-                        throw error(VALUE_EXPECTED);
-                    
-                    if (--iterations < 0) 
-                        throw error(ITERATIONS_OVERFLOW);
-                 
-                    list.add(token);
-                    token = value(); 
-                    if (token == COMMA)
-                        token = value(type);
-                }
-            }
-            return list;
-        }
-        
         protected Object value(Type type) 
         throws JSON.Error {
             while (Character.isWhitespace(c)) c = it.next();
@@ -803,6 +674,114 @@ public class JSONR {
             default: 
                 throw error(UNEXPECTED_CHARACTER);
             }
+        }
+        
+        protected Object value(Type type, String name) throws JSON.Error {
+            try {
+                return value(type);
+            } catch (Error e) {
+                e.jsonIndex = it.getIndex();
+                e.jsonNames.add(0, name);
+                throw e;
+            } catch (JSON.Error e) {
+                e.jsonNames.add(0, name);
+                throw e;
+            }
+        }
+        
+        protected Object value(Type type, int index) throws JSON.Error {
+            try {
+                return value(type);
+            } catch (Error e) {
+                e.jsonIndex = it.getIndex();
+                e.jsonNames.add(0, BigInteger.valueOf(index));
+                throw e;
+            } catch (JSON.Error e) {
+                e.jsonNames.add(0, BigInteger.valueOf(index));
+                throw e;
+            }
+        }
+        
+        protected Object object(HashMap namespace, HashMap map) 
+        throws JSON.Error {
+            String name; 
+            Object val;
+            map = (map != null) ? map : new HashMap();
+            if (--containers < 0) 
+                throw error(CONTAINERS_OVERFLOW);
+            
+            Type type;
+            Object token = value();
+            while (token != OBJECT) {
+                if (!(token instanceof String))
+                    throw error(STRING_EXPECTED);
+                
+                if (--iterations < 0) 
+                    throw error(ITERATIONS_OVERFLOW);
+                
+                name = (String) token;
+                type = (Type) namespace.get(name);
+                if (type == null)
+                    throw error(NO_TYPE_FOR);
+                
+                if (value() == COLON) {
+                    val = value(type, name);
+                    if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
+                        throw error(VALUE_EXPECTED);
+                    
+                    map.put(name, val);
+                    token = value();
+                    if (token == COMMA)
+                        token = value();
+                } else {
+                    throw error(COLON_EXPECTED);
+                }
+            }
+            return map;
+        }
+        
+        protected Object array(Iterator types, ArrayList list) 
+        throws JSON.Error {
+            if (--containers < 0) 
+                throw error(CONTAINERS_OVERFLOW);
+
+            int i = 0;
+            list = (list != null) ? list : new ArrayList();
+            Type type = (Type) types.next();
+            Object token = value(type, i++);
+            if (types.hasNext()) {
+                while (token != ARRAY) {
+                    if (token==COLON || token==COMMA || token==OBJECT)
+                        throw error(VALUE_EXPECTED);
+                    
+                    if (--iterations < 0) 
+                        throw error(ITERATIONS_OVERFLOW);
+                 
+                    list.add(token);
+                    token = value(); 
+                    if (token == COMMA)
+                        if (types.hasNext())
+                            token = value((Type) types.next(), i++);
+                        else
+                            throw error(ARRAY_OVERFLOW);
+                }
+                if (types.hasNext())
+                    throw error(PARTIAL_ARRAY);
+            } else {
+                while (token != ARRAY) {
+                    if (token==COLON || token==COMMA || token==OBJECT)
+                        throw error(VALUE_EXPECTED);
+                    
+                    if (--iterations < 0) 
+                        throw error(ITERATIONS_OVERFLOW);
+                 
+                    list.add(token);
+                    token = value(); 
+                    if (token == COMMA)
+                        token = value(type, i++);
+                }
+            }
+            return list;
         }
         
     }

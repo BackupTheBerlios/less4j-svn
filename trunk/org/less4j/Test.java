@@ -176,9 +176,7 @@ public class Test {
                     System.out.print(e.jsonIndex);
                     if (e.jsonNames.size() > 0) {
                         System.out.print(" in ");
-                        System.out.print(Simple.join(
-                            ".", e.jsonNames.iterator()
-                            ));
+                        System.out.print(JSON.str(e.jsonNames));
                     }
                     System.out.println();
                 }
