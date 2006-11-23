@@ -176,13 +176,6 @@ public class Simple {
 	 * <pre>Iterator iter = Simple.iterate(new Object[]{x, y, z});</pre>
      * </blockquote>
 	 *     
-	 * or, by the virtues of inheritance and convention, in a less4j
-	 * controller application:
-	 * 
-     * <blockquote>
-	 * <pre>Iterator iter = $.iterate(new Object[]{x, y, z});</pre>
-     * </blockquote>
-	 *  
 	 * Usefull to iterate through final arrays, a prime construct in web
 	 * application controllers where check lists and filter sets made of
 	 * primitive array abound (usually to enforce business rules).</p>
@@ -194,6 +187,23 @@ public class Simple {
 		return new ObjectIterator(objects);
 		}
 	
+    public static void join (
+        String separator, Iterator iter, StringBuffer sb
+        ) {
+        if (iter.hasNext())
+            sb.append(iter.next());
+            while (iter.hasNext()) {
+                sb.append(separator);
+                sb.append(iter.next()); 
+            }
+    }
+    
+    public static String join (String separator, Iterator iter) {
+        StringBuffer sb = new StringBuffer();
+        join(separator, iter, sb);
+        return sb.toString();
+    }
+    
     // a simplistic "opaque" type caster for Java 1.4.2 non-string
     // primitive type wrappers that can be expressed as JSON (some 
     // sort of web2 generics ;-)
