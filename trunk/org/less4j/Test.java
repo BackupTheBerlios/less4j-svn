@@ -171,7 +171,16 @@ public class Test {
                     }
                 } catch (JSON.Error e) {
                     System.out.print(" ! ");
-                    System.out.println(e.getMessage());
+                    System.out.print(e.getMessage());
+                    System.out.print(" at ");
+                    System.out.print(e.jsonIndex);
+                    if (e.jsonNames.size() > 0) {
+                        System.out.print(" in ");
+                        System.out.print(Simple.join(
+                            ".", e.jsonNames.iterator()
+                            ));
+                    }
+                    System.out.println();
                 }
             }
         }
