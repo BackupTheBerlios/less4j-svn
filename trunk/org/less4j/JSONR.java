@@ -18,7 +18,9 @@ package org.less4j; // less java for more applications
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -147,8 +149,6 @@ public class JSONR {
         "not a string type";
     
     private static final long serialVersionUID = 0L; 
-    
-    private static final String _null_string = "";
     
     /**
      * The interface is made public to allow extension of the framework by 
@@ -495,7 +495,7 @@ public class JSONR {
     }
     
     protected static class TypeArray implements Type {
-        private Type[] types = null;
+        public Type[] types = null;
         public TypeArray (Type[] types) {this.types = types;}
         public Object value (Object instance) throws Error {
             if (instance instanceof ArrayList)
@@ -517,7 +517,7 @@ public class JSONR {
     }
     
     protected static class TypeObject implements Type {
-        private HashMap namespace = null;
+        public HashMap namespace = null;
         public TypeObject (HashMap ns) {namespace = ns;}
         public Object value (Object instance) throws Error {
             if (instance instanceof HashMap)
@@ -532,7 +532,6 @@ public class JSONR {
                 return null;
             }
         }
-        public HashMap namespace() {return namespace;}
         public Type copy() {
             String name;
             HashMap map = new HashMap();
@@ -569,47 +568,59 @@ public class JSONR {
             super(containers, iterations);
         }
         
-        public Object eval(String json, JSONR jsonr) 
+        public Object eval(String json, Type type) 
         throws JSON.Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
                 c = it.first();
-                return value(jsonr.type);
+                return value(type);
             } finally {
                 buf = null;
                 it = null;
             }
         }
         
-        protected HashMap update(String json, TypeObject type, HashMap map) 
+        public HashMap update(String json, Type type, HashMap map) 
         throws JSON.Error {
+            if (!(type instanceof TypeObject))
+                throw new Error(NOT_A_JSONR_OBJECT_TYPE);
+            
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
-                if (c != '{')
+                if (c == '{') {
+                    c = it.next();
+                    return (HashMap) object(
+                        ((TypeObject) type).namespace, map
+                        );
+                }else
                     throw error(NOT_AN_OBJECT);
-                else
-                    return (HashMap) object(type.namespace(), map);
             } finally {
                 buf = null;
                 it = null;
             }
         }
         
-        protected ArrayList extend(String json, TypeArray type, ArrayList list) 
+        public ArrayList extend(String json, Type type, ArrayList list) 
         throws JSON.Error {
+            if (!(type instanceof TypeArray))
+                throw new Error(NOT_A_JSONR_ARRAY_TYPE);
+            
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
-                if (c != '[')
+                if (c == '[') {
+                    c = it.next();
+                    return (ArrayList) array(
+                        ((TypeArray) type).iterator(), list
+                        );
+                } else
                     throw error(NOT_AN_ARRAY);
-                else
-                    return (ArrayList) array(type.iterator(), list);
             } finally {
                 buf = null;
                 it = null;
@@ -622,14 +633,16 @@ public class JSONR {
             switch(c){
             case '{': {
                 if (type instanceof TypeObject) {
-                    HashMap namespace = ((TypeObject) type).namespace();
+                    HashMap namespace = ((TypeObject) type).namespace;
                     c = it.next();
                     if (namespace.isEmpty())
                         return object(null);
                     else
                         return object(namespace, null);
-                    }
-                else
+                } else if (type == TypeUndefined.singleton) {
+                    c = it.next();
+                    return object(null);
+                } else
                     throw error(IRREGULAR_OBJECT);
             }
             case '[': {
@@ -640,6 +653,9 @@ public class JSONR {
                         return array(types, null);
                     else
                         return array(null);
+                } else if (type == TypeUndefined.singleton) {
+                    c = it.next();
+                    return array(null);
                 } else 
                     throw error(IRREGULAR_ARRAY);
             }
@@ -765,7 +781,7 @@ public class JSONR {
                         if (types.hasNext())
                             token = value((Type) types.next(), i++);
                         else
-                            throw error(ARRAY_OVERFLOW);
+                            throw new Error(ARRAY_OVERFLOW);
                 }
                 if (types.hasNext())
                     throw error(PARTIAL_ARRAY);
@@ -788,14 +804,16 @@ public class JSONR {
         
     }
     
-    protected static Type compile(Object regular) {
+    protected static Type compile(Object regular, HashMap extensions) {
         if (regular == null) {
             return TypeUndefined.singleton;
         } else if (regular instanceof Boolean) {
             return BOOLEAN;
         } else if (regular instanceof String) {
             String s = (String) regular;
-            if (_null_string.equals(s))
+            if (extensions != null && extensions.containsKey(s))
+                return (Type) extensions.get(s);
+            else if (s.length() > 0)
                 return STRING;
             else
                 return new TypeRegular(s);
@@ -831,7 +849,8 @@ public class JSONR {
             int l = array.size();
             if (l > 0) {
                 Type[] types = new Type[l];
-                for (int i=0; i<l; i++) types[i] = compile(array.get(i));
+                for (int i=0; i<l; i++) 
+                    types[i] = compile(array.get(i), extensions);
                 return new TypeArray(types);
             } else 
                 return new TypeArray(new Type[]{});
@@ -845,7 +864,7 @@ public class JSONR {
                 HashMap namespace = new HashMap();
                 do {
                     name = (String) iter.next();
-                    namespace.put(name, compile(object.get(name)));
+                    namespace.put(name, compile(object.get(name), extensions));
                 } while (iter.hasNext());
                 return new TypeObject(namespace);
             } 
@@ -858,57 +877,55 @@ public class JSONR {
     
     public JSONR(JSONR jsonr) {type = jsonr.type.copy();}
     
-    public JSONR(Object regular) {type = compile(regular);}
+    public JSONR(Object regular, HashMap extensions) {
+        type = compile(regular, null);
+        }
     
-    public JSONR(String jsonr) throws JSON.Error {
-        type = compile((new JSON.Interpreter()).eval(jsonr));
+    public JSONR(Object regular) {type = compile(regular, null);}
+    
+    public JSONR(String string, HashMap extensions) throws JSON.Error  {
+        type = compile((new JSON.Interpreter()).eval(string), extensions);
+    }
+    
+    public JSONR(String string) throws JSON.Error {
+        type = compile((new JSON.Interpreter()).eval(string), null);
     }
 
     public Object eval(String json, int containers, int iterations) 
     throws JSON.Error {
-        return (new Interpreter(containers, iterations)).eval(json, this);
+        return (
+            new Interpreter(containers, iterations)
+            ).eval(json, this.type);
     }
 
     public HashMap object(String json, int containers, int iterations) 
     throws JSON.Error {
-    if (type instanceof TypeObject) 
         return (
             new Interpreter(containers, iterations)
             ).update(json, ((TypeObject) type), null);
-    else
-        throw new Error(NOT_A_JSONR_OBJECT_TYPE);
     }
             
     public ArrayList array(String json, int containers, int iterations) 
     throws JSON.Error {
-    if (type instanceof TypeArray) 
         return (
             new Interpreter(containers, iterations)
             ).extend(json, ((TypeArray) type), null);
-    else
-        throw new Error(NOT_A_JSONR_ARRAY_TYPE);
     }
             
     public HashMap update(
         HashMap map, String json, int containers, int iterations
         ) throws JSON.Error {
-        if (type instanceof TypeObject) 
-            return (
-                new Interpreter(containers, iterations)
-                ).update(json, ((TypeObject) type), map);
-        else
-            throw new Error(NOT_A_JSONR_OBJECT_TYPE);
+        return (
+            new Interpreter(containers, iterations)
+            ).update(json, (type), map);
     }
             
     public ArrayList extend(
         ArrayList list, String json, int containers, int iterations
         ) throws JSON.Error {
-        if (type instanceof TypeArray)
-            return (
-                new Interpreter(containers, iterations)
-                ).extend(json, ((TypeArray) type), list);
-        else
-            throw new Error(NOT_A_JSONR_ARRAY_TYPE);
+        return (
+            new Interpreter(containers, iterations)
+            ).extend(json, (type), list);
     }
             
     public HashMap filter(Map query) throws Error {
@@ -918,7 +935,7 @@ public class JSONR {
         Type type;
         String name;
         String[] strings;
-        HashMap namespace = ((TypeObject) this.type).namespace();
+        HashMap namespace = ((TypeObject) this.type).namespace;
         HashMap valid = new HashMap();
         Iterator iter = query.keySet().iterator();
         while (iter.hasNext()) {
@@ -939,7 +956,7 @@ public class JSONR {
         Type type;
         String name;
         String[] strings;
-        HashMap namespace = ((TypeObject) this.type).namespace();
+        HashMap namespace = ((TypeObject) this.type).namespace;
         HashMap valid = new HashMap();
         Iterator iter = query.keySet().iterator();
         while (iter.hasNext()) {
@@ -951,6 +968,89 @@ public class JSONR {
             }
         }
         return valid;
+    }
+    
+    public static StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
+        Object key; 
+        if (!it.hasNext()) {
+            sb.append(JSON._object);
+            return sb;
+        }
+        sb.append('{');
+        key = it.next();
+        strb(sb, key);
+        sb.append(':');
+        strb(sb, map.get(key));
+        while (it.hasNext()) {
+            sb.append(',');
+            key = it.next();
+            strb(sb, key);
+            sb.append(':');
+            strb(sb, map.get(key));
+        }
+        sb.append('}');
+        return sb;
+    }
+    
+    public static StringBuffer strb(StringBuffer sb, Iterator it) {
+        if (!it.hasNext()) {
+            sb.append(JSON._array);
+            return sb;
+        }
+        sb.append('[');
+        strb(sb, it.next());
+        while (it.hasNext()) {
+            sb.append(',');
+            strb(sb, it.next());
+        }
+        sb.append(']');
+        return sb;
+    }
+    
+    public static StringBuffer strb(StringBuffer sb, Object value) {
+        if (value == null) 
+            sb.append(JSON._null);
+        else if (value instanceof Boolean)
+            sb.append(
+                ((Boolean) value).booleanValue() ? JSON._true : JSON._false
+                );
+        else if (value instanceof Number) 
+            sb.append(value);
+        else if (value instanceof String) 
+            strb(sb, (String) value);
+        else if (value instanceof Character) 
+            strb(sb, ((Character) value).toString());
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            String[] names = (String[]) object.keySet().toArray();
+            Arrays.sort(names);
+            strb(sb, object, Simple.iterator(names));
+        } else if (value instanceof List) 
+            strb(sb, ((List) value).iterator());
+        else if (value instanceof Object[]) 
+            strb(sb, Simple.iterator((Object[]) value));
+        else if (value instanceof JSON) 
+            strb(sb, ((JSON) value).string);
+        else 
+            strb(sb, value.toString());
+        return sb;
+    }
+    
+    public static String str(Object value) {
+        return strb(new StringBuffer(), value).toString();
+    }
+    
+    public static String digest(Object value, byte[] salt) {
+        SHA1 md = new SHA1();
+        md.update(str(value).getBytes());
+        md.update(salt);
+        return md.hexdigest();
+    }
+    
+    public static boolean verify(
+        Object value, byte[] salt, String signature
+        ) {
+        return signature.equals(digest(value, salt));
     }
     
 }

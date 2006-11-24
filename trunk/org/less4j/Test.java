@@ -187,8 +187,9 @@ public class Test {
         try {
             testModel = new JSONR(jsonrTest); 
         } catch (JSON.Error e) {
+            System.out.println(jsonrTest.substring(0, e.jsonIndex));
             System.out.println(e.jsonError());
-            System.out.println(jsonrTest);
+            e.printStackTrace();
             return;
         }
         String filename;
@@ -199,7 +200,7 @@ public class Test {
         HashMap modelJSON;
         String model = Simple.fileRead(dir + "/test.jsonr");
         try {
-            modelJSON = (HashMap) JSON.eval(model, 65355, 65355);
+            modelJSON = testModel.object(model, 65355, 65355);
         } catch (JSONR.Error e) {
             System.out.println(model.substring(0, e.jsonIndex));
             System.out.print("Type Error ");

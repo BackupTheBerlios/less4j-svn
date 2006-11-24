@@ -399,10 +399,11 @@ public class JSON {
             try {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
-                if (c != '{')
-                    throw error(NOT_AN_OBJECT);
-                else
+                if (c == '{') {
+                    c = it.next();
                     return (HashMap) object(map);
+                }else
+                    throw error(NOT_AN_OBJECT);
             } finally {
                 buf = null;
                 it = null;
@@ -425,10 +426,11 @@ public class JSON {
             try {
                 c = it.first();
                 while (Character.isWhitespace(c)) c = it.next();
-                if (c != '[')
-                    throw error(NOT_AN_ARRAY);
-                else
+                if (c == '[') {
+                    c = it.next();
                     return (ArrayList) array(list);
+                } else
+                    throw error(NOT_AN_ARRAY);
             } finally {
                 buf = null;
                 it = null;
@@ -817,9 +819,8 @@ public class JSON {
     protected static final String _true = "true";
     protected static final String _false = "false";
     
-    public static StringBuffer strb(StringBuffer sb, Map map) {
+    public static StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
         Object key; 
-        Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
             sb.append(_object);
             return sb;
@@ -859,16 +860,17 @@ public class JSON {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
-            sb.append((((Boolean) value).booleanValue() ? _true : _false));
+            sb.append(((Boolean) value).booleanValue() ? _true : _false);
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String) 
             strb(sb, (String) value);
         else if (value instanceof Character) 
             strb(sb, ((Character) value).toString());
-        else if (value instanceof Map)
-            strb(sb, (Map) value);
-        else if (value instanceof List) 
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            strb(sb, object, object.keySet().iterator());
+        } else if (value instanceof List) 
             strb(sb, ((List) value).iterator());
         else if (value instanceof Object[]) 
             strb(sb, Simple.iterator((Object[]) value));
