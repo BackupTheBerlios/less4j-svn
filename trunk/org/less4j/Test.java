@@ -18,6 +18,8 @@ package org.less4j; // less java for more applications
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -170,15 +172,91 @@ public class Test {
                         System.out.println(" characters in zero milliseconds");
                     }
                 } catch (JSON.Error e) {
-                    System.out.print(" ! ");
-                    System.out.print(e.getMessage());
-                    System.out.print(" at ");
-                    System.out.print(e.jsonIndex);
-                    if (e.jsonNames.size() > 0) {
-                        System.out.print(" in ");
-                        System.out.print(JSON.str(e.jsonNames));
+                    System.out.println(e.jsonError());
+                }
+            }
+        }
+        return;
+    }
+
+    private static final String jsonrTest = 
+        "{\"meta\": null, \"limits\": [65356, 65356]}";
+ 
+    public static void jsonr(String dir, int scale) {
+        JSONR testModel;
+        try {
+            testModel = new JSONR(jsonrTest); 
+        } catch (JSON.Error e) {
+            System.out.println(e.jsonError());
+            System.out.println(jsonrTest);
+            return;
+        }
+        String filename;
+        String[] dirlist = (new File(dir)).list();
+        if (dirlist == null)
+            return;
+        
+        HashMap modelJSON;
+        String model = Simple.fileRead(dir + "/test.jsonr");
+        try {
+            modelJSON = (HashMap) JSON.eval(model, 65355, 65355);
+        } catch (JSONR.Error e) {
+            System.out.println(model.substring(0, e.jsonIndex));
+            System.out.print("Type Error ");
+            System.out.println(e.jsonError());
+            System.out.println(model.substring(e.jsonIndex));
+            e.printStackTrace();
+            return;
+        } catch (JSON.Error e) {
+            System.out.println(model.substring(0, e.jsonIndex));
+            System.out.print("Syntax Error ");
+            System.out.println(e.jsonError());
+            System.out.println(model.substring(e.jsonIndex));
+            e.printStackTrace();
+            return;
+        }
+        JSONR pattern = new JSONR(modelJSON.get("meta"));
+        ArrayList limits = (ArrayList) modelJSON.get("limits");
+        int containers = JSON.intValue(limits.get(0));
+        int iterations = JSON.intValue(limits.get(1));
+        dir += File.separatorChar; 
+        Iterator filenames = Simple.iterator(dirlist);
+        while (filenames.hasNext()) {
+            filename = (String) filenames.next();
+            if (filename.endsWith(".json")) {
+                System.out.print(filename);
+                String input = Simple.fileRead(dir + filename);
+                System.out.print(" = ");
+                try {
+                    Object o = pattern.eval(input, containers, iterations);
+                    System.out.print(" = ");
+                    System.out.println(JSON.repr(o));
+                    long t = System.currentTimeMillis();
+                    for (int i = 0; i < scale; i++)
+                        pattern.eval(input, containers, iterations);
+                    t = System.currentTimeMillis() - t;
+                    System.out.print(input.length()*scale);
+                    if (t > 0) {
+                        System.out.print(" characters in ");
+                        System.out.print(t);
+                        System.out.print(" milliseconds, ");
+                        System.out.print(input.length()*scale/t);
+                        System.out.print(" char/ms, ");
+                        System.out.print(scale/t);
+                        System.out.println(" object/ms");
+                    } else {
+                        System.out.println(" characters in zero milliseconds");
                     }
-                    System.out.println();
+                } catch (JSONR.Error e) {
+                    System.out.println(input.substring(0, e.jsonIndex));
+                    System.out.print("Type Error ");
+                    System.out.println(e.jsonError());
+                    System.out.println(input.substring(e.jsonIndex));
+                } catch (JSON.Error e) {
+                    System.out.println(input.substring(0, e.jsonIndex));
+                    System.out.print("Syntax Error ");
+                    System.out.println(e.jsonError());
+                    System.out.println(input.substring(e.jsonIndex));
                 }
             }
         }
@@ -198,11 +276,14 @@ public class Test {
             if (args.length > 1) for (int i=1; i < args.length; i++) {
                 if (args[i].equals("JSON"))
                     json("test/json", scale);
+                else if (args[i].equals("JSONR"))
+                    jsonr("test/jsonr", scale);
                 else if (args[i].equals("SHA1")) {
                     sha1(scale);
                 }
             } else {
                 json("test/json", scale);
+                jsonr("test/jsonr", scale);
                 sha1(scale);
             }
         } catch (Exception e) {

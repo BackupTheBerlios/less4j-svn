@@ -25,8 +25,6 @@ import java.util.Iterator;
 import java.util.regex.Pattern;
 import java.text.StringCharacterIterator;
 
-import org.less4j.JSON.Error;
-
 /**
  * Compile simple JSON Regular patterns to validate the input values against 
  * practical numeric ranges, regular expression patterns, typed collections,
@@ -95,13 +93,17 @@ public class JSONR {
      * a syntax and a regular error, allowing the interpreter to recover
      * valid JSON from an invalid JSONR (ie: to do error handling).
      * 
-     * <pre>try {
-     *    ...
+     * <blockquote>
+     * <pre>String model = "[[true , \"[a-z]+\", null]]";
+     * String string = "[[false, \"test\", 1.0][true, \"ERROR\" {}]]";
+     * try {
+     *    Object json = JSONR(model).eval(string)
      *} catch (JSONR.Error e) {
-     *    // pass
+     *    System.out.println(e.jsonError())
      *} catch (JSON.Error e) {
-     *    ...
+     *    System.out.println(e.jsonError())
      *}</pre>
+     * </blockquote>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
@@ -111,7 +113,7 @@ public class JSONR {
     public static class Error extends JSON.Error {
         private static final long serialVersionUID = 0L;
         /**
-         * Instanciate a JSON error with an error message.
+         * Instanciate a JSONR error with an error message.
          * 
          * @param message the error message
          */
@@ -573,7 +575,7 @@ public class JSONR {
             it = new StringCharacterIterator(json);
             try {
                 c = it.first();
-                return (HashMap) value(jsonr.type);
+                return value(jsonr.type);
             } finally {
                 buf = null;
                 it = null;
@@ -704,13 +706,13 @@ public class JSONR {
         
         protected Object object(HashMap namespace, HashMap map) 
         throws JSON.Error {
-            String name; 
-            Object val;
-            map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
             Type type;
+            String name; 
+            Object val;
+            map = (map != null) ? map : new HashMap();
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
@@ -722,7 +724,7 @@ public class JSONR {
                 name = (String) token;
                 type = (Type) namespace.get(name);
                 if (type == null)
-                    throw error(NO_TYPE_FOR);
+                    throw new Error(NO_TYPE_FOR);
                 
                 if (value() == COLON) {
                     val = value(type, name);
@@ -817,7 +819,7 @@ public class JSONR {
                 return new TypeDoubleGT(d);
         } else if (regular instanceof BigDecimal) {
             BigDecimal b = (BigDecimal) regular;
-            int cmpr = b.compareTo(_double_zero); 
+            int cmpr = b.compareTo(_decimal_zero); 
             if (cmpr == 0)
                 return new TypeDecimal();
             else if (cmpr > 0)

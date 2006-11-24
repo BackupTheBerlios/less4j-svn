@@ -144,15 +144,13 @@ public class JSON {
      * 
      * <h3>Synopsis</h3>
      * 
-     * There is just enough in a JSON.Error to identify the error and 
+     * There is just enough in a JSON.Error to identify the error 
      * 
-     * <pre>String string = "...";
+     * <pre>String string = "{\"test\": fail}";
      *try {
      *    HashMap object = JSON.object(string)
      *} catch (JSON.Error e) {
-     *    System.out.print(e.getMessage());
-     *    System.out.print(" at character ");
-     *    System.out.println(e.index);
+     *    System.out.println(e.jsonError());
      *}</pre>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
@@ -165,7 +163,7 @@ public class JSON {
         /**
          * The position of the JSON syntax error, -1 by default.
          */
-        public int jsonIndex = -1;
+        public int jsonIndex = 0;
         /**
          * The name of the JSON error value, if any.
          */
@@ -187,6 +185,55 @@ public class JSON {
             super(message);
             jsonIndex = index;
             }
+        /**
+         * <p>Buffers a JSON error as a JSON string:
+         * 
+         * <blockquote>
+         *<pre>StringBuffer sb = new StringBuffer();
+         *try {
+         *    String model = "[[true , \"[a-z]+\", null]]";
+         *} catch (JSONR.Error e) {
+         *    e.jsonError(sb);
+         *}</pre>
+         *System.out.println(sb.toString());
+         *</blockquote>
+         * </p>
+         * 
+         * @return the updated StringBuffer
+         */
+        public StringBuffer jsonError(StringBuffer sb) {
+            sb.append('[');
+            JSON.strb(sb, getMessage());
+            sb.append(',');
+            sb.append(jsonIndex);
+            sb.append(',');
+            JSON.strb(sb, jsonNames);
+            sb.append(']');
+            return sb;
+        }
+        /**
+         * <p>Represents a JSON error as an array like
+         * 
+         *   ["error message"], 23, [1, 2]] 
+         *   
+         * and return a JSON string.
+         * 
+         * <h3>Synopsis</h3>
+         * 
+         * <blockquote>
+         *<pre>try {
+         *    String model = "[[true , \"[a-z]+\", null]]";
+         *} catch (JSONR.Error e) {
+         *    System.out.println(e.jsonError())
+         *}</pre>
+         *</blockquote>
+         * </p>
+         * 
+         * @return a JSON string
+         */
+        public String jsonError() {
+            return jsonError(new StringBuffer()).toString();
+        }
     }
     
     /**
@@ -461,12 +508,12 @@ public class JSON {
         }
         
         protected Object object(HashMap map) throws Error {
-            String name; 
-            Object val;
-            map = (map != null) ? map : new HashMap();
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
+            String name; 
+            Object val;
+            map = (map != null) ? map : new HashMap();
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
@@ -923,5 +970,11 @@ public class JSON {
     
     public JSON(Object value) {this.string = str(value);}
     
+    public static int intValue(Object number) {
+        return ((Number) number).intValue();
+    }
+    public static double doubleValue(Object number) {
+        return ((Double) number).doubleValue();
+    }
 }
 
