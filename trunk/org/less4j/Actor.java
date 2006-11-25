@@ -1091,6 +1091,13 @@ public class Actor {
         return (json != null);
     }
     
+    public String jsonDigest(Object value) {
+        SHA1 md = new SHA1();
+        md.update(JSONR.str(value).getBytes());
+        md.update(salt);
+        return md.hexdigest();
+    }
+    
     public boolean jsonGET() {return jsonGET(1, 256);}
     
     public byte[] httpPOST(int limit) {

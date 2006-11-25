@@ -663,6 +663,33 @@ public class JSON {
      * <code>BigInteger</code>, 
      * <code>Double</code>,
      * <code>Boolean</code>,
+     * null or throws a JSON.Error if a syntax error occured. Note that
+     * the value is limited to 65355 containers (arrays or objects) and
+     * as many iterations (ie: distinct values).
+     * 
+     * @param json the string to evaluate
+     * @param containers the maximum number of containers allowed 
+     * @param iterations the limit on the count of values 
+     * @return an untyped Object
+     * @throws Error
+     */
+    public static Object eval(String json) 
+    throws Error {
+        if (json != null)
+            return (new Interpreter()).eval(json);
+        else
+            throw new Error(EMPTY_STRING, 0);
+    }
+    
+    /**
+     * Evaluates a JSON string as a limited untyped value, returns a 
+     * <code>HashMap</code>, 
+     * <code>ArrayList</code>, 
+     * <code>String</code>,
+     * <code>BigDecimal</code>, 
+     * <code>BigInteger</code>, 
+     * <code>Double</code>,
+     * <code>Boolean</code>,
      * null or throws a JSON.Error if a syntax error occured.
      * 
      * @param json the string to evaluate
@@ -671,9 +698,8 @@ public class JSON {
      * @return an untyped Object
      * @throws Error
      */
-    public static Object eval(
-        String json, int containers, int iterations
-        ) throws Error {
+    public static Object eval(String json, int containers, int iterations) 
+    throws Error {
         if (json != null)
             return (new Interpreter(containers, iterations)).eval(json);
         else
@@ -790,6 +816,30 @@ public class JSON {
             case '\t': sb.append(_ctrl_t); break;
             default: 
                 if (Character.isISOControl(c))
+                    unicode(sb, c);
+                else
+                    sb.append(c);
+            }
+        }
+        sb.append('"');
+        return sb;
+    }
+    
+    public static StringBuffer strbASCII(StringBuffer sb, String s) {
+        sb.append('"');
+        CharacterIterator it = new StringCharacterIterator(s);
+        for (char c = it.first(); c != _done; c = it.next()) {
+            switch(c) {
+            case '"':  sb.append(_quote); break;
+            case '\\': sb.append(_back); break;
+            case '/': sb.append(_slash); break;
+            case '\b': sb.append(_ctrl_b); break;
+            case '\f': sb.append(_ctrl_f); break;
+            case '\n': sb.append(_ctrl_n); break;
+            case '\r': sb.append(_ctrl_r); break;
+            case '\t': sb.append(_ctrl_t); break;
+            default: 
+                if (c > 127 || Character.isISOControl(c))
                     unicode(sb, c);
                 else
                     sb.append(c);
@@ -972,11 +1022,5 @@ public class JSON {
     
     public JSON(Object value) {this.string = str(value);}
     
-    public static int intValue(Object number) {
-        return ((Number) number).intValue();
-    }
-    public static double doubleValue(Object number) {
-        return ((Double) number).doubleValue();
-    }
 }
 

@@ -92,15 +92,27 @@ public class Controller extends HttpServlet {
     //       simple LDAP access, crafted so that a JSONR model can be
     //       scaffolded as:
     //
-    //       GET  /database                   -> DATABASE metadata
+    //       GET  /database                   -> DATABASE view
     //       POST /database                   -> SQL CREATE or UPDATE TABLE
-    //       GET  /database/table             -> TABLE metadata
+    //       GET  /database/table             -> TABLE view 
     //       POST /database/table             -> SQL INSERT or UPDATE many 
     //       GET  /database/table?insert&...  -> INSERT one
     //       GET  /database/table?update&...  -> UPDATE one
     //       GET  /database/table?select&...  -> SELECT where
     
     /*
+     * We can have a JSON object posted, for instance a signed context
+     * and its digest followed by a collection of actions to control:
+     * 
+     *    [{"signed":null},"digest",[{"insert":null}]]
+     * 
+     * or a JSON object mapped from the URL query string
+     * 
+     *    {"insert": null, ...}
+     *    
+     * plus Cookies and HTTP headers to transfer all state of the application,
+     * leaving the controller stateless.
+     * 
      * sqlDatabaseGET();
      * sqlDatabasePOST();
      * sqlGET("table");

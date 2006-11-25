@@ -218,8 +218,8 @@ public class Test {
         }
         JSONR pattern = new JSONR(modelJSON.get("meta"));
         ArrayList limits = (ArrayList) modelJSON.get("limits");
-        int containers = JSON.intValue(limits.get(0));
-        int iterations = JSON.intValue(limits.get(1));
+        int containers = ((Number) limits.get(0)).intValue();
+        int iterations = ((Number) limits.get(1)).intValue();
         dir += File.separatorChar; 
         Iterator filenames = Simple.iterator(dirlist);
         while (filenames.hasNext()) {
