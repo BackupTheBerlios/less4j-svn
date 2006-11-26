@@ -120,29 +120,32 @@ public class Test {
         } catch (NoSuchAlgorithmException e) {}
     }
     
-    protected static class Semaphore {
-        public int refcount;
-        public Semaphore (int refcount) {this.refcount = refcount;}
-        public synchronized void decref() {
-            --refcount;
-            notify();
+    protected static class ThreadCount {
+        private int count;
+        public ThreadCount (int count) {this.count = count;}
+        public synchronized void decr() {
+            if (--count == 0) notify();
+        }
+        public synchronized boolean zero() {
+            try {this.wait();} catch (InterruptedException e) {;}
+            return count == 0;
         }
     }
     
     protected static class jsonEvalThread extends Thread {
         protected String input;
-        protected Semaphore semaphore;
-        public jsonEvalThread (String input, Semaphore semaphore) {
+        protected ThreadCount tc;
+        public jsonEvalThread (String input, ThreadCount tc) {
             this.input = input;
-            this.semaphore = semaphore;
+            this.tc = tc;
         }
         public void run () {
             try {
-                JSON.eval(input, 65355, 65355);
+                for (int i=0;i<10;i++) JSON.eval(input, 65355, 65355);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                semaphore.decref();
+                tc.decr();
             }
         }
     }
@@ -167,17 +170,11 @@ public class Test {
             System.out.println(" characters in zero milliseconds");
         }
         System.out.print("threaded, ");
-        Semaphore lock = new Semaphore(scale);
+        ThreadCount tc = new ThreadCount(scale/10);
         t = System.currentTimeMillis();
-        for (int i = 0; i < scale; i++)
-            new jsonEvalThread(input, lock).start();
-        try {
-            synchronized (lock) {
-                while (lock.refcount > 0) lock.wait();
-            }
-        } catch (InterruptedException e) {
-            ;
-        } 
+        for (int i = 0; i < scale/10; i++)
+            new jsonEvalThread(input, tc).start();
+        while (!tc.zero()) {;}
         t = System.currentTimeMillis() - t;
         System.out.print(input.length()*scale);
         if (t > 0) {
@@ -244,26 +241,27 @@ public class Test {
  
     protected static class jsonrEvalThread extends Thread {
         protected String input;
-        protected Semaphore semaphore;
+        protected ThreadCount tc;
         protected JSONR pattern;
         protected int containers, iterations;
         public jsonrEvalThread (
-            String input, Semaphore semaphore,
+            String input, ThreadCount tc,
             JSONR pattern, int containers, int iterations
             ) {
             this.input = input;
-            this.semaphore = semaphore;
+            this.tc = tc;
             this.pattern = pattern;
             this.containers = containers;
             this.iterations = iterations;
         }
         public void run () {
             try {
-                pattern.eval(input, containers, iterations);
+                for (int i=0; i<10; i++)
+                    pattern.eval(input, containers, iterations);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                semaphore.decref();
+                tc.decr();
             }
         }
     }
@@ -291,19 +289,13 @@ public class Test {
             System.out.println(" characters in zero milliseconds");
         }
         System.out.print("threaded, ");
-        Semaphore lock = new Semaphore(scale);
+        ThreadCount tc = new ThreadCount(scale/10);
         t = System.currentTimeMillis();
-        for (int i = 0; i < scale; i++)
+        for (int i = 0; i < scale/10; i++)
             new jsonrEvalThread(
-                input, lock, pattern, containers, iterations
+                input, tc, pattern, containers, iterations
                 ).start();
-        try {
-            synchronized (lock) {
-                while (lock.refcount > 0) lock.wait();
-            }
-        } catch (InterruptedException e) {
-            ;
-        } 
+        while (!tc.zero()) {;}
         t = System.currentTimeMillis() - t;
         System.out.print(input.length()*scale);
         if (t > 0) {
