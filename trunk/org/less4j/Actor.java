@@ -1093,7 +1093,7 @@ public class Actor {
     
     public String jsonDigest(Object value) {
         SHA1 md = new SHA1();
-        md.update(JSONR.str(value).getBytes());
+        md.update(JSON.str(value).getBytes());
         md.update(salt);
         return md.hexdigest();
     }

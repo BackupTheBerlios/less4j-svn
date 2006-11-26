@@ -120,6 +120,100 @@ public class Test {
         } catch (NoSuchAlgorithmException e) {}
     }
     
+    protected static class Semaphore {
+        public int refcount;
+        public Semaphore (int refcount) {this.refcount = refcount;}
+        public synchronized void decref() {
+            --refcount;
+            notify();
+        }
+    }
+    
+    protected static class jsonEvalThread extends Thread {
+        protected String input;
+        protected Semaphore semaphore;
+        public jsonEvalThread (String input, Semaphore semaphore) {
+            this.input = input;
+            this.semaphore = semaphore;
+        }
+        public void run () {
+            try {
+                JSON.eval(input, 65355, 65355);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                semaphore.decref();
+            }
+        }
+    }
+    
+    protected static void jsonBenchmarkEval(String input, int scale) 
+    throws JSON.Error {
+        System.out.print("evaluated ");
+        long t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++)
+            JSON.eval(input, 65355, 65355);
+        t = System.currentTimeMillis() - t;
+        System.out.print(input.length()*scale);
+        if (t > 0) {
+            System.out.print(" characters in ");
+            System.out.print(t);
+            System.out.print(" milliseconds, ");
+            System.out.print(input.length()*scale/t);
+            System.out.print(" char/ms, ");
+            System.out.print(scale/t);
+            System.out.println(" object/ms");
+        } else {
+            System.out.println(" characters in zero milliseconds");
+        }
+        System.out.print("threaded, ");
+        Semaphore lock = new Semaphore(scale);
+        t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++)
+            new jsonEvalThread(input, lock).start();
+        try {
+            synchronized (lock) {
+                while (lock.refcount > 0) lock.wait();
+            }
+        } catch (InterruptedException e) {
+            ;
+        } 
+        t = System.currentTimeMillis() - t;
+        System.out.print(input.length()*scale);
+        if (t > 0) {
+            System.out.print(" characters in ");
+            System.out.print(t);
+            System.out.print(" milliseconds, ");
+            System.out.print(input.length()*scale/t);
+            System.out.print(" char/ms, ");
+            System.out.print(scale/t);
+            System.out.println(" object/ms");
+        } else {
+            System.out.println(" characters in zero milliseconds");
+        }
+    }
+    
+    protected static void jsonBenchmarkStr(Object o, String output, int scale) 
+    throws JSON.Error {
+        System.out.print("serialized ");
+        long t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++)
+            JSON.str(o);
+        t = System.currentTimeMillis() - t;
+        System.out.print(output.length()*scale);
+        if (t > 0) {
+            System.out.print(" characters in ");
+            System.out.print(t);
+            System.out.print(" milliseconds, ");
+            System.out.print(output.length()*scale/t);
+            System.out.print(" char/ms, ");
+            System.out.print(scale/t);
+            System.out.println(" object/ms");
+        } else {
+            System.out.println(" characters in zero milliseconds");
+        }
+    }
+    
     public static void json(String dir, int scale) {
         String filename;
         String[] dirlist = (new File(dir)).list();
@@ -138,57 +232,103 @@ public class Test {
                     System.out.print(" = ");
                     String output = JSON.str(o);
                     System.out.println(JSON.repr(o));
-                    long t = System.currentTimeMillis();
-                    for (int i = 0; i < scale; i++)
-                        JSON.eval(input, 65355, 65355);
-                    t = System.currentTimeMillis() - t;
-                    System.out.print(input.length()*scale);
-                    if (t > 0) {
-                        System.out.print(" characters in ");
-                        System.out.print(t);
-                        System.out.print(" milliseconds, ");
-                        System.out.print(input.length()*scale/t);
-                        System.out.print(" char/ms, ");
-                        System.out.print(scale/t);
-                        System.out.println(" object/ms");
-                    } else {
-                        System.out.println(" characters in zero milliseconds");
-                    }
-                    System.out.print("... ");
-                    t = System.currentTimeMillis();
-                    for (int i = 0; i < scale; i++)
-                        JSON.str(o);
-                    t = System.currentTimeMillis() - t;
-                    System.out.print(output.length()*scale);
-                    if (t > 0) {
-                        System.out.print(" characters in ");
-                        System.out.print(t);
-                        System.out.print(" milliseconds, ");
-                        System.out.print(output.length()*scale/t);
-                        System.out.print(" char/ms, ");
-                        System.out.print(scale/t);
-                        System.out.println(" object/ms");
-                    } else {
-                        System.out.println(" characters in zero milliseconds");
-                    }
+                    jsonBenchmarkEval(input, scale);
+                    jsonBenchmarkStr(o, output, scale);
                 } catch (JSON.Error e) {
-                    System.out.println(e.jsonError());
+                    System.out.println(e.str());
                 }
             }
         }
         return;
     }
+ 
+    protected static class jsonrEvalThread extends Thread {
+        protected String input;
+        protected Semaphore semaphore;
+        protected JSONR pattern;
+        protected int containers, iterations;
+        public jsonrEvalThread (
+            String input, Semaphore semaphore,
+            JSONR pattern, int containers, int iterations
+            ) {
+            this.input = input;
+            this.semaphore = semaphore;
+            this.pattern = pattern;
+            this.containers = containers;
+            this.iterations = iterations;
+        }
+        public void run () {
+            try {
+                pattern.eval(input, containers, iterations);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                semaphore.decref();
+            }
+        }
+    }
+    
+    protected static void jsonrBenchmarkEval(
+        String input, int scale, 
+        JSONR pattern, int containers, int iterations
+        ) 
+    throws JSON.Error {
+        System.out.print("evaluated ");
+        long t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++)
+            pattern.eval(input, containers, iterations);
+        t = System.currentTimeMillis() - t;
+        System.out.print(input.length()*scale);
+        if (t > 0) {
+            System.out.print(" characters in ");
+            System.out.print(t);
+            System.out.print(" milliseconds, ");
+            System.out.print(input.length()*scale/t);
+            System.out.print(" char/ms, ");
+            System.out.print(scale/t);
+            System.out.println(" object/ms");
+        } else {
+            System.out.println(" characters in zero milliseconds");
+        }
+        System.out.print("threaded, ");
+        Semaphore lock = new Semaphore(scale);
+        t = System.currentTimeMillis();
+        for (int i = 0; i < scale; i++)
+            new jsonrEvalThread(
+                input, lock, pattern, containers, iterations
+                ).start();
+        try {
+            synchronized (lock) {
+                while (lock.refcount > 0) lock.wait();
+            }
+        } catch (InterruptedException e) {
+            ;
+        } 
+        t = System.currentTimeMillis() - t;
+        System.out.print(input.length()*scale);
+        if (t > 0) {
+            System.out.print(" characters in ");
+            System.out.print(t);
+            System.out.print(" milliseconds, ");
+            System.out.print(input.length()*scale/t);
+            System.out.print(" char/ms, ");
+            System.out.print(scale/t);
+            System.out.println(" object/ms");
+        } else {
+            System.out.println(" characters in zero milliseconds");
+        }
+    }
 
     private static final String jsonrTest = 
         "{\"meta\": null, \"limits\": [65356, 65356]}";
- 
+    
     public static void jsonr(String dir, int scale) {
         JSONR testModel;
         try {
             testModel = new JSONR(jsonrTest); 
         } catch (JSON.Error e) {
             System.out.println(jsonrTest.substring(0, e.jsonIndex));
-            System.out.println(e.jsonError());
+            System.out.println(e.str());
             e.printStackTrace();
             return;
         }
@@ -204,14 +344,14 @@ public class Test {
         } catch (JSONR.Error e) {
             System.out.println(model.substring(0, e.jsonIndex));
             System.out.print("Type Error ");
-            System.out.println(e.jsonError());
+            System.out.println(e.str());
             System.out.println(model.substring(e.jsonIndex));
             e.printStackTrace();
             return;
         } catch (JSON.Error e) {
             System.out.println(model.substring(0, e.jsonIndex));
             System.out.print("Syntax Error ");
-            System.out.println(e.jsonError());
+            System.out.println(e.str());
             System.out.println(model.substring(e.jsonIndex));
             e.printStackTrace();
             return;
@@ -232,31 +372,18 @@ public class Test {
                     Object o = pattern.eval(input, containers, iterations);
                     System.out.print(" = ");
                     System.out.println(JSON.repr(o));
-                    long t = System.currentTimeMillis();
-                    for (int i = 0; i < scale; i++)
-                        pattern.eval(input, containers, iterations);
-                    t = System.currentTimeMillis() - t;
-                    System.out.print(input.length()*scale);
-                    if (t > 0) {
-                        System.out.print(" characters in ");
-                        System.out.print(t);
-                        System.out.print(" milliseconds, ");
-                        System.out.print(input.length()*scale/t);
-                        System.out.print(" char/ms, ");
-                        System.out.print(scale/t);
-                        System.out.println(" object/ms");
-                    } else {
-                        System.out.println(" characters in zero milliseconds");
-                    }
+                    jsonrBenchmarkEval(
+                        input, scale, pattern, containers, iterations
+                        );
                 } catch (JSONR.Error e) {
                     System.out.println(input.substring(0, e.jsonIndex));
                     System.out.print("Type Error ");
-                    System.out.println(e.jsonError());
+                    System.out.println(e.str());
                     System.out.println(input.substring(e.jsonIndex));
                 } catch (JSON.Error e) {
                     System.out.println(input.substring(0, e.jsonIndex));
                     System.out.print("Syntax Error ");
-                    System.out.println(e.jsonError());
+                    System.out.println(e.str());
                     System.out.println(input.substring(e.jsonIndex));
                 }
             }

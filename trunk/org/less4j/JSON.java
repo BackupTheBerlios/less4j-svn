@@ -16,13 +16,14 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Map;
-import java.util.List;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
@@ -159,21 +160,26 @@ public class JSON {
      * @version 0.1.0
      */
     public static class Error extends Exception {
+        
         private static final long serialVersionUID = 0L;
+        
         /**
          * The position of the JSON syntax error, -1 by default.
          */
         public int jsonIndex = 0;
+        
         /**
-         * The name of the JSON error value, if any.
+         * The path to the JSON error value, if any.
          */
-        public ArrayList jsonNames = new ArrayList();
+        public ArrayList jsonPath = new ArrayList();
+        
         /**
          * Instanciate a JSON error with an error message.
          * 
          * @param message the error message
          */
         public Error(String message) {super(message);}
+        
         /**
          * Instanciate a JSON error with an error message and the index 
          * in the JSON string at which the error occured.
@@ -185,6 +191,7 @@ public class JSON {
             super(message);
             jsonIndex = index;
             }
+        
         /**
          * <p>Buffers a JSON error as a JSON string:
          * 
@@ -201,39 +208,30 @@ public class JSON {
          * 
          * @return the updated StringBuffer
          */
-        public StringBuffer jsonError(StringBuffer sb) {
+        public StringBuffer strb(StringBuffer sb) {
             sb.append('[');
             JSON.strb(sb, getMessage());
             sb.append(',');
             sb.append(jsonIndex);
             sb.append(',');
-            JSON.strb(sb, jsonNames);
+            JSON.strb(sb, jsonPath);
             sb.append(']');
             return sb;
         }
+        
         /**
          * <p>Represents a JSON error as an array like
          * 
          *   ["error message"], 23, [1, 2]] 
          *   
-         * and return a JSON string.
-         * 
-         * <h3>Synopsis</h3>
-         * 
-         * <blockquote>
-         *<pre>try {
-         *    String model = "[[true , \"[a-z]+\", null]]";
-         *} catch (JSONR.Error e) {
-         *    System.out.println(e.jsonError())
-         *}</pre>
-         *</blockquote>
-         * </p>
+         * and return a JSON string.</p>
          * 
          * @return a JSON string
          */
-        public String jsonError() {
-            return jsonError(new StringBuffer()).toString();
+        public String str() {
+            return strb(new StringBuffer()).toString();
         }
+        
     }
     
     /**
@@ -495,7 +493,7 @@ public class JSON {
             try {
                 return value();
             } catch (Error e) {
-                e.jsonNames.add(0, name);
+                e.jsonPath.add(0, name);
                 throw e;
             }
         }
@@ -504,7 +502,7 @@ public class JSON {
             try {
                 return value();
             } catch (Error e) {
-                e.jsonNames.add(0, BigInteger.valueOf(index));
+                e.jsonPath.add(0, BigInteger.valueOf(index));
                 throw e;
             }
         }
@@ -825,30 +823,6 @@ public class JSON {
         return sb;
     }
     
-    public static StringBuffer strbASCII(StringBuffer sb, String s) {
-        sb.append('"');
-        CharacterIterator it = new StringCharacterIterator(s);
-        for (char c = it.first(); c != _done; c = it.next()) {
-            switch(c) {
-            case '"':  sb.append(_quote); break;
-            case '\\': sb.append(_back); break;
-            case '/': sb.append(_slash); break;
-            case '\b': sb.append(_ctrl_b); break;
-            case '\f': sb.append(_ctrl_f); break;
-            case '\n': sb.append(_ctrl_n); break;
-            case '\r': sb.append(_ctrl_r); break;
-            case '\t': sb.append(_ctrl_t); break;
-            default: 
-                if (c > 127 || Character.isISOControl(c))
-                    unicode(sb, c);
-                else
-                    sb.append(c);
-            }
-        }
-        sb.append('"');
-        return sb;
-    }
-    
     protected static final String _unicode = "\\u";
     protected static final char[] _hex = "0123456789ABCDEF".toCharArray();
     
@@ -919,6 +893,8 @@ public class JSON {
             strb(sb, ((Character) value).toString());
         else if (value instanceof Map) {
             Map object = (Map) value;
+            Object[] names = object.keySet().toArray();
+            Arrays.sort(names);
             strb(sb, object, object.keySet().iterator());
         } else if (value instanceof List) 
             strb(sb, ((List) value).iterator());
@@ -935,14 +911,105 @@ public class JSON {
         return strb(new StringBuffer(), value).toString();
     }
     
+    protected static StringBuffer xjson(StringBuffer sb, String s) {
+        sb.append('"');
+        CharacterIterator it = new StringCharacterIterator(s);
+        for (char c = it.first(); c != _done; c = it.next()) {
+            switch(c) {
+            case '"':  sb.append(_quote); break;
+            case '\\': sb.append(_back); break;
+            case '/': sb.append(_slash); break;
+            case '\b': sb.append(_ctrl_b); break;
+            case '\f': sb.append(_ctrl_f); break;
+            case '\n': sb.append(_ctrl_n); break;
+            case '\r': sb.append(_ctrl_r); break;
+            case '\t': sb.append(_ctrl_t); break;
+            default: 
+                if (c > 126 || c < 32)
+                    unicode(sb, c);
+                else
+                    sb.append(c);
+            }
+        }
+        sb.append('"');
+        return sb;
+    }
+    
+    protected static StringBuffer xjson(StringBuffer sb, Map map, Iterator it) {
+        Object key; 
+        if (!it.hasNext()) {
+            sb.append(_object);
+            return sb;
+        }
+        sb.append('{');
+        key = it.next();
+        xjson(sb, key);
+        sb.append(':');
+        xjson(sb, map.get(key));
+        while (it.hasNext()) {
+            sb.append(',');
+            key = it.next();
+            xjson(sb, key);
+            sb.append(':');
+            xjson(sb, map.get(key));
+        }
+        sb.append('}');
+        return sb;
+    }
+    
+    protected static StringBuffer xjson(StringBuffer sb, Iterator it) {
+        if (!it.hasNext()) {
+            sb.append(_array);
+            return sb;
+        }
+        sb.append('[');
+        xjson(sb, it.next());
+        while (it.hasNext()) {
+            sb.append(',');
+            xjson(sb, it.next());
+        }
+        sb.append(']');
+        return sb;
+    }
+    
+    protected static StringBuffer xjson(StringBuffer sb, Object value) {
+        if (value == null) 
+            sb.append(_null);
+        else if (value instanceof Boolean)
+            sb.append(((Boolean) value).booleanValue() ? _true : _false);
+        else if (value instanceof Number) 
+            sb.append(value);
+        else if (value instanceof String) 
+            xjson(sb, (String) value);
+        else if (value instanceof Character) 
+            xjson(sb, ((Character) value).toString());
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            String[] names = (String[]) object.keySet().toArray();
+            Arrays.sort(names);
+            strb(sb, object, object.keySet().iterator());
+        } else if (value instanceof List) 
+            xjson(sb, ((List) value).iterator());
+        else if (value instanceof Object[]) 
+            xjson(sb, Simple.iterator((Object[]) value));
+        else if (value instanceof JSON) 
+            xjson(sb, ((JSON) value).string);
+        else 
+            xjson(sb, value.toString());
+        return sb;
+    }
+    
+    public static String xjson(Object value) {
+        return xjson(new StringBuffer(), value).toString();
+    }
+    
     protected static final String _crlf = "\r\n";
     protected static final String _indent = "  ";
     
     protected static StringBuffer repr(
-        StringBuffer sb, Map map, String indent
+        StringBuffer sb, Map map, Iterator it, String indent
         ) {
         Object key; 
-        Iterator it = map.keySet().iterator();
         if (!it.hasNext()) {
             sb.append("{}");
             return sb;
@@ -1003,9 +1070,12 @@ public class JSON {
             strb(sb, (String) value);
         else if (value instanceof Character) 
             strb(sb, ((Character) value).toString());
-        else if (value instanceof Map)
-            repr(sb, (Map) value, indent);
-        else if (value instanceof List) 
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            Object[] names = object.keySet().toArray();
+            Arrays.sort(names);
+            repr(sb, object, Simple.iterator(names), indent);
+        } else if (value instanceof List) 
             repr(sb, ((List) value).iterator(), indent);
         else if (value instanceof JSON) 
             strb(sb, ((JSON) value).string);

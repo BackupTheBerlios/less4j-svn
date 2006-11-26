@@ -16,16 +16,14 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Calendar;
 import java.util.regex.Pattern;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.text.StringCharacterIterator;
 
@@ -660,7 +658,7 @@ public class JSONR {
         protected static final String IRREGULAR_OBJECT = "irregular object";
         protected static final String PARTIAL_ARRAY = "partial array";
         protected static final String ARRAY_OVERFLOW = "array overflow";
-        protected static final String NO_TYPE_FOR = "no type";
+        protected static final String NAME_ERROR = "name error";
 
         public Interpreter() {super();}
         
@@ -799,10 +797,10 @@ public class JSONR {
                 return value(type);
             } catch (Error e) {
                 e.jsonIndex = it.getIndex();
-                e.jsonNames.add(0, name);
+                e.jsonPath.add(0, name);
                 throw e;
             } catch (JSON.Error e) {
-                e.jsonNames.add(0, name);
+                e.jsonPath.add(0, name);
                 throw e;
             }
         }
@@ -812,10 +810,10 @@ public class JSONR {
                 return value(type);
             } catch (Error e) {
                 e.jsonIndex = it.getIndex();
-                e.jsonNames.add(0, BigInteger.valueOf(index));
+                e.jsonPath.add(0, BigInteger.valueOf(index));
                 throw e;
             } catch (JSON.Error e) {
-                e.jsonNames.add(0, BigInteger.valueOf(index));
+                e.jsonPath.add(0, BigInteger.valueOf(index));
                 throw e;
             }
         }
@@ -840,7 +838,7 @@ public class JSONR {
                 name = (String) token;
                 type = (Type) namespace.get(name);
                 if (type == null)
-                    throw new Error(NO_TYPE_FOR);
+                    throw new Error(NAME_ERROR);
                 
                 if (value() == COLON) {
                     val = value(type, name);
@@ -977,8 +975,6 @@ public class JSONR {
     
     public Type type = null;
     
-    public JSONR(Type type) {this.type = type;}
-    
     public JSONR(Object object, HashMap extensions) {
         type = compile(object, extensions);
     }
@@ -997,23 +993,21 @@ public class JSONR {
 
     public Object eval(String json, int containers, int iterations) 
     throws JSON.Error {
-        return (
-            new Interpreter(containers, iterations)
-            ).eval(json, this.type);
+        return (new Interpreter(containers, iterations)).eval(json, type);
     }
 
     public HashMap object(String json, int containers, int iterations) 
     throws JSON.Error {
         return (
             new Interpreter(containers, iterations)
-            ).update(json, ((TypeObject) type), null);
+            ).update(json, type, null);
     }
             
     public ArrayList array(String json, int containers, int iterations) 
     throws JSON.Error {
         return (
             new Interpreter(containers, iterations)
-            ).extend(json, ((TypeArray) type), null);
+            ).extend(json, type, null);
     }
             
     public HashMap update(
@@ -1021,7 +1015,7 @@ public class JSONR {
         ) throws JSON.Error {
         return (
             new Interpreter(containers, iterations)
-            ).update(json, (type), map);
+            ).update(json, type, map);
     }
             
     public ArrayList extend(
@@ -1029,7 +1023,7 @@ public class JSONR {
         ) throws JSON.Error {
         return (
             new Interpreter(containers, iterations)
-            ).extend(json, (type), list);
+            ).extend(json, type, list);
     }
             
     public HashMap filter(Map query) throws Error {
@@ -1066,76 +1060,6 @@ public class JSONR {
             }
         }
         return valid;
-    }
-    
-    public static StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
-        Object key; 
-        if (!it.hasNext()) {
-            sb.append(JSON._object);
-            return sb;
-        }
-        sb.append('{');
-        key = it.next();
-        strb(sb, key);
-        sb.append(':');
-        strb(sb, map.get(key));
-        while (it.hasNext()) {
-            sb.append(',');
-            key = it.next();
-            strb(sb, key);
-            sb.append(':');
-            strb(sb, map.get(key));
-        }
-        sb.append('}');
-        return sb;
-    }
-    
-    public static StringBuffer strb(StringBuffer sb, Iterator it) {
-        if (!it.hasNext()) {
-            sb.append(JSON._array);
-            return sb;
-        }
-        sb.append('[');
-        strb(sb, it.next());
-        while (it.hasNext()) {
-            sb.append(',');
-            strb(sb, it.next());
-        }
-        sb.append(']');
-        return sb;
-    }
-    
-    public static StringBuffer strb(StringBuffer sb, Object value) {
-        if (value == null) 
-            sb.append(JSON._null);
-        else if (value instanceof Boolean)
-            sb.append(
-                ((Boolean) value).booleanValue() ? JSON._true : JSON._false
-                );
-        else if (value instanceof Number) 
-            sb.append(value);
-        else if (value instanceof String) 
-            strb(sb, (String) value);
-        else if (value instanceof Character) 
-            strb(sb, ((Character) value).toString());
-        else if (value instanceof Map) {
-            Map object = (Map) value;
-            String[] names = (String[]) object.keySet().toArray();
-            Arrays.sort(names);
-            strb(sb, object, Simple.iterator(names));
-        } else if (value instanceof List) 
-            strb(sb, ((List) value).iterator());
-        else if (value instanceof Object[]) 
-            strb(sb, Simple.iterator((Object[]) value));
-        else if (value instanceof JSON) 
-            strb(sb, ((JSON) value).string);
-        else 
-            strb(sb, value.toString());
-        return sb;
-    }
-    
-    public static String str(Object value) {
-        return strb(new StringBuffer(), value).toString();
     }
     
 }
