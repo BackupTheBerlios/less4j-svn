@@ -24,6 +24,9 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletException; 
 import javax.servlet.http.HttpServlet;
 
+//import javax.servlet.http.HttpServletRequest;
+//import javax.servlet.http.HttpServletResponse;
+
 /**
  * <p>A stateless servlet to configure, test and apply the <code>Actor</code>
  * programming intefaces, the base class from which to derive RESTfull
@@ -43,8 +46,14 @@ public class Controller extends HttpServlet {
     
     static final long serialVersionUID = 0; // ? long hash of the full name
     
-    private HashMap configuration = new HashMap ();
-        
+//    static HashMap actions = new HashMap();
+//    
+//    static public void action (Actor $, String name) {
+//        ((Actor.Action) actions.get(name)).play($);
+//    }
+    
+    HashMap configuration = new HashMap ();
+    
     public void setConfiguration(ServletConfig config) {
         // TODO: move to JSON configuration ...
         String property;
@@ -87,6 +96,29 @@ public class Controller extends HttpServlet {
             );
         }
     }
+    
+//    public void doGet(HttpServletRequest req, HttpServletResponse res) {
+//        Actor $ = new Actor(getConfiguration(), req, res);
+//        if ($.irtd2Authorized("owner", 600)) {
+//            if (true) {
+//                //
+//            } else if ($.url.endsWith("/database")) {
+//                //
+//            } else
+//                $.rest302Redirect();
+//        } else if ($.url.endsWith("/login")) {
+//            if ($.urlAction("username"))
+//                $.irtd2Authorize(
+//                    $.urlParameter("username"), 
+//                    "owner", 
+//                    $.request.getContextPath()
+//                    );
+//            else
+//                $.rest200Ok("<login/>");
+//        } else {
+//            $.rest302Bounce("login", "?url=");
+//        }
+//    }
     
     // TODO: add common J2EE acts for SQL database administration and
     //       simple LDAP access, crafted so that a JSONR model can be

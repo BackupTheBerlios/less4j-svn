@@ -150,6 +150,11 @@ import javax.servlet.http.Cookie;
  */
 public class Actor {
     
+//    public static interface Action {
+//        public void play (Actor $);
+//        public static final Action singleton = null;
+//    } 
+    
     public static final String TEST = "Test";
     
     public static final String less4j = "less4j";
@@ -251,6 +256,12 @@ public class Actor {
     public String digest = null; // this digest
     
     /**
+     * A usefull copy of <code>request.getRequestURL().toString()</code>
+     * to quickly dispatch the request's URL through simple String tests.
+     */
+    public String url;
+    
+    /**
      * An HashMap of the validated HTTP request's query string.
      */
     public HashMap actions = null;
@@ -296,6 +307,7 @@ public class Actor {
         test = (less4jTrue.equals((String) configuration.get(less4jTest)));
         salt = ((String) configuration.get(less4jDigestSalt)).getBytes();
         request = req;
+        url = request.getRequestURL().toString();
         response = res;
     }
 
@@ -627,12 +639,12 @@ public class Actor {
             return false;
     }
     
-    private static final Pattern irtd2Identity = Pattern.compile(
-        "[\\x20-\\x2B\\x2D-\\x39\\x3C-x7E]+"
+    public static final Pattern irtd2Identity = Pattern.compile(
+        "[\\x20-\\x2B][\\x2D-\\x39][\\x3C-x7E]+"
         );
     
-    private static final Pattern irtd2Rights = Pattern.compile(
-        "([\\x20-\\x39\\x3C-x7E]+)(,[\\x20-\\x39\\x3C-x7E]+)*"
+    public static final Pattern irtd2Rights = Pattern.compile(
+        "([\\x20-\\x39][\\x3C-x7E]+)(?,([\\x20-\\x39][\\x3C-x7E]+))*"
         );
     
     /**
@@ -651,17 +663,10 @@ public class Actor {
      * @param rights
      * @param path
      */
-    public void irtd2Authorize(String identity, String rights, String path) 
-    throws Exception {
-        if (!irtd2Identity.matcher(identity).matches())
-            throw new Exception("irregular IRTD2 identity");
-        else if (!irtd2Rights.matcher(rights).matches())
-            throw new Exception("irregular IRTD2 rights");
-        else {    
-            this.identity = identity;
-            this.rights = rights;
-            irtd2Digest(path);
-        }
+    public void irtd2Authorize(String identity, String rights, String path) {
+        this.identity = identity;
+        this.rights = rights;
+        irtd2Digest(path);
     }
     
     private static final String less4jAudit = "AUDIT: ";
@@ -726,22 +731,10 @@ public class Actor {
      * @return true if there is at least one valid action
      */
     public boolean urlActions(JSONR model) {
-        actions = new HashMap(request.getParameterMap());
-        return ! actions.isEmpty();
+        actions = model.filter(request.getParameterMap());
+        return !actions.isEmpty();
     }
 
-    public boolean urlAction (String name) {
-        return actions.containsKey(name);
-    }
-    
-    public String urlParameter (String name) {
-        String[] args = (String[]) actions.get(name);
-        if (args != null && args.length > 0) 
-            return args[0];
-        else
-            return "";
-    }
-    
     private static final 
     String less4jHTTP = "http";
     private static final 
@@ -847,18 +840,6 @@ public class Actor {
     public boolean httpIdempotent () {
         return (request.getQueryString() == null);
         }
-    
-    /**
-     * Dispatch an idempotent Actor, split its context path (the one
-     * between the resource identified and the servlet path) between
-     * separators and returns an iterator. Let the accessor decide
-     * how to dispatch that stack ...
-     *
-     */
-    public Iterator httpDispatch (HashMap resources) {
-        String s = request.getContextPath();
-        return Simple.iterator(s.split("/"));
-    }
     
     public byte[] httpPOST(int limit) {
         int contentLength = request.getContentLength(); 
@@ -1029,6 +1010,10 @@ public class Actor {
         rest302Redirect(
             location, less4jREST302.getBytes(), less4jXMLContentType
             );
+    }
+    
+    public void rest302Redirect() {
+        rest302Redirect(request.getContextPath());
     }
     
     /**
@@ -1811,16 +1796,40 @@ public class Actor {
     
 }
 
-/*
- *  TODO: add validation of actions and objects against simple maps of
- *        a name to a type caster and a regular expression pattern:
- *        
- *            {"name": [caster, pattern]}
- *  
- *        enough to test most input constraints.
- *        
- *        Note that this is specialy usefull with a stack of regular
- *        expression and types, using sample data to find the strictest
- *        matching pattern and type in a test case.
- *        
- */
+/* Note about this implementation
+
+This actor is meant for RESTfull applications. Grossly outlined, here is
+a typical one:
+
+    /resource(/.*)?
+
+is the pattern of the context path dispatched to the servlet by its J2EE
+container. Each servlet controller made of a doGet and doPost methods
+that apply the Actor's API and possibly a flat API of action methods, all
+preferrably with the same interface:
+
+    void action (Actor $) {}
+
+so as to be easely chained together.
+
+For idempotent URL like
+
+    /resource
+
+the controller may respond a redirect to the URL of the relevant 
+authorization service, an XML or JSON body, usually static.  
+
+As transient GET response,  
+
+Note that the flow of control is expected to be written entirely in java,
+in a single class, for obvious performance and maintainability purpose.
+
+Actions shared by controllers can be aggregated in one controller class
+from which to derive all others in the domain. Functions that transcend 
+all applications should be added to a site specific Actor's API.
+
+There are no other serialization protocol implemented than JSON here,
+all XML is expected to be static and the rest of the stack is better
+programmed in XSLT, CSS and JavaScript, running in the browser
+
+*/
