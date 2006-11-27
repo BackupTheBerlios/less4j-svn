@@ -16,22 +16,18 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-import java.util.Map; // immutable map, the original simplicity ... 
-import java.util.HashMap; // ... unsynchronized hashes, at last ...
-import java.util.Hashtable; // (comes to haunt us back from InitialDirContext)
-import java.util.ArrayList; // ... unsynchronized list, at last too ...
-import java.util.Iterator; // ... what took you so long Sunny?
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.regex.Pattern;
 
-import java.util.regex.Pattern; // no comments.
+import java.net.URLEncoder;
 
-import java.net.URLEncoder; // Java was there this one since 1.0!
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
-import java.io.IOException; // synchronously, of course ...
-import java.io.UnsupportedEncodingException; // ... what about substitution?
-
-// import java.security.MessageDigest; // no comments.
-
-import java.sql.DriverManager; // JDBC is slow, that's a fact ...
+import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
@@ -39,9 +35,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
-import javax.sql.DataSource; // ... and connection pooling is complicated.
+import javax.sql.DataSource;
 
-import javax.naming.Context; // There are too many name systems ...
+import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.naming.directory.InitialDirContext;
@@ -53,7 +49,7 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Cookie; // ... and too few functions.
+import javax.servlet.http.Cookie;
 
 /**
  * <p>A "full-stack" API to develop XML and JSON interfaces for J2EE 
@@ -159,33 +155,6 @@ public class Actor {
     public static final String less4j = "less4j";
     
     /**
-     * <p>Sixteen Kilobytes (16384 8-bit bytes) represent 3,4 pages of
-     * 66 lines and 72 columns of ASCII characters. Much more information 
-     * than what most of us can digest in a few minutes. It's a reasonable
-     * maximum to set for an application web interface updated by its
-     * user every few seconds.</p>
-     * 
-     * <p>Also, 16KB happens to be the defacto standard buffer size
-     * for TCP peers and networks since it's the maximum UDP datagram size
-     * in use. Which makes anything smaller than this limit a better candidate 
-     * for the lowest possible IP network latency.</p>
-     * 
-     * <p>Finally, sixteen KB buffers can hold more than 65 thousand concurrent
-     * responses in one GB of RAM, a figure between one and two orders of 
-     * magnitude larger than what you can reasonably expect from a J2EE 
-     * container running some commodity hardware. At an average speed of
-     * 0.5 millisecond per concurrent request/response 16KB buffers sums
-     * up to 36MBps, less than 1Gbps.</p>
-     * 
-     * <p>So, that sweet sixteen spot is also a safe general maximum for a 
-     * web 2.0 application controller that needs to keep lean on RAM and
-     * wants the fastest possible network and the smallest possible
-     * imbalance between input and output.</p>
-     */
-    public static final int
-    less4jLimit = 16384; // can't configure this!
-    
-    /**
      * <p>The default charset encoding in less4j, something supported by
      * web 2.0 browsers (IE6, Firefox, etc ...) and java runtime
      * environments. Also the defacto standard for JSON encoding.</p>
@@ -197,7 +166,6 @@ public class Actor {
 
     private static final String less4jDigestName = "IRTD2";
     private static final String less4jDigestSalt = "less4j.digest.salt";
-    private static final String less4jDigestTimeout = "less4j.digest.timeout";
     private static final String less4jDigestedSalt = "less4j.digested.salt";
     
     private static final String less4jJDBCDriver = "less4j.jdbc.driver";
@@ -214,7 +182,15 @@ public class Actor {
     private static final 
     String less4jLDAPCredentials = "less4j.ldap.credentials";
 
-    private byte[] salt = null;
+    /**
+     * The IRTD2 salt, encoded as 8-bit bytes
+     */
+    public byte[] salt = null;
+    
+    /**
+     * The previous IRTD2 salt, encoded as 8-bit bytes
+     */
+    public byte[] salted = null;
     
     /**
      * A boolean that indicates wether the Actor runtime environment is
@@ -317,56 +293,12 @@ public class Actor {
         HashMap conf, HttpServletRequest req, HttpServletResponse res
         ) {
         configuration = conf;
-        test = (less4jTrue.equals((String)configuration.get(less4jTest)));
+        test = (less4jTrue.equals((String) configuration.get(less4jTest)));
         salt = ((String) configuration.get(less4jDigestSalt)).getBytes();
         request = req;
         response = res;
     }
 
-    public boolean httpActions() {
-        actions = new HashMap(request.getParameterMap());
-        return ! actions.isEmpty();
-    }
-
-    /**
-     * Validate the request's actions Map against a HashMap of type caster 
-     * from String and regular expression patterns. Other control limits are 
-     * best expressed in Java, usually to compute numbers and not process 
-     * text.
-     * 
-     * @param types_and_patterns a map of action names and valid type
-     *        caster and regular expressions
-     * @return true if there is at least one valid action
-     */
-    public boolean httpActions(HashMap types_and_patterns) {
-        Object[] tp;
-        String name;
-        String value;
-        HashMap validated = new HashMap();
-        Map query = request.getParameterMap();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            tp = (Object[]) types_and_patterns.get(name);
-            if (tp != null) {
-                value = (String) query.get(name);
-                if (tp[1] == null) {
-                    validated.put(name, Simple.cast((Integer) tp[0], value));
-                } else if (((Pattern) tp[1]).matcher(value).matches()) {
-                    if (tp[0] != null) {
-                        validated.put(
-                            name, Simple.cast((Integer) tp[0], value)
-                            );
-                    } else {
-                        validated.put(name, value);
-                    }
-                }
-            }
-        }
-        actions = validated;
-        return ! actions.isEmpty();
-    }
-    
     /**
      * <p>Write a message to STDOUT, as one line: 
      * 
@@ -568,8 +500,9 @@ public class Actor {
      * 
      * ...</p>
      *
+     * @param path
      */
-    private void digestCookie() {
+    public void irtd2Digest(String path) {
         StringBuffer sb = new StringBuffer();
         String timeString = Long.toString(time);
         SHA1 md = new SHA1();
@@ -587,6 +520,7 @@ public class Actor {
         sb.append(digest);
         Cookie irtd2 = new Cookie(less4jDigestName, sb.toString());
         irtd2.setDomain(request.getServerName());
+        irtd2.setPath(path);
         irtd2.setMaxAge(less4jCookieMaxAge); 
         response.addCookie(irtd2);
     }
@@ -594,13 +528,12 @@ public class Actor {
     protected static Pattern less4jDigestSplit = Pattern.compile(":");
     
     /**
-     * <p>Try to collect a IRTD2 cookie in the request and test it and its 
-     * digest against the timeout and the secret(s) set by configuration for 
-     * this actor's controller. Digest a new cookie and returns false only 
-     * if a the digested cookie is still valid in time and bears the  
-     * signature of this servlet.</p> 
+     * <p>Try to collect a IRTD2 cookie in the request and test its digest 
+     * against the secret(s) set by configuration for this actor's controller, 
+     * digest a new cookie only if a the digested cookie is still valid in 
+     * time and bears the signature of this servlet, return false otherwise.</p> 
      * 
-     * <p>There are three benefits to expect from IRTD2 cookies for
+     * <p>There are four benefits to expect from IRTD2 cookies for
      * J2EE public applications:</p>
      * 
      * <ol>
@@ -615,10 +548,10 @@ public class Actor {
      * does the only next-best actually possible for a public network
      * application: detect cookie theft ASAP.</p>
      * 
-     * 
+     * @param timeout the limit of an IRTD2 cookie's age, in seconds  
      * @return true if the request failed to be authenticated
      */
-    public boolean notAuthorized () {
+    public boolean irtd2Digested (long timeout) {
         try {
             /* the ever usefull ;-) */
             int i; 
@@ -632,16 +565,13 @@ public class Actor {
                 }
             }
             if (irtd2Cookie == null)
-                return true; 
+                return false; 
                 /* ... do not authorize if no IRTD2 cookie found. */
             
             String[] irtd2 = less4jDigestSplit.split(irtd2Cookie.getValue());
             if (irtd2.length != 5)
-                return true; 
+                return false; 
 
-            long timeout = Long.parseLong(
-                    (String) configuration.get(less4jDigestTimeout)
-                    );
             StringBuffer sb = new StringBuffer();
             identity = irtd2[0];
             sb.append(identity);
@@ -656,7 +586,7 @@ public class Actor {
             byte[] irtd = sb.toString().getBytes();
             digested = irtd2[4];
             if (time - lastTime > timeout) {
-                return true;
+                return false;
                 /* ... do not authorize after timeout. */
                 }
             /* */
@@ -666,20 +596,22 @@ public class Actor {
             String d = md.hexdigest();
             if (!d.equals(digested)) {
                 // try the previously digested salt instead
-                String salted = (String) configuration.get(less4jDigestedSalt);
-                if (salted == null) 
-                    return true;
+                if (!configuration.containsKey(less4jDigestedSalt)) 
+                    return false;
                 
+                salted = (
+                    (String) configuration.get(less4jDigestedSalt)
+                    ).getBytes();
                 md = new SHA1();
                 md.update(irtd);
-                md.update(salted.getBytes());
+                md.update(salted);
                 d = md.hexdigest();
                 if (!d.equals(digested)) {
                     // TODO: audit a possible fraud attempt!
-                    return true;  
+                    return false;  
                 }
             }
-            digestCookie();
+            irtd2Digest(irtd2Cookie.getPath());
             return false; 
         } 
         catch (Exception e) {
@@ -688,24 +620,48 @@ public class Actor {
         }
     }
     
+    public boolean irtd2Authorized(String right, long timeout) {
+        if (irtd2Digested(timeout))
+            return rights.indexOf(right) > -1; 
+        else
+            return false;
+    }
+    
+    private static final Pattern irtd2Identity = Pattern.compile(
+        "[\\x20-\\x2B\\x2D-\\x39\\x3C-x7E]+"
+        );
+    
+    private static final Pattern irtd2Rights = Pattern.compile(
+        "([\\x20-\\x39\\x3C-x7E]+)(,[\\x20-\\x39\\x3C-x7E]+)*"
+        );
+    
     /**
      * <p>Set the Actor's <code>identity</code> and grant <code>rights</code>
      * digested into an HTTP cookie named <code>IRTD2</code>, like this:
      * 
      * <blockquote>
-     * <pre>Cookie: IRTD2=digest:identity:roles:time:digested; </pre>
+     * <pre>Cookie: IRTD2=identity:rights:time:digested:digest; ...</pre>
      * </blockquote>
      * 
      * that authenticate a one-time digest for the next invokation of
-     * the controller's action.</p>
+     * the application's controller in the domain and path set for
+     * thise cookie.</p>
      * 
      * @param identity
-     * @param roles
+     * @param rights
+     * @param path
      */
-    public void authorize(String identity, String roles) {
-        this.identity = identity;
-        this.rights = roles;
-        digestCookie();
+    public void irtd2Authorize(String identity, String rights, String path) 
+    throws Exception {
+        if (!irtd2Identity.matcher(identity).matches())
+            throw new Exception("irregular IRTD2 identity");
+        else if (!irtd2Rights.matcher(rights).matches())
+            throw new Exception("irregular IRTD2 rights");
+        else {    
+            this.identity = identity;
+            this.rights = rights;
+            irtd2Digest(path);
+        }
     }
     
     private static final String less4jAudit = "AUDIT: ";
@@ -757,137 +713,33 @@ public class Actor {
         logOut(sb.toString());
     }
     
-    /**
-     * <p>Test wether an HTTP request is idempotent or not, ie: wether it is a 
-     * GET request for a resource (cachable) like
-     * 
-     * <blockquote>
-     * <pre>/resource</pre>
-     * </blockquote>
-     * 
-     * or a GET request for an action as
-     * 
-     * <blockquote>
-     * <pre>/resource?action</pre>
-     * </blockquote>
-     * 
-     * wich is not cacheable.</p>
-     * 
-     * @return true if the request is idempotent, false otherwise
-     */
-    public boolean httpIdempotent () {
-        return (request.getQueryString() == null);
-        }
+    protected static final Pattern httpPreferences = 
+        Pattern.compile("^(.*?)(;.+?=.+?)?((,.*?)(/s*?;.+?=.+?)?)*$");
     
     /**
-     * Dispatch an idempotent Actor, split its context path (the one
-     * between the resource identified and the servlet path) between
-     * separators and returns an iterator. Let the accessor decide
-     * how to dispatch that stack ...
-     *
+     * Validate the request's actions Map against a HashMap of type caster 
+     * from String and regular expression patterns. Other control limits are 
+     * best expressed in Java, usually to compute numbers and not process 
+     * text.
+     * 
+     * @param model a JSONR object pattern
+     * @return true if there is at least one valid action
      */
-    public Iterator httpDispatch (HashMap resources) {
-        String s = request.getContextPath();
-        return Simple.iterator(s.split("/"));
-    }
-    
-    /**
-     * <p>Try to send a 200 Ok HTTP response with the appropriate headers
-     * for an arbitrary bytes string as body, a given content type and 
-     * charset. Audit a successfull response or log an error.</p>
-     * 
-     * @param body a byte string
-     * @param type the resource content type
-     * @param charset the character set encoding used (eg: "ASCII")
-     */
-    public void rest200Ok (byte[] body, String type, String charset) {
-        response.setStatus(HttpServletResponse.SC_OK);
-        if (charset != null) {type += ";charset=" + charset;}
-        response.setContentType(type);
-        response.setContentLength(body.length);
-        try {
-            ServletOutputStream os = response.getOutputStream(); 
-            os.write(body);
-            os.flush();
-            audit(200);
-        } catch (IOException e) {
-            logError(e);
-        }
-    }
-    
-    /**
-     * <p>Send a 200 Ok HTTP response with the appropriate headers for
-     * a UNICODE string as body, a given content type and charset. This
-     * method catches any <code>UnsupportedEncodingException</code> and 
-     * uses the plateform default character set if the given encoding is
-     * not supported. Audit a successfull response or log an error.</p>
-     * 
-     * <p>Usage:
-     * 
-     * <blockquote>
-     * <pre>$.res200Ok("&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
-     * </blockquote>
-     * 
-     * where <code>$</code> is an <code>Actor</code> instance.</p>
-     *
-     * @param body a string
-     * @param type the resource content type
-     * @param charset the character set encoding used (eg: "UTF-8")
-     */
-    public void rest200Ok (String body, String type, String charset) {
-        try {
-            rest200Ok(body.getBytes(charset), type, charset);
-        } catch (UnsupportedEncodingException e) {
-            rest200Ok(body.getBytes(), type, null);
-        }
+    public boolean urlActions(JSONR model) {
+        actions = new HashMap(request.getParameterMap());
+        return ! actions.isEmpty();
     }
 
-    /**
-     * Send a 200 Ok HTTP response with the appropriate headers for
-     * a UNICODE string as body and a given content type, using the UTF-8
-     * character set encoding. Audit a successfull response or log an 
-     * error.</p>
-     *
-     * <p>Usage:
-     * 
-     * <blockquote>
-     * <pre>$.res200Ok("&lt;hello-world/&gt;", "text/xml")</pre>
-     * </blockquote>
-     * 
-     * where <code>$</code> is an <code>Actor</code> instance.</p>
-     * 
-     * @param body a string
-     * @param type the resource content type
-     */
-    public void rest200Ok (String body, String type) {
-        rest200Ok(body, type, less4jCharacterSet);
+    public boolean urlAction (String name) {
+        return actions.containsKey(name);
     }
     
-    /**
-     * The default content type of resources is XML, the defacto
-     * standard supported by XSL, CSS and JavaScript in web 2.0
-     * browsers.
-     */
-    private static final 
-    String less4jXMLContentType = "text/xml";
-    
-    /**
-     * Send a 200 Ok HTTP response with the appropriate headers for
-     * an XML string using the UTF-8 character set encoding. Audit a
-     * successfull response or log an error.
-     *
-     * <p>Usage:
-     * 
-     * <blockquote>
-     * <pre>$.res200Ok("&lt;hello-world/&gt;")</pre>
-     * </blockquote>
-     * 
-     * where <code>$</code> is an <code>Actor</code> instance.</p>
-     *
-     * @param body a string
-     */
-    public void rest200Ok (String body) {
-        rest200Ok(body, less4jXMLContentType);
+    public String urlParameter (String name) {
+        String[] args = (String[]) actions.get(name);
+        if (args != null && args.length > 0) 
+            return args[0];
+        else
+            return "";
     }
     
     private static final 
@@ -925,7 +777,7 @@ public class Actor {
      * @return an absolute web URL
      * 
      */
-    public String httpURL(String location) {
+    public String urlAbsolute(String location) {
         /* note that this implementation is inlined for maximum speed */
         if (location.length() == 0)
             return request.getRequestURL().toString();
@@ -974,6 +826,143 @@ public class Actor {
         return sb.toString();
     };
     
+    /**
+     * <p>Test wether an HTTP request is idempotent or not, ie: wether it is a 
+     * GET request for a resource (cachable) like
+     * 
+     * <blockquote>
+     * <pre>/resource</pre>
+     * </blockquote>
+     * 
+     * or a GET request for an action as
+     * 
+     * <blockquote>
+     * <pre>/resource?action</pre>
+     * </blockquote>
+     * 
+     * wich is not cacheable.</p>
+     * 
+     * @return true if the request is idempotent, false otherwise
+     */
+    public boolean httpIdempotent () {
+        return (request.getQueryString() == null);
+        }
+    
+    /**
+     * Dispatch an idempotent Actor, split its context path (the one
+     * between the resource identified and the servlet path) between
+     * separators and returns an iterator. Let the accessor decide
+     * how to dispatch that stack ...
+     *
+     */
+    public Iterator httpDispatch (HashMap resources) {
+        String s = request.getContextPath();
+        return Simple.iterator(s.split("/"));
+    }
+    
+    public byte[] httpPOST(int limit) {
+        int contentLength = request.getContentLength(); 
+        if (contentLength > 0 && contentLength < limit)
+            return null;
+        
+        byte[] body = new byte[contentLength];
+        try {
+            // first fill that buffer ASAP
+            ServletInputStream is = request.getInputStream();
+            int len;
+            int off = 0;
+            while (off < contentLength) {
+                len = is.read(body, off, contentLength - off); // block ...
+                if (len > -1) {
+                    off += len; 
+                } else {
+                    break; // ... maybe break, but when and what about zero?
+                }
+            }
+            return body;
+            
+        } catch (IOException ioe) {
+            logError(ioe);
+            return null;
+            
+        }
+    }
+    
+    /**
+     * <p>Try to send a 200 Ok HTTP response with the appropriate headers
+     * for an arbitrary bytes string as body, a given content type and 
+     * charset. Audit a successfull response or log an error.</p>
+     * 
+     * @param body a byte string
+     * @param type the resource content type
+     * @param charset the character set encoding used (eg: "ASCII")
+     */
+    public void rest200Ok (byte[] body, String type, String charset) {
+        response.setStatus(HttpServletResponse.SC_OK);
+        if (charset != null) {type += ";charset=" + charset;}
+        response.setContentType(type);
+        response.setContentLength(body.length);
+        try {
+            ServletOutputStream os = response.getOutputStream(); 
+            os.write(body);
+            os.flush();
+            audit(200);
+        } catch (IOException e) {
+            logError(e);
+        }
+    }
+    
+    /**
+     * <p>Send a 200 Ok HTTP response with the appropriate headers for
+     * a UNICODE string as body, a given content type and charset. This
+     * method catches any <code>UnsupportedEncodingException</code> and 
+     * uses the plateform default character set if the given encoding is
+     * not supported. Audit a successfull response or log an error.</p>
+     * 
+     * <p>Usage:
+     * 
+     * <blockquote>
+     * <pre>$.res200Ok("&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
+     * </blockquote>
+     * 
+     * where <code>$</code> is an <code>Actor</code> instance.</p>
+     *
+     * @param body a string
+     * @param type the resource content type
+     * @param charset the character set encoding used (eg: "UTF-8")
+     */
+    public void rest200Ok (String body, String type, String charset) {
+        rest200Ok(Simple.encode(body, charset), type, charset);
+    }
+    
+    /**
+     * The default content type of resources is XML, the defacto
+     * standard supported by XSL, CSS and JavaScript in web 2.0
+     * browsers.
+     */
+    private static final 
+    String less4jXMLContentType = "text/xml";
+    
+    /**
+     * Send a 200 Ok HTTP response with the appropriate headers for
+     * an XML string using the UTF-8 character set encoding. Audit a
+     * successfull response or log an error.
+     *
+     * <p>Usage:
+     * 
+     * <blockquote>
+     * <pre>$.res200Ok("&lt;hello-world/&gt;")</pre>
+     * </blockquote>
+     * 
+     * where <code>$</code> is an <code>Actor</code> instance.</p>
+     *
+     * @param body a string
+     */
+    public void rest200Ok (String body) {
+        // String acceptCharset = request.getHeader("Accept-Charset");
+        rest200Ok(body, less4jXMLContentType, less4jCharacterSet);
+    }
+    
     private static final 
     String less4jHTTPLocation = "Location";
     
@@ -993,7 +982,7 @@ public class Actor {
      */
     public void rest302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
-        response.addHeader(less4jHTTPLocation, httpURL(location));
+        response.addHeader(less4jHTTPLocation, urlAbsolute(location));
         response.setContentType(type);
         response.setContentLength(body.length);
         try {
@@ -1091,42 +1080,7 @@ public class Actor {
         return (json != null);
     }
     
-    public String jsonDigest(Object value) {
-        SHA1 md = new SHA1();
-        md.update(JSON.str(value).getBytes());
-        md.update(salt);
-        return md.hexdigest();
-    }
-    
-    public boolean jsonGET() {return jsonGET(1, 256);}
-    
-    public byte[] httpPOST(int limit) {
-        int contentLength = request.getContentLength(); 
-        if (contentLength > 0 && contentLength < limit)
-            return null;
-        
-        byte[] body = new byte[contentLength];
-        try {
-            // first fill that buffer ASAP
-            ServletInputStream is = request.getInputStream();
-            int len;
-            int off = 0;
-            while (off < contentLength) {
-                len = is.read(body, off, contentLength - off); // block ...
-                if (len > -1) {
-                    off += len; 
-                } else {
-                    break; // ... maybe break, but when and what about zero?
-                }
-            }
-            return body;
-            
-        } catch (IOException ioe) {
-            logError(ioe);
-            return null;
-            
-        }
-    }
+    public boolean jsonGET() {return jsonGET(65355, 65355);}
     
     /**
      * <p>Try to read and parse the body of a POST request, assuming it 
@@ -1152,22 +1106,48 @@ public class Actor {
          * complete and not overflowed.
          * */
         byte[] body = httpPOST(limit);
-        if (body != null) {
+        if (body == null) 
+            return false; 
+        else {
             // parse JSON when the buffer is filled but not overflowed
             try {
                 json = JSON.object(
                     new String(body, less4jCharacterSet),
                     containers, iterations
                     );
+                return (json != null);
             } catch (Exception e) {
                 logError(e);
                 return false;
             }
-        } else 
-            return false;
-        
-        return (json != null);
+        }
     }
+    
+    public boolean jsonPOST () {return jsonPOST(16384, 65355, 65355);}
+    
+    public boolean jsonPOST (
+        JSONR pattern, int limit, int containers, int iterations
+        ) {
+        byte[] body = httpPOST(limit);
+        if (body == null) 
+            return false; 
+        else {
+            try {
+                json = pattern.object(
+                    new String(body, less4jCharacterSet),
+                    containers, iterations
+                    );
+                return (json != null);
+            } catch (Exception e) {
+                logError(e);
+                return false;
+            }
+        }
+    }
+    
+    public boolean jsonPOST (JSONR model) {
+        return jsonPOST(model, 16384, 65355, 65355);
+        }
     
     /**
      * The constant content type for JSON includes the UTF-8 character set
@@ -1177,19 +1157,20 @@ public class Actor {
     private static final 
     String less4jJSONContentType = "application/json;charset=UTF-8";
     
+    public String jsonDigest(Object value) {
+        SHA1 md = new SHA1();
+        md.update(JSON.str(value).getBytes());
+        md.update(salt);
+        return md.hexdigest();
+    }
+    
     /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON value 
      * encoded in UTF-8 as body and audit the response, or log an error.</p>
      */
     public void json200Ok (Object value) {
         /* the response body must be short enough to be buffered fully */
-        byte[] body;
-        String s = JSON.str(value);
-        try {
-            body = s.getBytes(less4jCharacterSet);
-        } catch (UnsupportedEncodingException e) {
-            body = s.getBytes();
-        }
+        byte[] body = Simple.encode(JSON.str(value), less4jCharacterSet);
         int l = body.length;
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(less4jJSONContentType);
@@ -1214,18 +1195,6 @@ public class Actor {
     public void json200Ok () {json200Ok(json);}
     
     // The simplest URL action dispatcher 
-    
-    public boolean hasAction (String name) {
-        return actions.containsKey(name);
-    }
-    
-    public String getAction (String name) {
-        String[] args = (String[]) actions.get(name);
-        if (args != null && args.length > 0) 
-            return args[0];
-        else
-            return "";
-    }
     
     /**
      * Try to open a JDBC connection using the configuration properties,

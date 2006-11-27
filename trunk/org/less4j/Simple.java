@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 import java.util.Iterator;
 
@@ -114,6 +115,30 @@ public class Simple {
         return null;
     }
 
+    /**
+     * <p>Sixteen Kilobytes (16384 8-bit bytes) represent 3,4 pages of
+     * 66 lines and 72 columns of ASCII characters. Much more information 
+     * than what most of us can digest in a few minutes. It's a reasonable
+     * maximum to set for an application web interface updated by its
+     * user every few seconds.</p>
+     * 
+     * <p>Also, 16KB happens to be the defacto standard buffer size
+     * for TCP peers and networks since it's the maximum UDP datagram size
+     * in use. Which makes anything smaller than this limit a better candidate 
+     * for the lowest possible IP network latency.</p>
+     * 
+     * <p>Finally, sixteen KB buffers can hold more than 65 thousand concurrent
+     * responses in one GB of RAM, a figure between one and two orders of 
+     * magnitude larger than what you can reasonably expect from a J2EE 
+     * container running some commodity hardware. At an average speed of
+     * 0.5 millisecond per concurrent request/response 16KB buffers sums
+     * up to 36MBps, less than 1Gbps.</p>
+     * 
+     * <p>So, that sweet sixteen spot is also a safe general maximum for a 
+     * web 2.0 application controller that needs to keep lean on RAM and
+     * wants the fastest possible network and the smallest possible
+     * imbalance between input and output.</p>
+     */
     public static final int netBufferSize = 16384;
     
     /**
@@ -186,6 +211,14 @@ public class Simple {
 	public static Iterator iterator (Object[] objects) {
 		return new ObjectIterator(objects);
 		}
+    
+    public static byte[] encode(String unicode, String encoding) {
+        try {
+            return unicode.getBytes(encoding);
+        } catch (UnsupportedEncodingException e) {
+            return unicode.getBytes();
+        }
+    }
 	
     public static void join (
         String separator, Iterator iter, StringBuffer sb
@@ -204,36 +237,4 @@ public class Simple {
         return sb.toString();
     }
     
-    // a simplistic "opaque" type caster for Java 1.4.2 non-string
-    // primitive type wrappers that can be expressed as JSON (some 
-    // sort of web2 generics ;-)
-    
-    /*
-     * Usage
-     * 
-     * Double d = (Double) cast(DOUBLE, "0.123");
-     * 
-     * This is only usefull when you need to dynamically map a type
-     * caster to an argument name. But then, this is what happens for
-     * all network peers ... 
-     * 
-     * */
-
-    public static final Integer NULL = new Integer(0);
-    public static final Integer INTEGER = new Integer(1);
-    public static final Integer DOUBLE = new Integer(2);
-    public static final Integer BOOLEAN = new Integer(3);
-    public static final Integer LONG = new Integer(4);
-    
-    public static Object cast (Integer type, String s) {
-        Object result = null;
-        switch (type.intValue()) {
-            case 0:;
-            case 1: result = (Object) Integer.valueOf(s);
-            case 2: result = (Object) Double.valueOf(s);
-            case 3: result = (Object) Boolean.valueOf(s);
-            case 5: result = (Object) Long.valueOf(s);
-        } // that's safe, simple and fast ;-)
-        return result;
-    }
 }

@@ -53,7 +53,7 @@ import java.text.StringCharacterIterator;
  * <blockquote>
  * <pre>try {
  *    Object value = JSON.eval("null");
- *    HashMap map = JSON.object("{}");
+ *    HashMap map = JSON.object("{\"pass\": true}");
  *    ArrayList list = JSON.array("[1,2,3]");
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
@@ -67,13 +67,30 @@ import java.text.StringCharacterIterator;
  * <blockquote>
  * <pre>try {
  *    ArrayList list = JSON.array("[1,2,3,4,5]", 1, 4);
- *    HashMap map = JSON.object("[{},{},{},{},{},{}]", 1, 100);
+ *    HashMap map = JSON.object("{\"pass\": 1, fail: true}", 1, 100);
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
  * </blockquote>
  * 
  * making JSON evaluation safe for public interfaces.</p>
+ * 
+ * <p>...
+ * 
+ * <blockquote>
+ * <pre>JSON.Error e;
+ *ArrayList list = new ArrayList();
+ *e = JSON.extend(list, "[1,2,3,4,5]", 1, 4);
+ *if (e != null)
+ *    System.out.println(e.str());
+ *HashMap map = new HashMap(); 
+ *e = JSON.update(map, "{\"pass\": 1, fail: true}", 1, 100);
+ *if (e != null)
+ *    System.out.println(e.str());
+ *}</pre>
+ * </blockquote>
+ * 
+ * ...</p>
  * 
  * <p>There are also static methods to serialize java instances as
  * JSON strings
@@ -382,16 +399,15 @@ public class JSON {
         }
         
         /**
-         * Evaluates a JSON string as an object, returns the updated 
-         * <code>map</code> or throws a JSON.Error if the string does not
+         * Evaluates a JSON string and the update the object <code>map</code>, 
+         * return null or a <code>JSON.Error</code> if the string does not 
          * represent a valid object. 
          * 
          * @param map the <code>HashMap</code> to update
          * @param json the string to evaluate
-         * @return an updated <code>map</code>
-         * @throws Error
+         * @return null or a <code>JSON.Error</code>
          */
-        public HashMap update(HashMap map, String json) throws Error {
+        public Error update(HashMap map, String json) {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -399,9 +415,12 @@ public class JSON {
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c == '{') {
                     c = it.next();
-                    return (HashMap) object(map);
-                }else
-                    throw error(NOT_AN_OBJECT);
+                    object(map);
+                    return null;
+                } else
+                    return error(NOT_AN_OBJECT);
+            } catch (Error e) {
+                return e;
             } finally {
                 buf = null;
                 it = null;
@@ -409,16 +428,15 @@ public class JSON {
         }
         
         /**
-         * Evaluates a JSON string as an array, returns the extended
-         * <code>list</code> or throws a JSON.Error if the string does not
+         * Evaluates a JSON string and extends the <code>list</code>,
+         * return null or a <code>JSON.Error</code> if the string does not 
          * represent a valid array. 
          * 
          * @param list the <code>ArrayList</code> to extend
          * @param json the string to evaluate
-         * @return an updated <code>map</code>
-         * @throws Error
+         * @return null or a <code>JSON.Error</code>
          */
-        public ArrayList extend(ArrayList list, String json) throws Error {
+        public Error extend(ArrayList list, String json) {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -426,9 +444,12 @@ public class JSON {
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c == '[') {
                     c = it.next();
-                    return (ArrayList) array(list);
+                    array(list);
+                    return null;
                 } else
-                    throw error(NOT_AN_ARRAY);
+                    return error(NOT_AN_ARRAY);
+            } catch (Error e) {
+                return e;
             } finally {
                 buf = null;
                 it = null;
@@ -673,10 +694,10 @@ public class JSON {
      */
     public static Object eval(String json) 
     throws Error {
-        if (json != null)
+        if (json == null) 
+            return null;
+        else 
             return (new Interpreter()).eval(json);
-        else
-            throw new Error(EMPTY_STRING, 0);
     }
     
     /**
@@ -698,10 +719,10 @@ public class JSON {
      */
     public static Object eval(String json, int containers, int iterations) 
     throws Error {
-        if (json != null)
+        if (json == null) 
+            return null;
+        else 
             return (new Interpreter(containers, iterations)).eval(json);
-        else
-            throw new Error(EMPTY_STRING, 0);
     }
     
     /**
@@ -717,13 +738,19 @@ public class JSON {
     public static HashMap object(
         String json, int containers, int iterations
         ) throws Error {
-        if (json != null)
-            return (
+        if (json == null) 
+            return null;
+        else {
+            HashMap map = new HashMap();
+            Error e = (
                 new Interpreter(containers, iterations)
-                ).update(null, json);
-        else
-            throw new Error(EMPTY_STRING, -1);
+                ).update(map, json);
+            if (e == null)
+                return map;
+            else
+                throw e;
         }
+    }
         
     /**
      * Evaluates a JSON array, returns a new <code>ArrayList</code>   
@@ -738,58 +765,20 @@ public class JSON {
     public static ArrayList array(
         String json, int containers, int iterations
         ) throws Error {
-        if (json != null)
-            return (
-                new Interpreter(containers, iterations)
-                ).extend(null, json);
-        else
-            throw new Error(EMPTY_STRING, -1);
-    }
-            
-    /**
-     * Evaluates a JSON string as an object, returns the updated 
-     * <code>map</code> or throws a JSON.Error if the string does not
-     * represent a valid object. 
-     * 
-     * @param map the <code>HashMap</code> to update
-     * @param json the string to evaluate
-     * @param containers the maximum number of containers allowed 
-     * @param iterations the limit on the count of values 
-     * @return an updated <code>map</code>
-     */
-    public static HashMap update(
-        HashMap map, String json, int containers, int iterations
-        ) throws Error {
-        if (json != null) {
-            return (
-                new Interpreter(containers, iterations)
-                ).update(map, json);
-        } else
-            throw new Error(EMPTY_STRING, -1);
-    }
-            
-    /**
-     * Evaluates a JSON string as an array, returns the extended
-     * <code>list</code> or throws a JSON.Error if the string does not
-     * represent a valid array. 
-     * 
-     * @param list the <code>ArrayList</code> to extend
-     * @param json the string to evaluate
-     * @param containers the maximum number of containers allowed 
-     * @param iterations the limit on the count of values 
-     * @return an updated <code>map</code>
-     */
-    public static ArrayList extend(
-        ArrayList list, String json, int containers, int iterations 
-        ) throws Error {
-        if (json != null) {
-            return (
+        if (json == null) 
+            return null;
+        else {
+            ArrayList list = new ArrayList();
+            Error e = (
                 new Interpreter(containers, iterations)
                 ).extend(list, json);
-        } else
-            throw new Error(EMPTY_STRING, -1);
+            if (e == null)
+                return list;
+            else
+                throw e;
+        } 
     }
-                
+            
     protected static final String _quote = "\\\"";
     protected static final String _back = "\\\\";
     protected static final String _slash = "\\/";
@@ -1087,7 +1076,7 @@ public class JSON {
     public static String repr(Object value) {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
-    
+
     public String string;
     
     public JSON(Object value) {this.string = str(value);}

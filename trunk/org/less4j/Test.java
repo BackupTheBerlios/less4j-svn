@@ -127,7 +127,7 @@ public class Test {
             if (--count == 0) notify();
         }
         public synchronized boolean zero() {
-            try {this.wait();} catch (InterruptedException e) {;}
+            try {wait();} catch (InterruptedException e) {;}
             return count == 0;
         }
     }
