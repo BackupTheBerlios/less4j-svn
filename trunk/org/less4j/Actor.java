@@ -51,6 +51,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
 
+import org.less4j.JSON.Error;
+
 /**
  * <p>A "full-stack" API to develop XML and JSON interfaces for J2EE 
  * controllers of entreprise SQL and LDAP resources, starting with 
@@ -87,14 +89,14 @@ import javax.servlet.http.Cookie;
  * configuration and one for instances that will be apply it on an 
  * HTTP transaction.
  * </dd></di>
- * <di><dt>Security:
+ * <di><dt>IRTD2:
  * <code>identity</code>,
  * <code>roles</code>,
  * <code>digest</code>,
  * <code>digested</code>,
- * <code>notAuthorized</code>, 
- * <code>authorize</code>,
- * <code>audit</code>.
+ * <code>irtd2Digest</code>, 
+ * <code>irtd2Digested</code>, 
+ * <code>irtd2Audit</code>.
  * </dt><dd>
  * Identification, authorization and audit of the user agent, without
  * the woes of <code>HttpServletSession</code>. A practical implementation
@@ -104,21 +106,23 @@ import javax.servlet.http.Cookie;
  * audit follow the multiple paths of interactions of a single user and
  * detect fraud attemps.
  * </dd></di>
- * <di><dt>REST:
- * <code>httpURL</code>,
- * <code>httpIdempotent</code>,
- * <code>actions</code>,
+ * <di><dt>HTTP and URL:
+ * <code>query</code>,
+ * <code>urlAction</code>,
+ * <code>urlAbsolute</code>,
  * <code>rest200Ok</code>, 
- * <code>rest302Redirect</code>.
+ * <code>rest302Redirect</code>,
+ * <code>rest302Bounce</code>.
  * </dt><dd>
  * ...
  * </dd></di>
- * <di><dt>JSON and JSONR:
+ * <di><dt>XML, JSON and JSONR:
  * <code>json</code>,
- * <code>jsonr</code>,
  * <code>jsonGET</code>,
  * <code>jsonPOST</code>,
- * <code>json200Ok</code>.
+ * <code>json200Ok</code>,
+ * <code>ajaxTemplate</code>,
+ * <code>ajax200Ok</code>.
  * </dt><dd>
  * ...
  * </dd></di>
@@ -155,9 +159,9 @@ public class Actor {
 //        public static final Action singleton = null;
 //    } 
     
-    public static final String TEST = "Test";
+    protected static final String TEST = "Test";
     
-    public static final String less4j = "less4j";
+    protected static final String less4j = "less4j";
     
     /**
      * <p>The default charset encoding in less4j, something supported by
@@ -168,8 +172,8 @@ public class Actor {
     
     private static final String less4jTrue = "true";
     private static final String less4jTest = "less4j.test";
+    private static final String less4jJSON = "less4j.json";
 
-    private static final String less4jDigestName = "IRTD2";
     private static final String less4jDigestSalt = "less4j.digest.salt";
     private static final String less4jDigestedSalt = "less4j.digested.salt";
     
@@ -236,10 +240,11 @@ public class Actor {
     public String rights = ""; // whatever fits your application 
     
     /**
-     * The time of this Actor's, in seconds since epoch 
+     * The time of this Actor's, in seconds since epoch, as an java
+     * <code>int</code> value 
      * (ie: 01/01/1970)  
      */
-    public long time = (System.currentTimeMillis()/1000);
+    public int time = Math.round(System.currentTimeMillis()/1000);
     
     /**
      * The authentication and audit digest of the previous request, as set 
@@ -269,7 +274,7 @@ public class Actor {
     /**
      * The JSON object associated with the Actor's request and/or response.
      */
-    public HashMap json = null;
+    public JSON.O json = null;
     
     /**
      * An open JDBC connection or <code>null</code>.
@@ -294,7 +299,7 @@ public class Actor {
     
     /**
      * Initialize a new Actor to handle an HTTP request and response, 
-     * set the Actor's audit digest salt and actions map.
+     * set the Actor's audit digest salt and eventually load.
      * 
      * @param conf the controller's configuration HashMap
      * @param req the HTTP request to handle 
@@ -309,6 +314,13 @@ public class Actor {
         request = req;
         url = request.getRequestURL().toString();
         response = res;
+        String s = (String) configuration.get(less4jJSON);
+        if (s != null)
+            try {
+                json = JSON.object(s, 65355, 65355);
+            } catch (JSON.Error e) {
+                logError(e);
+            }
     }
 
     /**
@@ -327,8 +339,8 @@ public class Actor {
      * </blockquote>
      * 
      * use multilog or any other log post-processor to add timestamp and
-     * other usefull audit information. From outside your application, where 
-     * its test and audit functions belong.</p>
+     * other usefull audit information, from outside your application 
+     * where it belong.</p>
      * 
      * @param message the string logged to STDOUT
      *     
@@ -374,16 +386,13 @@ public class Actor {
     }
 
     private static final String stackTraceCategory = "StackTrace: ";
-    private static final String stackTraceDelimiter = " | "; 
-    private static final String stackTraceDot = "."; 
-    private static final String stackTraceSpace = " ";
     
     /**
      * <p>Write a compact stack trace to STDERR in the "StackTrace" category,
      * in one line, like:
      * 
      * <blockquote>
-     * <pre>StackTrace: error | thrower.called 123 | catcher.calling 12</pre>
+     * <pre>StackTrace: 34|thrower.called 12|catcher.calling</pre>
      * </blockquote>
      * 
      * Also, if test is false, log the JSON object of this actor.</p>
@@ -410,7 +419,7 @@ public class Actor {
      * the entire JSON object model but none of the server's configuration.
      * 
      * <blockquote>
-     * <pre>StackTrace: error | thrower.called 123 | catcher.calling 12 {...}</pre>
+     * <pre>StackTrace: error 34|thrower.called 12|catcher.calling {...}</pre>
      * </blockquote>
      *
      * This is what the helpdesk needs and it still fits on one line.</p>
@@ -425,20 +434,20 @@ public class Actor {
         StringBuffer sb = new StringBuffer();
         sb.append(stackTraceCategory);
         sb.append(error.getMessage());
-        sb.append(stackTraceDelimiter);
-        sb.append(thrower.getClassName());
-        sb.append(stackTraceDot);
-        sb.append(thrower.getMethodName());
-        sb.append(stackTraceSpace);
+        sb.append(' ');
         sb.append(thrower.getLineNumber());
-        sb.append(stackTraceDelimiter);
-        sb.append(catcher.getClassName());
-        sb.append(stackTraceDot);
-        sb.append(catcher.getMethodName());
-        sb.append(stackTraceSpace);
+        sb.append('|');
+        sb.append(thrower.getClassName());
+        sb.append('.');
+        sb.append(thrower.getMethodName());
+        sb.append(' ');
         sb.append(catcher.getLineNumber());
+        sb.append('|');
+        sb.append(catcher.getClassName());
+        sb.append('.');
+        sb.append(catcher.getMethodName());
         if (!test && json != null) {
-            sb.append(stackTraceSpace);
+            sb.append(' ');
             sb.append(json.toString());
         }
         System.err.println(sb.toString());
@@ -474,6 +483,14 @@ public class Actor {
             logInfo("add salt to digest cookies!", "Configuration");
             return false;
         }
+        String s = (String) configuration.get(less4jJSON);
+        if (s != null)
+            try {
+                json = JSON.object(s, 65355, 65355);
+            } catch (JSON.Error e) {
+                logError(e);
+                return false;
+            }
         String dbn;
         try {
             if (DriverManager.getLoginTimeout() < less4jJDBCTimeout)
@@ -498,11 +515,12 @@ public class Actor {
         return true;
     }
     
-    private static final int less4jCookieMaxAge = 86400; 
+    protected static final String irtd2Name = "IRTD2";
     
     /**
-     * Literally "digest a cookie": transform the IRTD2 cookie sent with
-     * the request into a new cookie to send with the response.
+     * Literally "digest a cookie", transform the IRTD2 cookie sent with
+     * the request into a new cookie bearing the Actor's time, to be sent
+     * with the response.
      * 
      * <p>The cookie value is a formatted string made as follow
      * 
@@ -510,9 +528,10 @@ public class Actor {
      * <pre>Cookie: IRTD2=<strong>identity:roles:time:digested:digest</strong>; </pre>
      * </blockquote>
      * 
-     * ...</p>
+     * This method is only usefull in authorization controllers, like user
+     * identification or roles attribution services.</p>
      *
-     * @param path
+     * @param path in which the IRTD2 Cookie's is applied
      */
     public void irtd2Digest(String path) {
         StringBuffer sb = new StringBuffer();
@@ -530,14 +549,16 @@ public class Actor {
         digest = md.hexdigest();
         sb.append(':');
         sb.append(digest);
-        Cookie irtd2 = new Cookie(less4jDigestName, sb.toString());
+        Cookie irtd2 = new Cookie(irtd2Name, sb.toString());
         irtd2.setDomain(request.getServerName());
         irtd2.setPath(path);
-        irtd2.setMaxAge(less4jCookieMaxAge); 
+        irtd2.setMaxAge(Integer.MAX_VALUE);
         response.addCookie(irtd2);
     }
     
-    protected static Pattern less4jDigestSplit = Pattern.compile(":");
+    public void irtd2Digest() {irtd2Digest(request.getServletPath());}
+    
+    protected static Pattern irtd2Split = Pattern.compile(":");
     
     /**
      * <p>Try to collect a IRTD2 cookie in the request and test its digest 
@@ -563,24 +584,23 @@ public class Actor {
      * @param timeout the limit of an IRTD2 cookie's age, in seconds  
      * @return true if the request failed to be authenticated
      */
-    public boolean irtd2Digested (long timeout) {
+    public boolean irtd2Digested (int timeout) {
         try {
-            /* the ever usefull ;-) */
             int i; 
             /* get the request's IRTD2 authorization cookies ... */
             Cookie irtd2Cookie = null; 
             Cookie[] cookies = request.getCookies();
             if (cookies != null) for (i = 0; i < cookies.length; i++) {
-                if (cookies[i].getName().equals(less4jDigestName)) {
+                if (cookies[i].getName().equals(irtd2Name)) {
                     irtd2Cookie = cookies[i];
                     break;
                 }
             }
             if (irtd2Cookie == null)
                 return false; 
-                /* ... do not authorize if no IRTD2 cookie found. */
+                /* ... do not digest if no IRTD2 cookie found. */
             
-            String[] irtd2 = less4jDigestSplit.split(irtd2Cookie.getValue());
+            String[] irtd2 = irtd2Split.split(irtd2Cookie.getValue());
             if (irtd2.length != 5)
                 return false; 
 
@@ -591,7 +611,7 @@ public class Actor {
             rights = irtd2[1];
             sb.append(rights);
             sb.append(':');
-            long lastTime = Long.parseLong(irtd2[2]);
+            int lastTime = Integer.parseInt(irtd2[2]);
             sb.append(irtd2[2]);
             sb.append(':');
             sb.append(irtd2[3]);
@@ -624,53 +644,37 @@ public class Actor {
                 }
             }
             irtd2Digest(irtd2Cookie.getPath());
-            return false; 
+            return true; 
         } 
         catch (Exception e) {
             logError(e);
-            return true;           
+            return false;           
         }
     }
     
-    public boolean irtd2Authorized(String right, long timeout) {
+    public boolean irtd2Authorized(String right, int timeout) {
         if (irtd2Digested(timeout))
             return rights.indexOf(right) > -1; 
         else
             return false;
     }
     
-    public static final Pattern irtd2Identity = Pattern.compile(
+    public boolean irtd2HasRights(String right) {
+        if (digested != null)
+            return rights.indexOf(right) > -1; 
+        else
+            return false;
+    }
+    
+    protected static final Pattern irtd2Identity = Pattern.compile(
         "[\\x20-\\x2B][\\x2D-\\x39][\\x3C-x7E]+"
         );
     
-    public static final Pattern irtd2Rights = Pattern.compile(
+    protected static final Pattern irtd2Rights = Pattern.compile(
         "([\\x20-\\x39][\\x3C-x7E]+)(?,([\\x20-\\x39][\\x3C-x7E]+))*"
         );
     
-    /**
-     * <p>Set the Actor's <code>identity</code> and grant <code>rights</code>
-     * digested into an HTTP cookie named <code>IRTD2</code>, like this:
-     * 
-     * <blockquote>
-     * <pre>Cookie: IRTD2=identity:rights:time:digested:digest; ...</pre>
-     * </blockquote>
-     * 
-     * that authenticate a one-time digest for the next invokation of
-     * the application's controller in the domain and path set for
-     * thise cookie.</p>
-     * 
-     * @param identity
-     * @param rights
-     * @param path
-     */
-    public void irtd2Authorize(String identity, String rights, String path) {
-        this.identity = identity;
-        this.rights = rights;
-        irtd2Digest(path);
-    }
-    
     private static final String less4jAudit = "AUDIT: ";
-    private static final String less4jAuditDelimiter = " ";
     
     /** 
      * Log an audit of this HTTP request and response in one line. 
@@ -693,27 +697,27 @@ public class Actor {
      * backlink to chain a session step by step ... and detect fraud.</p>
      * 
      */
-    private void audit (int status) {
+    public void irtd2Audit (int status) {
         StringBuffer sb = new StringBuffer();
         sb.append(less4jAudit);
         sb.append(identity);
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(rights);
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(Long.toString(time));
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(digested);
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(digest);
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(request.getMethod());
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(request.getRequestURI());
         String query = request.getQueryString();
         if (query != null) sb.append(query);
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(request.getProtocol());
-        sb.append(less4jAuditDelimiter);
+        sb.append(' ');
         sb.append(status);
         logOut(sb.toString());
     }
@@ -722,27 +726,39 @@ public class Actor {
         Pattern.compile("^(.*?)(;.+?=.+?)?((,.*?)(/s*?;.+?=.+?)?)*$");
     
     /**
-     * Validate the request's actions Map against a HashMap of type caster 
-     * from String and regular expression patterns. Other control limits are 
-     * best expressed in Java, usually to compute numbers and not process 
-     * text.
+     * Validate the request's actions Map against a JSONR object pattern.
      * 
-     * @param model a JSONR object pattern
+     * @param pattern a compiled JSONR regular object
      * @return true if there is at least one valid action
      */
-    public boolean urlActions(JSONR model) {
-        actions = model.filter(request.getParameterMap());
+    public boolean urlActions(JSONR pattern) {
+        actions = pattern.filter(request.getParameterMap());
         return !actions.isEmpty();
     }
 
-    private static final 
-    String less4jHTTP = "http";
-    private static final 
-    String less4jHTTPS = "https";
-    private static final 
-    String less4jHTTPHost = "://";
-    private static final 
-    String less4jHTTPPort = ":";
+    protected static final String urlHTTP = "http";
+    protected static final String urlHTTPS = "https";
+    protected static final String urlHTTPHost = "://";
+    
+    protected void urlDomain(StringBuffer sb) {
+        int port;
+        String protocol;
+        protocol = request.getProtocol().split("/")[0].toLowerCase();
+        sb.append(protocol);
+        sb.append(urlHTTPHost);
+        sb.append(request.getServerName());
+        port = request.getServerPort();
+        if (
+            (protocol.equals(urlHTTP) && port != 80) ||
+            (protocol.equals(urlHTTPS) && port != 443)
+            ) {
+            sb.append(':');
+            sb.append(port);
+        }
+    } 
+    
+    protected static final Pattern urlHTTPAbsolute = 
+        Pattern.compile("https?:.*//.+"); 
     
     /**
      * A convenience to validate a location as an absolute URL.
@@ -756,7 +772,7 @@ public class Actor {
      * 
      * <blockquote><pre>/resource</pre></blockquote>
      * 
-     * or to the resource context path
+     * to the resource context path
      * 
      * <blockquote><pre>resource</pre></blockquote>
      * 
@@ -773,48 +789,26 @@ public class Actor {
     public String urlAbsolute(String location) {
         /* note that this implementation is inlined for maximum speed */
         if (location.length() == 0)
-            return request.getRequestURL().toString();
+            return url;
         
         StringBuffer sb;
-        String protocol;
-        int port;
         char first = location.charAt(0);
         if (first == '?') {
-            sb = request.getRequestURL();
+            sb = new StringBuffer();
+            sb.append(url);
             sb.append(location);
         } else if (first == '/') {
             sb = new StringBuffer();
-            protocol = request.getProtocol().split("/")[0].toLowerCase();
-            sb.append(protocol);
-            sb.append(less4jHTTPHost);
-            sb.append(request.getServerName());
-            port = request.getServerPort();
-            if (
-                (protocol.equals(less4jHTTP) && port != 80) ||
-                (protocol.equals(less4jHTTPS) && port != 443)
-                ) {
-                sb.append(less4jHTTPPort);
-                sb.append(port);
-            }
+            urlDomain(sb);
             sb.append(location);
-        } else if (!location.matches("https?:.+")) {
-            sb = new StringBuffer();
-            protocol = request.getProtocol().split("/")[0].toLowerCase();
-            sb.append(protocol);
-            sb.append(less4jHTTPHost);
-            sb.append(request.getServerName());
-            port = request.getServerPort();
-            if (
-                    (protocol.equals(less4jHTTP) && port != 80) ||
-                    (protocol.equals(less4jHTTPS) && port != 443)
-                    ) {
-                    sb.append(less4jHTTPPort);
-                    sb.append(port);
-                }
-            sb.append(request.getContextPath());
-            sb.append(location);
-        } else {
+        } else if (urlHTTPAbsolute.matcher(location).matches()) {
             return location;
+        } else {
+            sb = new StringBuffer();
+            urlDomain(sb);
+            sb.append(request.getContextPath());
+            sb.append('/');
+            sb.append(location);
         }
         return sb.toString();
     };
@@ -880,14 +874,15 @@ public class Actor {
      */
     public void rest200Ok (byte[] body, String type, String charset) {
         response.setStatus(HttpServletResponse.SC_OK);
-        if (charset != null) {type += ";charset=" + charset;}
+        if (charset != null) type += ";charset=" + charset;
+        // if (charset != null) response.setCharacterEncoding(charset);
         response.setContentType(type);
         response.setContentLength(body.length);
         try {
             ServletOutputStream os = response.getOutputStream(); 
             os.write(body);
             os.flush();
-            audit(200);
+            irtd2Audit(200);
         } catch (IOException e) {
             logError(e);
         }
@@ -921,8 +916,7 @@ public class Actor {
      * standard supported by XSL, CSS and JavaScript in web 2.0
      * browsers.
      */
-    private static final 
-    String less4jXMLContentType = "text/xml";
+    protected static final String xmlContentType = "text/xml";
     
     /**
      * Send a 200 Ok HTTP response with the appropriate headers for
@@ -940,12 +934,14 @@ public class Actor {
      * @param body a string
      */
     public void rest200Ok (String body) {
-        // String acceptCharset = request.getHeader("Accept-Charset");
-        rest200Ok(body, less4jXMLContentType, less4jCharacterSet);
+        rest200Ok(
+            Simple.encode(body, less4jCharacterSet), 
+            xmlContentType, 
+            less4jCharacterSet
+            );
     }
     
-    private static final 
-    String less4jHTTPLocation = "Location";
+    protected static final String httpLocation = "Location";
     
     /**
      * Try to send a 302 Redirect HTTP response to a location and set the
@@ -961,27 +957,27 @@ public class Actor {
      * @param type the Content-Type of the response 
      *
      */
-    public void rest302Redirect (String location, byte[] body, String type) {
+    protected void rest302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
-        response.addHeader(less4jHTTPLocation, urlAbsolute(location));
+        response.addHeader(httpLocation, urlAbsolute(location));
         response.setContentType(type);
         response.setContentLength(body.length);
         try {
             ServletOutputStream os = response.getOutputStream(); 
             os.write(body);
             os.flush();
-            audit(302);
+            irtd2Audit(302);
         } catch (IOException e) {
             logError(e);
+            irtd2Audit(500); // TODO: ? work out "own" error code ? 
         }
     }
     
-    private static final
-    String less4jREST302 = (
-        "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
-        "<rest302Redirect/>"
-        );
-    
+    protected static final String rest302RedirectXML = (
+            "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
+            "<rest302Redirect/>"
+            );
+        
     /**
      * <p>Try to send a 302 HTTP Redirect response to the a relative or
      * absolute location with the XML string 
@@ -1008,7 +1004,7 @@ public class Actor {
      */
     public void rest302Redirect(String location) {
         rest302Redirect(
-            location, less4jREST302.getBytes(), less4jXMLContentType
+            location, rest302RedirectXML.getBytes(), xmlContentType
             );
     }
     
@@ -1041,24 +1037,43 @@ public class Actor {
      * @param location an idempotent location to redirect to
      * @param query the query string before completion 
      */
-    public void rest302Bounce(String location, String query) {
+    protected void rest302Bounce(byte[] body, String location, String query) {
         StringBuffer sb = new StringBuffer();
-        sb.append(location);
+        sb.append(urlAbsolute(location));
         sb.append(query);
-        String here = request.getRequestURL().toString();
         try {
-            sb.append(URLEncoder.encode(here, less4jCharacterSet));
+            sb.append(URLEncoder.encode(url, less4jCharacterSet));
         } catch (UnsupportedEncodingException e) {
-            sb.append(URLEncoder.encode(here));
+            sb.append(URLEncoder.encode(url));
         }
-        rest302Redirect(sb.toString());
+        response.setStatus(HttpServletResponse.SC_FOUND);
+        response.addHeader(httpLocation, urlAbsolute(location));
+        response.setContentType(xmlContentType);
+        response.setContentLength(body.length);
+        try {
+            ServletOutputStream os = response.getOutputStream(); 
+            os.write(body);
+            os.flush();
+            irtd2Audit(302);
+        } catch (IOException e) {
+            logError(e);
+            irtd2Audit(500); // TODO: ? work out "own" error code ? 
+        }
     }
 
-    private static final
-    String less4jXJSON = "X-JSON";
+    protected static final byte[] rest302BounceXML = Simple.encode (
+            "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
+            "<rest302Bounce/>", "UTF-8"
+            );
+            
+    public void rest302Bounce(String location, String query) {
+        rest302Bounce(rest302BounceXML, location, query);
+    }
+
+    protected static final String jsonXJSON = "X-JSON";
     
     public boolean jsonGET(int containers, int iterations) {
-        String xjson = request.getHeader(less4jXJSON);
+        String xjson = request.getHeader(jsonXJSON);
         if (xjson != null) try {
             json = JSON.object(xjson, containers, iterations);
         } catch (JSON.Error e) {;}
@@ -1139,8 +1154,8 @@ public class Actor {
      * as only encoding supported by less4j. This web 2.0 is UNICODEd and 
      * its applications may apply only one character set.
      */
-    private static final 
-    String less4jJSONContentType = "application/json;charset=UTF-8";
+    protected static final String jsonContentType = 
+        "application/json;charset=UTF-8";
     
     public String jsonDigest(Object value) {
         SHA1 md = new SHA1();
@@ -1150,26 +1165,40 @@ public class Actor {
     }
     
     /**
+     * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON byte
+     * string as body and audit the response, or log an error.</p>
+     */
+    public void json200Ok (byte[] body) {
+        /* the response body must be short enough to be buffered fully */
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType(jsonContentType);
+        response.setContentLength(body.length);
+        try {
+            // response.setBufferSize(16384);
+            ServletOutputStream os = response.getOutputStream();
+            os.write(body);
+            os.flush();
+            // response.flushBuffer();
+            irtd2Audit(200);
+        } catch (IOException e) {
+            logError(e);
+        }
+    }
+    
+    /**
+     * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON string 
+     * encoded in UTF-8 as body and audit the response, or log an error.</p>
+     */
+    public void json200Ok (String string) {
+        json200Ok(Simple.encode(string, less4jCharacterSet));
+    }
+    
+    /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON value 
      * encoded in UTF-8 as body and audit the response, or log an error.</p>
      */
     public void json200Ok (Object value) {
-        /* the response body must be short enough to be buffered fully */
-        byte[] body = Simple.encode(JSON.str(value), less4jCharacterSet);
-        int l = body.length;
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType(less4jJSONContentType);
-        response.setContentLength(l);
-        try {
-            // response.setBufferSize(16384);
-            ServletOutputStream os = response.getOutputStream();
-            os.write(body, 0, l);
-            os.flush();
-            // response.flushBuffer();
-            audit(200);
-        } catch (IOException e) {
-            logError(e);
-        }
+        json200Ok(Simple.encode(JSON.str(value), less4jCharacterSet));
     }
     
     /**
@@ -1177,9 +1206,114 @@ public class Actor {
      * object encoded in UTF-8 as body and audit the response, or log
      * an error.</p>
      */
-    public void json200Ok () {json200Ok(json);}
+    public void json200Ok () {
+        json200Ok(Simple.encode(JSON.str(json), less4jCharacterSet));
+    }
+    /**
+     * <p>Load a simplistic template to wrap JSON with anything else as
+     * long as it supports UTF-8 (usually HTML, XHTML or XML).</p>
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>...
+     * 
+     * <blockquote>
+     * <pre>&lt;html&gt;
+     *    &lt;header&gt;
+     *        &lt;script ... &gt;&lt;/script&gt;
+     *    &lt;/header&gt;
+     *    &lt;body&gt;
+     *        &lt;!-- &lt;script&gt; 
+     *            paint(placeholder()); 
+     *        &lt;/script&gt; --&gt;
+     *    &lt;/body&gt;
+     *&lt;/html&gt;</pre>
+     * </blockquote>
+     * 
+     * Note that the JSON embedded <strong>must</strong> be included in
+     * the body, preferrably at its bottom, allowing the page to be laid
+     * out before the <code>paint</code> method can do its work.</p>
+     * 
+     * <p>...
+     * 
+     * <blockquote>
+     * <pre>this.template = $.ajaxTemplate(
+     *    "index.html", "placeholder[(][)]"
+     *);</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * 
+     * @param filename the template file to load
+     * @param pattern the regular expression to split the template
+     * @return an array of two byte arrays or null if an I/O error occured
+     */
+    static public byte[][] ajaxTemplate(String filename, String pattern) {
+        String s = Simple.fileRead(filename);
+        if (s == null) 
+            return null;
+        
+        byte[][] template = new byte[2][];
+        String[] t = s.split(pattern, 1);
+        template[0] = Simple.encode(t[0], less4jCharacterSet);
+        template[1] = Simple.encode(t[1], less4jCharacterSet);
+        return template;
+    }
     
-    // The simplest URL action dispatcher 
+    /**
+     * <p>Try to complete a 200 Ok HTTP/1.X response with the actor's JSON 
+     * object inside an XHTML body encoded in UTF-8 and audit the response, 
+     * or log an error.</p>
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>I don't want write and you don't want to learn or even use yet 
+     * another templating language for Java. This is the minimalistic 
+     * web 2.0 way to bundle a HTML view and JSON object in the response:
+     * 
+     * <blockquote>
+     * <pre>$.ajax200Ok(this.template, "text/html")</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * 
+     * <p>There is no less4j support to alter the header and footers, because 
+     * the purpose of moving as much state as possible to JSON is to decouple
+     * the resource view from the resource controller as much as possible.</p>
+     * 
+     * <p>What else do you really need? I mean, you can mix and match
+     * the appropriate prefix and suffix to match the user and agent 
+     * requesting the resource. And it is much more easier to generate 
+     * interactive web pages from within the browser, in JavaScript.</p>
+     * 
+     * <p>Finally, remember that less4j is an UTF-8 only web framework,
+     * if you want to support a myriad of exotic character sets, have
+     * your way but it's a quite a dead-end. This is a 16bit wide world
+     * and the web user agent without support for UNICODE represent in
+     * 2006 only the 4% of IE5.5 users.</p>
+     * 
+     * @param template
+     */
+    public void ajax200Ok (byte[][] template, String type) {
+        byte[] body = Simple.encode(JSON.str(json), less4jCharacterSet);
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType(type);
+        response.setContentLength(
+            template[0].length + body.length + template[1].length
+            );
+        try {
+            // response.setBufferSize(16384);
+            ServletOutputStream os = response.getOutputStream();
+            os.write(template[0], 0, template[0].length);
+            os.write(body, 0, body.length);
+            os.write(template[1], 0, template[1].length);
+            os.flush();
+            // response.flushBuffer();
+            irtd2Audit(200);
+        } catch (IOException e) {
+            logError(e);
+        }
+    }
     
     /**
      * Try to open a JDBC connection using the configuration properties,
@@ -1216,10 +1350,45 @@ public class Actor {
     }
 
     /**
+     * Try to open a JDBC connection from its URL, with the given username
+     * and password, disable AutoCommit. Allways log error, log success only 
+     * in test mode.
+     * 
+     * @return true if the connection was successfull, false otherwise
+     */
+    public boolean sqlOpen (String jdbc, String username, String password) {
+        try {
+            sql = DriverManager.getConnection(jdbc, username, password);
+        } catch (Exception e) {
+            logError(e);
+            return false;
+        }
+        try {
+            sql.setAutoCommit(false);
+        } catch (SQLException e) {
+            logError(e);
+            try {sql.close();} catch (SQLException ae) {logError(e);}
+            return false;
+        }
+        if (test) logInfo("connected to the database", TEST);
+        return true;
+    }
+
+    /**
      * Try to rollback any pending transaction and then close the current 
      * JDBC connection. Allways log error and log success only in test mode.
      */
     public void sqlClose () {
+        // I suppose that rolling-back when commit has just been called
+        // is an error condition that can be handled properly by the
+        // JDBC driver and *not* yield one more network transaction ... 
+        //
+        // TODO: test it!
+        //
+        // The alternative is to raise a flag for each update, add a
+        // sqlCommit action that lower this flag and test for it here
+        // before eventually rolling back an "pending" transaction.
+        //
         try {sql.rollback();} catch (SQLException e) {logError(e);}
         try {sql.close();} catch (SQLException e) {logError(e);}
         sql = null;
@@ -1237,7 +1406,7 @@ public class Actor {
      * @return
      * @throws SQLException
      */
-    private static ArrayList jdbc2array (ResultSet rs)
+    protected static ArrayList jdbc2array (ResultSet rs)
     throws SQLException {
         int i;
         ArrayList rows = null;
@@ -1356,7 +1525,7 @@ public class Actor {
         return rows;
     }
 
-    private static HashMap jdbc2object (ResultSet rs)
+    protected static HashMap jdbc2object (ResultSet rs)
     throws SQLException {
         int i;
         ArrayList row;
@@ -1817,7 +1986,15 @@ For idempotent URL like
     /resource
 
 the controller may respond a redirect to the URL of the relevant 
-authorization service, an XML or JSON body, usually static.  
+authorization service, an XML or JSON body as stateless as possible.
+
+Things like a "home page" where a user's preferences are rooted
+is best stored as an allready serialized XHTML string, ready to be
+dumped from the database. The root of the application:
+
+    /
+
+is the most obvious stateless thing.
 
 As transient GET response,  
 

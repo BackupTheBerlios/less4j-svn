@@ -79,6 +79,8 @@ public class Controller extends HttpServlet {
         }
     }
 
+    private static final String less4jRealPath = "less4j.realpath";
+    
     /**
      * Initialize a servlet controller: extract the less4j properties,
      * test the resource configured with a new Actor and raise a
@@ -89,6 +91,7 @@ public class Controller extends HttpServlet {
     public void init (ServletConfig config) throws ServletException {
         super.init(config);
         setConfiguration(config);
+        configuration.put(less4jRealPath, getServletContext().getRealPath(""));
         Actor $ = new Actor (configuration);
         if (!$.testConfiguration()) {
             throw new ServletException(
@@ -96,77 +99,62 @@ public class Controller extends HttpServlet {
             );
         }
     }
-    
-//    public void doGet(HttpServletRequest req, HttpServletResponse res) {
-//        Actor $ = new Actor(getConfiguration(), req, res);
-//        if ($.irtd2Authorized("owner", 600)) {
-//            if (true) {
-//                //
-//            } else if ($.url.endsWith("/database")) {
-//                //
-//            } else
-//                $.rest302Redirect();
-//        } else if ($.url.endsWith("/login")) {
-//            if ($.urlAction("username"))
-//                $.irtd2Authorize(
-//                    $.urlParameter("username"), 
-//                    "owner", 
-//                    $.request.getContextPath()
-//                    );
-//            else
-//                $.rest200Ok("<login/>");
-//        } else {
-//            $.rest302Bounce("login", "?url=");
-//        }
-//    }
-    
-    // TODO: add common J2EE acts for SQL database administration and
-    //       simple LDAP access, crafted so that a JSONR model can be
-    //       scaffolded as:
-    //
-    //       GET  /database                   -> DATABASE view
-    //       POST /database                   -> SQL CREATE or UPDATE TABLE
-    //       GET  /database/table             -> TABLE view 
-    //       POST /database/table             -> SQL INSERT or UPDATE many 
-    //       GET  /database/table?insert&...  -> INSERT one
-    //       GET  /database/table?update&...  -> UPDATE one
-    //       GET  /database/table?select&...  -> SELECT where
-    
-    /*
-     * We can have a JSON object posted, for instance a signed context
-     * and its digest followed by a collection of actions to control:
-     * 
-     *    [{"signed":null},"digest",[{"insert":null}]]
-     * 
-     * or a JSON object mapped from the URL query string
-     * 
-     *    {"insert": null, ...}
-     *    
-     * plus Cookies and HTTP headers to transfer all state of the application,
-     * leaving the controller stateless.
-     * 
-     * sqlDatabaseGET();
-     * sqlDatabasePOST();
-     * sqlGET("table");
-     * sqlPOST("table", model);
-     * sqlInsert("table", model);
-     * sqlUpdate("table", model);
-     * sqlSelect("table", model);
-     * 
-     * This Controller should be all you ever need to scaffold an instant 
-     * database application prototyped from the browser as a loose JSON model 
-     * first and quickly put to test with a strict JSON Regular expression.
-     * 
-     * Assembly of the user interface takes place in the browser, not in Java.
-     * 
-     * Any other J2EE API you need to support can be placed in the Controller  
-     * doGet and doPost methods, as subclass redefine how the Actor actions
-     * on entreprise resources are controlled.
-     * 
-     * If you can't cut straight to the database or the directory, if the
-     * controller must remote or message legacy beans, this is the place
-     * to do it, not in the generic Actor. Because in that case, interfacing
-     * with legacy *is* the application itself.
-     * 
-     */
+
 }
+
+/* Note about this implementation
+
+I though about that issue a lot but the sheer weight of Java forces to
+cut the cat fast and easy: all the logic belongs to the controller, it
+is the application.
+
+From a J2EE point of view, a controller could be expressed like is this 
+in tight JSON and JSONR:
+
+    "\/insert": {
+        "columns": ["name", "department", "age"],
+        "rows": [
+            ["[a-Z\/w]{2:75}", "[A-Z]{2}", 65]
+            ]
+        }
+
+A path from the servlet's context mapping to a JSONR model controlling
+the rest of the interface, the state object model, types and values. 
+
+There is also only one XML resource, although the JSON model sandwiched 
+between the hypertext may be dynamically generated. The whole REST of the
+state transfered is allways sent as JSON objects or arrays, and rendered
+in the browser.
+
+Eventually each controllers may have to orchestrate many different actions
+to produce compound JSON resources, at once or by pieces. That can be a 
+complex process but within a few pages of readable source at most. It is
+therefore not enough to dedicate an Action class to each one and suffer the
+pain of magic-kool-aid-drink-hang-over. 
+
+Action dispatchers only give your application developers enough rope to hang 
+themselves with the simplest configuration file update. However, handling
+more than one resource by controller makes them too complicated. Since there
+is allready a URL dispatch articulation at the servlet level, let's use it!
+
+So, for each idempotent URL identified, we have
+
+  One Java class controlling access, actions, flow and logic for one
+  identified resource.
+  
+  One XML template, XSLT, CSS, JavaScript and dependencies controlling the 
+  client's view of the application.
+    
+  One J2EE descriptor with one JSONR pattern for the administration of the
+  application public and private interfaces.
+    
+Each variation from the first trio will define a new service of the 
+application. Without pain, because they are decoupled with protocols
+each time. This means that it's simpler to add actions, design richer 
+views or tune better configurations. 
+
+With less code for more applications.
+
+
+
+*/

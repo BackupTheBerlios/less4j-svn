@@ -44,11 +44,14 @@ import java.text.StringCharacterIterator;
  * 
  * and the untyped <code>null</code> value.</p>
  * 
+ * <p>Note that the additional distinction between JSON number types is made 
+ * by considering numbers with an exponent as Doubles, the ones with decimals 
+ * as BigDecimal and the others as BigInteger.</p>
+ * 
  * <h3>Synopsis</h3>
  * 
  * <p>The JSON static methods allow to evaluate strings as an untyped
- * <code>Object</code> or validate and cast them as an <code>ArrayList</code>
- * or a <code>HashMap</code>, for JSON arrays and objects respectively:
+ * <code>Object</code>, an <code>ArrayList</code> or a <code>HashMap</code>: 
  * 
  * <blockquote>
  * <pre>try {
@@ -60,7 +63,22 @@ import java.text.StringCharacterIterator;
  *}</pre>
  * </blockquote>
  * 
- * Lower limits than the defaults maximum of 65355 can be set for the
+ * <p>and serialize java instances as JSON strings
+ * 
+ * <blockquote>
+ * <pre>System.out.println(JSON.str(value));
+ *System.out.println(JSON.str(map));
+ *System.out.println(JSON.str(list));</pre>
+ * </blockquote>
+ * 
+ * Note that JSON object are serialized with their properties sorted by names,
+ * allowing to compare two objects for equality by comparing such string.
+ * That's handy in many case, most remarkably in order to sign and check
+ * digest for JSON objects.</p>
+ * 
+ * <h4>Safety Limits</h4>
+ * 
+ * <p>Lower limits than the defaults maximum of 65355 can be set for the
  * number of objects and arrays and the count of values, for containers
  * and iterations:
  * 
@@ -75,33 +93,9 @@ import java.text.StringCharacterIterator;
  * 
  * making JSON evaluation safe for public interfaces.</p>
  * 
- * <p>...
+ * <h4>Practical Serialization</h4>
  * 
- * <blockquote>
- * <pre>JSON.Error e;
- *ArrayList list = new ArrayList();
- *e = JSON.extend(list, "[1,2,3,4,5]", 1, 4);
- *if (e != null)
- *    System.out.println(e.str());
- *HashMap map = new HashMap(); 
- *e = JSON.update(map, "{\"pass\": 1, fail: true}", 1, 100);
- *if (e != null)
- *    System.out.println(e.str());
- *}</pre>
- * </blockquote>
- * 
- * ...</p>
- * 
- * <p>There are also static methods to serialize java instances as
- * JSON strings
- * 
- * <blockquote>
- * <pre>System.out.println(JSON.str(value));
- *System.out.println(JSON.str(map));
- *System.out.println(JSON.str(list));</pre>
- * </blockquote>
- * 
- * to append distinct values into a <code>StringBuffer</code>
+ * <p>To append distinct values into a <code>StringBuffer</code>
  * 
  * <blockquote>
  * <pre>StringBuffer sb = new StringBuffer();
@@ -115,14 +109,7 @@ import java.text.StringCharacterIterator;
  *System.out.println(sb.toString());</pre>
  *</blockquote>
  *
- * using templates for constants, or to pretty print an indented
- * representation of a java instance in JSON 
- * 
- * <blockquote>
- * <pre>System.out.println(JSON.repr(value));
- *System.out.println(JSON.repr(map));
- *System.out.println(JSON.repr(list));</pre>
- * </blockquote>
+ * using templates for constants, or .</p> 
  * 
  * Instances of JSON class itself are made to serialize partial instance 
  * tree and assemble reponses from java objects and JSON strings:
@@ -140,9 +127,19 @@ import java.text.StringCharacterIterator;
  *}</pre>
  *</blockquote>
  * 
- * Note that the additional distinction between JSON number types is made 
- * by considering numbers with an exponent as Doubles, the ones with decimals 
- * as BigDecimal and the others as BigInteger.</p>
+ * ...</p>
+ * 
+ * <h4>Pretty Print</h4>
+ * 
+ * <p>To pretty print an indented representation of a java instance in JSON:
+ * 
+ * <blockquote>
+ * <pre>System.out.println(JSON.repr(value));
+ *System.out.println(JSON.repr(map));
+ *System.out.println(JSON.repr(list));</pre>
+ * </blockquote>
+ * 
+ * ...</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -155,6 +152,147 @@ public class JSON {
         "null JSON string";
     
     protected static final char _done = CharacterIterator.DONE;
+    
+    protected static final BigInteger intg (Object value) throws Error {
+        if (value != null && value instanceof BigInteger) {
+            return (BigInteger) value;
+        } else throw new Error("BigInteger Type Error");
+    }   
+    protected static final BigDecimal deci(Object value) throws Error {
+        if (value != null && value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        } else throw new Error("BigDecimal Type Error");
+    }
+    protected static final Double dble(Object value) throws Error {
+        if (value != null && value instanceof Double) {
+            return (Double) value;
+        } else throw new Error("Double Type Error");
+    }
+    protected static final Boolean bool(Object value) throws Error {
+        if (value != null && value instanceof Boolean) {
+            return (Boolean) value;
+        } else throw new Error("Boolean Type Error");
+    }
+    protected static final String stri(Object value) throws Error {
+        if (value != null && value instanceof String) {
+            return (String) value;
+        } else throw new Error("String Type Error");
+    }
+    protected static final A arry(Object value) throws Error {
+        if (value != null && value instanceof A) {
+            return (A) value;
+        } else throw new Error("Array Type Error");
+    }
+    protected static final O objc(Object value) throws Error {
+        if (value != null && value instanceof O) {
+            return (O) value;
+        } else throw new Error("Object Type Error");
+    }
+    
+    /**
+     * An extension of HashMap with type-casting convenience methods
+     * that throw <code>JSON.Error</code> or return a typed object.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>...
+     * 
+     * </blockquote>
+     * <pre>JSON.O o = new JSON.O(
+     *    "{\"font-family"\: \"MS Trebuchet\", \"font-size\": 1.2}"
+     *    );
+     *try {
+     *    BigDecimal d = o.deci("size");
+     *    String s = o.stri("font-family");
+     *    Boolean d = o.objc("test");
+     *} catch (JSON.Error e) {
+     *    System.out.println(e.jstr());
+     *}</pre>
+     * </blockquote>
+     * 
+     * The convenience is double. At runtime it distinguishes a JSON
+     * type value error from other type casting allow programs to be
+     * executed like a scripting language against to access a dynamic  
+     * object model and continue in Java.
+     * 
+     * The second advantage for developper is trivial but practical:
+     * most java IDE support autocompletion and namespace browsing by
+     * type. Not having to break the chain for "manual" type casting
+     * helps a lot and make the whole a lot clearer to read and debug. 
+     * 
+     * @author Laurent Szyster     *
+     */
+    public static final class O extends HashMap {
+        public BigInteger intg(String name) throws Error {
+            return (JSON.intg(get(name)));
+        }
+        public BigDecimal deci(String name) throws Error {
+            return JSON.deci(get(name));
+        }
+        public Double dble(String name) throws Error {
+            return (JSON.dble(get(name)));
+        }
+        public Boolean bool(String name) throws Error {
+            return (JSON.bool(get(name)));
+        }
+        public String stri(String name) throws Error {
+            return (JSON.stri(get(name)));
+        }
+        public A arry(String name) throws Error {
+            return (JSON.arry(get(name)));
+        }
+        public O objc(String name) throws Error {
+            return (JSON.objc(get(name)));
+        }
+    }
+    
+    /**
+     * An extension of ArrayList with type-casting convenience methods
+     * that throw <code>JSON.Error</code> or return a typed object.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>...
+     * 
+     * </blockquote>
+     * <pre>JSON.A a = new JSON.A("[1, {}, 3.0]");
+     *try {
+     *    Integer i = a.intg(0);
+     *    BigDecimal d = a.deci(2);
+     *    JSON.O o = a.objc(1);
+     *    Boolean d = a.objc(1).bool("test");
+     *} catch (JSON.Error e) {
+     *    System.out.println(e.jstr());
+     *}</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * 
+     * @author Laurent Szyster     *
+     */
+    public static final class A extends ArrayList {
+        public BigInteger intg(int index) throws Error {
+            return (JSON.intg(get(index)));
+        }
+        public BigDecimal deci(int index) throws Error {
+            return JSON.deci(get(index));
+        }
+        public Double dble(int index) throws Error {
+            return (JSON.dble(get(index)));
+        }
+        public Boolean bool(int index) throws Error {
+            return (JSON.bool(get(index)));
+        }
+        public String stri(int index) throws Error {
+            return (JSON.stri(get(index)));
+        }
+        public A arry(int index) throws Error {
+            return (JSON.arry(get(index)));
+        }
+        public O objc(int index) throws Error {
+            return (JSON.objc(get(index)));
+        }
+    }
     
     /**
      * A simple JSON exception throwed for any syntax error found by the
@@ -266,7 +404,8 @@ public class JSON {
      * <p>It's practical to evaluate distinct JSON values
      * 
      * <blockquote>
-     * <pre>JSON.Interpreter ji = new JSON.Interpreter(16, 256);
+     * <pre>JSON.Error e;
+     *JSON.Interpreter interpreter = new JSON.Interpreter(16, 256);
      *try {
      *    Object one = ji.eval("{\"size\": 0}");
      *    Object two = ji.eval("[1.0, true, null]");
@@ -281,29 +420,32 @@ public class JSON {
      * to update a <code>HashMap</code> with the members of many JSON objects:
      * 
      * <blockquote>
-     * <pre>JSON.Interpreter ji = new JSON.Interpreter(16, 256);
-     *try {
-     *    HashMap object = ji.update(new HashMap(), "{\"width\": 200}");
-     *    ji.update(object, "{\"height\": 10}");
-     *} catch (JSON.Error e) {
-     *    System.out.println(e.getMessage());
-     *}</pre>
+     * <pre>JSON.Error e;
+     *JSON.Interpreter interpreter = new JSON.Interpreter(16, 256);
+     *HashMap map = new HashMap(); 
+     *e = interpreter.update(map, "{\"width\": 200}");
+     *if (e != null)
+     *    System.out.println(e.str());
+     *e = interpreter.update(map, "{\"pass\": 1, fail: true}");
+     *if (e != null)
+     *    System.out.println(e.str());</pre>
      * </blockquote>
      * 
      * or to extend an <code>ArrayList</code> with the collection of many 
      * JSON arrays:
      * 
      * <blockquote>
-     * <pre>JSON.Interpreter ji = new JSON.Interpreter(16, 256);
-     *try {
-     *    ArrayList array = ji.extend(new ArrayList(), "[1,2,3]");
-     *    ji.extend(array, "[null, true, 1.0]");
-     *} catch (JSON.Error e) {
-     *    System.out.println(e.getMessage());
-     *}</pre>
+     * <pre>JSON.Interpreter interpreter = new JSON.Interpreter(16, 256);
+     *ArrayList list = new ArrayList(); 
+     *e = interpreter.extend(list, "[1,2,3]");
+     *if (e != null)
+     *    System.out.println(e.str());
+     *e = interpreter.extend(list, "[null, true, 1.0]");
+     *if (e != null)
+     *    System.out.println(e.str());</pre>
      * </blockquote>
      * 
-     * For a more common use, to evaluate a one string only, the
+     * For a more common use, to evaluate one JSON string only, the
      * static <code>JSON</code> methods should be used instead.</p> 
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
@@ -407,7 +549,7 @@ public class JSON {
          * @param json the string to evaluate
          * @return null or a <code>JSON.Error</code>
          */
-        public Error update(HashMap map, String json) {
+        public Error update(HashMap o, String json) {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -415,7 +557,7 @@ public class JSON {
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c == '{') {
                     c = it.next();
-                    object(map);
+                    object(o);
                     return null;
                 } else
                     return error(NOT_AN_OBJECT);
@@ -436,7 +578,7 @@ public class JSON {
          * @param json the string to evaluate
          * @return null or a <code>JSON.Error</code>
          */
-        public Error extend(ArrayList list, String json) {
+        public Error extend(ArrayList a, String json) {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -444,7 +586,7 @@ public class JSON {
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c == '[') {
                     c = it.next();
-                    array(list);
+                    array(a);
                     return null;
                 } else
                     return error(NOT_AN_ARRAY);
@@ -473,8 +615,8 @@ public class JSON {
         protected Object value() throws Error {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
-            case '{': {c = it.next(); return object(null);}
-            case '[': {c = it.next(); return array(null);}
+            case '{': {c = it.next(); return object(new O());}
+            case '[': {c = it.next(); return array(new A());}
             case '"': {c = it.next(); return string();}
             case '0': case '1': case '2': case '3': case '4':  
             case '5': case '6': case '7': case '8': case '9': 
@@ -528,13 +670,12 @@ public class JSON {
             }
         }
         
-        protected Object object(HashMap map) throws Error {
+        protected Object object(HashMap o) throws Error {
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
             String name; 
             Object val;
-            map = (map != null) ? map : new HashMap();
             Object token = value();
             while (token != OBJECT) {
                 if (!(token instanceof String))
@@ -549,7 +690,7 @@ public class JSON {
                     if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
                         throw error(VALUE_EXPECTED);
                     
-                    map.put(name, val);
+                    o.put(name, val);
                     token = value();
                     if (token == COMMA)
                         token = value();
@@ -557,15 +698,14 @@ public class JSON {
                     throw error(COLON_EXPECTED);
                 }
             }
-            return map;
+            return o;
         }
         
-        protected Object array(ArrayList list) throws Error {
+        protected Object array(ArrayList a) throws Error {
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
             int i = 0;
-            list = (list != null) ? list : new ArrayList();
             Object token = value(i++);
             while (token != ARRAY) {
                 if (token==COLON || token==COMMA || token==OBJECT)
@@ -574,12 +714,12 @@ public class JSON {
                 if (--iterations < 0) 
                     throw error(ITERATIONS_OVERFLOW);
                 
-                list.add(token);
+                a.add(token);
                 token = value(); 
                 if (token == COMMA) 
                     token = value(i++);
             }
-            return list;
+            return a;
         }
         
         protected Object number() {
@@ -674,33 +814,6 @@ public class JSON {
     }
 
     /**
-     * Evaluates a JSON string as an untyped value, returns a 
-     * <code>HashMap</code>, 
-     * <code>ArrayList</code>, 
-     * <code>String</code>,
-     * <code>BigDecimal</code>, 
-     * <code>BigInteger</code>, 
-     * <code>Double</code>,
-     * <code>Boolean</code>,
-     * null or throws a JSON.Error if a syntax error occured. Note that
-     * the value is limited to 65355 containers (arrays or objects) and
-     * as many iterations (ie: distinct values).
-     * 
-     * @param json the string to evaluate
-     * @param containers the maximum number of containers allowed 
-     * @param iterations the limit on the count of values 
-     * @return an untyped Object
-     * @throws Error
-     */
-    public static Object eval(String json) 
-    throws Error {
-        if (json == null) 
-            return null;
-        else 
-            return (new Interpreter()).eval(json);
-    }
-    
-    /**
      * Evaluates a JSON string as a limited untyped value, returns a 
      * <code>HashMap</code>, 
      * <code>ArrayList</code>, 
@@ -726,6 +839,23 @@ public class JSON {
     }
     
     /**
+     * Evaluates a JSON string as an untyped value, limited to 65355 
+     * containers (arrays or objects) and as many iterations (ie: distinct 
+     * values).
+     * 
+     * @param json the string to evaluate
+     * @return an untyped Object
+     * @throws Error
+     */
+    public static Object eval(String json) 
+    throws Error {
+        if (json == null) 
+            return null;
+        else 
+            return (new Interpreter()).eval(json);
+    }
+    
+    /**
      * Evaluates a JSON object, returns a new <code>HashMap</code>   
      * or throws a JSON.Error if the string does not represent a valid object. 
      * 
@@ -735,21 +865,25 @@ public class JSON {
      * @return a new <code>HashMap</code>
      * @throws Error
      */
-    public static HashMap object(
+    public static final O object(
         String json, int containers, int iterations
         ) throws Error {
         if (json == null) 
             return null;
         else {
-            HashMap map = new HashMap();
+            O o = new O();
             Error e = (
                 new Interpreter(containers, iterations)
-                ).update(map, json);
+                ).update(o, json);
             if (e == null)
-                return map;
+                return o;
             else
                 throw e;
         }
+    }
+    
+    public static final O object(String json) throws Error {
+        return object(json, 65355, 65355);
     }
         
     /**
@@ -759,26 +893,30 @@ public class JSON {
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
      * @param iterations the limit on the count of values 
-     * @return a new <code>ArrayList</code>
+     * @return a new <code>JSON.A</code> array
      * @throws Error
      */
-    public static ArrayList array(
+    public static A array(
         String json, int containers, int iterations
         ) throws Error {
         if (json == null) 
             return null;
         else {
-            ArrayList list = new ArrayList();
+            A a = new A();
             Error e = (
                 new Interpreter(containers, iterations)
-                ).extend(list, json);
+                ).extend(a, json);
             if (e == null)
-                return list;
+                return a;
             else
                 throw e;
         } 
     }
             
+    public static A array(String json) throws Error {
+        return array(json, 65355, 65355);
+    }
+                
     protected static final String _quote = "\\\"";
     protected static final String _back = "\\\\";
     protected static final String _slash = "\\/";
@@ -1076,7 +1214,7 @@ public class JSON {
     public static String repr(Object value) {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
-
+    
     public String string;
     
     public JSON(Object value) {this.string = str(value);}
