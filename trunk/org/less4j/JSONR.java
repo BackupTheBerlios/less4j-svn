@@ -200,7 +200,7 @@ public class JSONR {
      * @version 0.1.0
      */
     public static class Error extends JSON.Error {
-        // private static final long serialVersionUID = 0L;
+        static final long serialVersionUID = 0L; // TODO: regenerate
         /**
          * Instanciate a JSONR error with an error message.
          * 

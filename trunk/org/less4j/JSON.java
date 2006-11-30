@@ -249,6 +249,7 @@ public class JSON {
      * @author Laurent Szyster     *
      */
     public static final class O extends HashMap {
+        static final long serialVersionUID = 0L; // TODO: regenerate
         public final BigInteger intg(String name) throws Error {
             return (JSON.intg(get(name)));
         }
@@ -303,6 +304,7 @@ public class JSON {
      * @author Laurent Szyster     *
      */
     public static final class A extends ArrayList {
+        static final long serialVersionUID = 0L; // TODO: regenerate
         public final BigInteger intg(int index) throws Error {
             return (JSON.intg(get(index)));
         }
@@ -348,7 +350,7 @@ public class JSON {
      */
     public static class Error extends Exception {
         
-        // private static final long serialVersionUID = 0L;
+        static final long serialVersionUID = 0L; // TODO: regenerate
         
         /**
          * The position of the JSON syntax error, -1 by default.
