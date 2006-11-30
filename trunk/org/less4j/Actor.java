@@ -51,8 +51,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
 
-import org.less4j.JSON.Error;
-
 /**
  * <p>A "full-stack" API to develop XML and JSON interfaces for J2EE 
  * controllers of entreprise SQL and LDAP resources, starting with 
@@ -837,7 +835,7 @@ public class Actor {
     
     public byte[] httpPOST(int limit) {
         int contentLength = request.getContentLength(); 
-        if (contentLength > 0 && contentLength < limit)
+        if (contentLength < 1 || contentLength > limit)
             return null;
         
         byte[] body = new byte[contentLength];
@@ -848,11 +846,12 @@ public class Actor {
             int off = 0;
             while (off < contentLength) {
                 len = is.read(body, off, contentLength - off); // block ...
-                if (len > -1) {
+                if (len > -1)
                     off += len; 
-                } else {
-                    break; // ... maybe break, but when and what about zero?
-                }
+                else if (len == 0)
+                    Thread.yield(); // wait for input ...
+                else
+                    break;
             }
             return body;
             
@@ -1477,15 +1476,20 @@ public class Actor {
         if (test) logInfo(statement, TEST);
         ArrayList rows = null;
         Statement st = null;
+        ResultSet rs;
         try {
             st = sql.createStatement();
             st.setFetchSize(fetch);
-            rows = jdbc2array(st.executeQuery(statement));
-            st.close(); 
-            st = null;
+            rs = st.executeQuery(statement);
+            // TODO: ? Thread.yield();
+            rows = jdbc2array(rs);
+            st.close();
+            rs = null;
+            st = null; 
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
+                try {st.close();} catch (SQLException e) {;}
+                rs = null;
                 st = null;
             }
         }
@@ -1508,17 +1512,22 @@ public class Actor {
         if (test) logInfo(statement, TEST);
         ArrayList rows = null;
         PreparedStatement st = null;
+        ResultSet rs;
         try {
             int i;
             st = sql.prepareStatement(statement);
             st.setFetchSize(fetch);
             for (i = 0; i < args.length; i++) st.setObject(i, args[i]);
-            rows = jdbc2array(st.executeQuery(statement));
-            st.close(); 
+            rs = st.executeQuery(statement);
+            // TODO: ? Thread.yield();
+            rows = jdbc2array(rs);
+            st.close();
+            rs = null;
             st = null;
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
+                try {st.close();} catch (SQLException e) {;}
+                rs = null;
                 st = null;
             }
         }
@@ -1557,13 +1566,12 @@ public class Actor {
             Iterator iter = args.iterator();
             int i = 0;
             while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
-            ResultSet rs = st.executeQuery(statement);
-            model = jdbc2object(rs);
-            st.close(); 
+            model = jdbc2object(st.executeQuery(statement));
+            st.close();
             st = null;
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
+                try {st.close();} catch (SQLException e) {;}
                 st = null;
             }
         }
@@ -1622,8 +1630,7 @@ public class Actor {
                 st.setObject(i, args.get(names.next())); 
                 i++;
                 }
-            ResultSet rs = st.executeQuery(statement);
-            model = jdbc2object(rs);
+            model = jdbc2object(st.executeQuery(statement));
             st.close(); 
             st = null;
         } finally {
@@ -1996,10 +2003,11 @@ dumped from the database. The root of the application:
 
 is the most obvious stateless thing.
 
-As transient GET response,  
+As transient GET or POST response, less4j tries to allways speak JSON,
+if not as JSON embedded in XML (usually XHTML).
 
-Note that the flow of control is expected to be written entirely in java,
-in a single class, for obvious performance and maintainability purpose.
+Note that the flow of control for all actions on the same resource is 
+expected to be written entirely in java, in a single controller class.
 
 Actions shared by controllers can be aggregated in one controller class
 from which to derive all others in the domain. Functions that transcend 
@@ -2008,5 +2016,16 @@ all applications should be added to a site specific Actor's API.
 There are no other serialization protocol implemented than JSON here,
 all XML is expected to be static and the rest of the stack is better
 programmed in XSLT, CSS and JavaScript, running in the browser
+
+Last but not least, electing JSON as The Object Model saves less4j 
+of having to choose an ORM. When doing a dumb thing like filling an invoice, 
+instead of each time locking a table of invoice details updating, deleting 
+and inserting rows in a shared resource it is better to work on a separate 
+object instance?
+
+And since all that work happens to be done in JavaScript in the browser,
+then why not just forget about classes and interfaces of Java objects.
+
+And make it asynchronous.
 
 */

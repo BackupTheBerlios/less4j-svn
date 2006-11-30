@@ -44,7 +44,7 @@ import javax.servlet.http.HttpServlet;
  */
 public class Controller extends HttpServlet {
     
-    static final long serialVersionUID = 0; // ? long hash of the full name
+    // static final long serialVersionUID = 0L; // ? long hash of the full name
     
 //    static HashMap actions = new HashMap();
 //    

@@ -17,10 +17,10 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j; // less java for more applications
 
 import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -29,20 +29,19 @@ import java.text.StringCharacterIterator;
 
 /**
  * <p>A convenience with static methods to serialize java objects as JSON
- * strings and to evaluate a strict JSON expression as a limited
- * tree of the seven Java types
+ * strings and to evaluate a strict JSON expression as a limited tree of
+ * the five Java types
  * 
  * <blockquote>
- * <code>HashMap</code>, 
- * <code>ArrayList</code>, 
  * <code>String</code>, 
  * <code>Double</code>, 
  * <code>BigDecimal</code>, 
  * <code>BigInteger</code>, 
  * <code>Boolean</code>
  * </blockquote>
- * 
- * and the untyped <code>null</code> value.</p>
+ *
+ * two convenience extending <code>HashMap</code> and <code>ArrayList</code>, 
+ * plus the untyped <code>null</code> value.</p>.
  * 
  * <p>Note that the additional distinction between JSON number types is made 
  * by considering numbers with an exponent as Doubles, the ones with decimals 
@@ -51,19 +50,31 @@ import java.text.StringCharacterIterator;
  * <h3>Synopsis</h3>
  * 
  * <p>The JSON static methods allow to evaluate strings as an untyped
- * <code>Object</code>, an <code>ArrayList</code> or a <code>HashMap</code>: 
+ * <code>Object</code>, an <code>JSON.O</code> map or a <code>JSON.A</code> 
+ * list: 
  * 
  * <blockquote>
  * <pre>try {
  *    Object value = JSON.eval("null");
- *    HashMap map = JSON.object("{\"pass\": true}");
- *    ArrayList list = JSON.array("[1,2,3]");
+ *    JSON.O map = JSON.object("{\"pass\": true}");
+ *    JSON.A list = JSON.array("[1,2,3]");
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
  * </blockquote>
  * 
- * <p>and serialize java instances as JSON strings
+ * access them simply and practically
+ * 
+ * <blockquote>
+ * <pre>try {
+ *    if (map.bool("pass"))
+ *        BigInteger i = list.intg(2);
+ *} catch (JSON.Error e) {
+ *    System.out.println(e.getMessage())
+ *}</pre>
+ * </blockquote>
+ * 
+ * and serialize java instances as JSON strings
  * 
  * <blockquote>
  * <pre>System.out.println(JSON.str(value));
@@ -71,7 +82,11 @@ import java.text.StringCharacterIterator;
  *System.out.println(JSON.str(list));</pre>
  * </blockquote>
  * 
- * Note that JSON object are serialized with their properties sorted by names,
+ * Note that you can serialize not just the types instanciated by JSON
+ * but also any <code>Map</code> or <code>List</code> of many other
+ * java object.</p> 
+ * 
+ * <p>Also, JSON object are serialized with their properties sorted by names,
  * allowing to compare two objects for equality by comparing such string.
  * That's handy in many case, most remarkably in order to sign and check
  * digest for JSON objects.</p>
@@ -84,8 +99,8 @@ import java.text.StringCharacterIterator;
  * 
  * <blockquote>
  * <pre>try {
- *    ArrayList list = JSON.array("[1,2,3,4,5]", 1, 4);
- *    HashMap map = JSON.object("{\"pass\": 1, fail: true}", 1, 100);
+ *    JSON.A list = JSON.array("[1,2,3,4,5]", 1, 4);
+ *    JSON.O map = JSON.object("{\"pass\": 1, fail: true}", 1, 100);
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
@@ -116,7 +131,7 @@ import java.text.StringCharacterIterator;
  * 
  * <blockquote>
  * <pre>try {
- *    HashMap map = JSON.object("{}");
+ *    JSON.O map = JSON.object("{}");
  *    map.put("list", JSON.array("[1,2,3]");
  *    json = new JSON();
  *    json.string = "{\"constant\": null"}";
@@ -148,7 +163,7 @@ import java.text.StringCharacterIterator;
  */
 public class JSON {
     
-    public static final String EMPTY_STRING = 
+    protected static final String NULL_JSON_STRING = 
         "null JSON string";
     
     protected static final char _done = CharacterIterator.DONE;
@@ -198,13 +213,24 @@ public class JSON {
      * <p>...
      * 
      * </blockquote>
-     * <pre>JSON.O o = new JSON.O(
-     *    "{\"font-family"\: \"MS Trebuchet\", \"font-size\": 1.2}"
-     *    );
-     *try {
-     *    BigDecimal d = o.deci("size");
-     *    String s = o.stri("font-family");
-     *    Boolean d = o.objc("test");
+     * <pre>try {
+     *    JSON.O map = JSON.object("{" +
+     *        "\"nothing\": null," +
+     *        "\"a boolean\": true," +
+     *        "\"a big integer\": 2," +
+     *        "\"a big decimal\": +1234567.89," +
+     *        "\"a double\": -123456789e-4," +
+     *        "\"unicode"\: \"hello world!\", "+
+     *        "\"a list\": [null,true,1,2.0,3e+3]" +
+     *        "\"another map\": {}" +
+     *        "}");
+     *    Boolean b = map.objc("test");
+     *    BigInteger i = map.intg("a big integer");
+     *    BigDecimal d = map.deci("a big decimal");
+     *    Double r = map.dble("a double");
+     *    String s = map.stri("unicode");
+     *    JSON.A a = map.stri("a list");
+     *    JSON.O o = map.stri("a string");
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
@@ -223,25 +249,25 @@ public class JSON {
      * @author Laurent Szyster     *
      */
     public static final class O extends HashMap {
-        public BigInteger intg(String name) throws Error {
+        public final BigInteger intg(String name) throws Error {
             return (JSON.intg(get(name)));
         }
-        public BigDecimal deci(String name) throws Error {
+        public final BigDecimal deci(String name) throws Error {
             return JSON.deci(get(name));
         }
-        public Double dble(String name) throws Error {
+        public final Double dble(String name) throws Error {
             return (JSON.dble(get(name)));
         }
-        public Boolean bool(String name) throws Error {
+        public final Boolean bool(String name) throws Error {
             return (JSON.bool(get(name)));
         }
-        public String stri(String name) throws Error {
+        public final String stri(String name) throws Error {
             return (JSON.stri(get(name)));
         }
-        public A arry(String name) throws Error {
+        public final A arry(String name) throws Error {
             return (JSON.arry(get(name)));
         }
-        public O objc(String name) throws Error {
+        public final O objc(String name) throws Error {
             return (JSON.objc(get(name)));
         }
     }
@@ -255,12 +281,18 @@ public class JSON {
      * <p>...
      * 
      * </blockquote>
-     * <pre>JSON.A a = new JSON.A("[1, {}, 3.0]");
-     *try {
-     *    Integer i = a.intg(0);
-     *    BigDecimal d = a.deci(2);
-     *    JSON.O o = a.objc(1);
-     *    Boolean d = a.objc(1).bool("test");
+     * <pre>try {
+     *    JSON.A list = JSON.array(
+     *        "[true, 1, 3.0, 1234e-2, \"test\", [], {}]"
+     *    );
+     *    Object o = list.get(0); 
+     *    Boolean b = list.objc(1);
+     *    BigInteger i = list.intg(2);
+     *    BigDecimal d = list.deci(3);
+     *    Double r = list.dble(4);
+     *    JSON.A a = list.arry(5);
+     *    JSON.O o = list.objc(6);
+     *    Boolean b = list.objc(5).bool(2);
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
@@ -271,25 +303,25 @@ public class JSON {
      * @author Laurent Szyster     *
      */
     public static final class A extends ArrayList {
-        public BigInteger intg(int index) throws Error {
+        public final BigInteger intg(int index) throws Error {
             return (JSON.intg(get(index)));
         }
-        public BigDecimal deci(int index) throws Error {
+        public final BigDecimal deci(int index) throws Error {
             return JSON.deci(get(index));
         }
-        public Double dble(int index) throws Error {
+        public final Double dble(int index) throws Error {
             return (JSON.dble(get(index)));
         }
-        public Boolean bool(int index) throws Error {
+        public final Boolean bool(int index) throws Error {
             return (JSON.bool(get(index)));
         }
-        public String stri(int index) throws Error {
+        public final String stri(int index) throws Error {
             return (JSON.stri(get(index)));
         }
-        public A arry(int index) throws Error {
+        public final A arry(int index) throws Error {
             return (JSON.arry(get(index)));
         }
-        public O objc(int index) throws Error {
+        public final O objc(int index) throws Error {
             return (JSON.objc(get(index)));
         }
     }
@@ -306,7 +338,7 @@ public class JSON {
      *try {
      *    HashMap object = JSON.object(string)
      *} catch (JSON.Error e) {
-     *    System.out.println(e.jsonError());
+     *    System.out.println(e.jstr());
      *}</pre>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
@@ -316,12 +348,12 @@ public class JSON {
      */
     public static class Error extends Exception {
         
-        private static final long serialVersionUID = 0L;
+        // private static final long serialVersionUID = 0L;
         
         /**
          * The position of the JSON syntax error, -1 by default.
          */
-        public int jsonIndex = 0;
+        public int jsonIndex = -1;
         
         /**
          * The path to the JSON error value, if any.
@@ -359,11 +391,12 @@ public class JSON {
          *}</pre>
          *System.out.println(sb.toString());
          *</blockquote>
-         * </p>
+         *
+         * ...</p>
          * 
          * @return the updated StringBuffer
          */
-        public StringBuffer strb(StringBuffer sb) {
+        public final StringBuffer jsrtb(StringBuffer sb) {
             sb.append('[');
             JSON.strb(sb, getMessage());
             sb.append(',');
@@ -383,8 +416,8 @@ public class JSON {
          * 
          * @return a JSON string
          */
-        public String str() {
-            return strb(new StringBuffer()).toString();
+        public final String jstr() {
+            return jsrtb(new StringBuffer()).toString();
         }
         
     }
@@ -417,7 +450,8 @@ public class JSON {
      *}</pre>
      * </blockquote>
      * 
-     * to update a <code>HashMap</code> with the members of many JSON objects:
+     * to update any instance of <code>Map</code> with the members of many 
+     * JSON objects:
      * 
      * <blockquote>
      * <pre>JSON.Error e;
@@ -431,7 +465,7 @@ public class JSON {
      *    System.out.println(e.str());</pre>
      * </blockquote>
      * 
-     * or to extend an <code>ArrayList</code> with the collection of many 
+     * or to extend any <code>List</code> with the collection of many 
      * JSON arrays:
      * 
      * <blockquote>
@@ -487,8 +521,10 @@ public class JSON {
         protected char c;
         protected CharacterIterator it;
         protected StringBuffer buf;
-        protected int containers = 65355;
-        protected int iterations = 65355;
+        
+        public int containers = 65355;
+        
+        public int iterations = 65355;
         
         /**
          * Instanciate a JSON interpreter with limits set to 65355 on 
@@ -512,8 +548,8 @@ public class JSON {
         
         /**
          * Evaluates a JSON string as an untyped value, returns a 
-         * <code>HashMap</code>, 
-         * <code>ArrayList</code>, 
+         * <code>JSON.O</code>, 
+         * <code>JSON.A</code>, 
          * <code>String</code>,
          * <code>BigDecimal</code>, 
          * <code>BigInteger</code>, 
@@ -525,7 +561,7 @@ public class JSON {
          * @return an untyped Object
          * @throws Error
          */
-        public Object eval(String json) throws Error {
+        public final Object eval(String json) throws Error {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -545,11 +581,11 @@ public class JSON {
          * return null or a <code>JSON.Error</code> if the string does not 
          * represent a valid object. 
          * 
-         * @param map the <code>HashMap</code> to update
+         * @param map the <code>Map</code> to update
          * @param json the string to evaluate
          * @return null or a <code>JSON.Error</code>
          */
-        public Error update(HashMap o, String json) {
+        public final Error update(Map map, String json) {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -557,7 +593,7 @@ public class JSON {
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c == '{') {
                     c = it.next();
-                    object(o);
+                    object(map);
                     return null;
                 } else
                     return error(NOT_AN_OBJECT);
@@ -574,11 +610,11 @@ public class JSON {
          * return null or a <code>JSON.Error</code> if the string does not 
          * represent a valid array. 
          * 
-         * @param list the <code>ArrayList</code> to extend
+         * @param list the <code>List</code> to extend
          * @param json the string to evaluate
          * @return null or a <code>JSON.Error</code>
          */
-        public Error extend(ArrayList a, String json) {
+        public final Error extend(List list, String json) {
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
             try {
@@ -586,7 +622,7 @@ public class JSON {
                 while (Character.isWhitespace(c)) c = it.next();
                 if (c == '[') {
                     c = it.next();
-                    array(a);
+                    array(list);
                     return null;
                 } else
                     return error(NOT_AN_ARRAY);
@@ -598,11 +634,11 @@ public class JSON {
             }
         }
         
-        protected Error error(String message) {
+        protected final Error error(String message) {
             return new Error(message, it.getIndex());
         }
         
-        protected boolean next(char test) {
+        protected final boolean next(char test) {
             c = it.next();
             return c == test;
         }
@@ -612,7 +648,7 @@ public class JSON {
         protected static final Object COLON = new Object();
         protected static final Object COMMA = new Object();
         
-        protected Object value() throws Error {
+        protected final Object value() throws Error {
             while (Character.isWhitespace(c)) c = it.next();
             switch(c){
             case '{': {c = it.next(); return object(new O());}
@@ -652,7 +688,7 @@ public class JSON {
             }
         }
         
-        protected Object value(String name) throws Error {
+        protected final Object value(String name) throws Error {
             try {
                 return value();
             } catch (Error e) {
@@ -661,7 +697,7 @@ public class JSON {
             }
         }
         
-        protected Object value(int index) throws Error {
+        protected final Object value(int index) throws Error {
             try {
                 return value();
             } catch (Error e) {
@@ -670,7 +706,7 @@ public class JSON {
             }
         }
         
-        protected Object object(HashMap o) throws Error {
+        protected final Object object(Map o) throws Error {
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
@@ -701,7 +737,7 @@ public class JSON {
             return o;
         }
         
-        protected Object array(ArrayList a) throws Error {
+        protected final Object array(List a) throws Error {
             if (--containers < 0) 
                 throw error(CONTAINERS_OVERFLOW);
             
@@ -722,7 +758,7 @@ public class JSON {
             return a;
         }
         
-        protected Object number() {
+        protected final Object number() {
             buf.setLength(0);
             if (c == '-') {
                 buf.append(c); c = it.next();
@@ -753,7 +789,7 @@ public class JSON {
             }
         }
         
-        protected Object string() throws Error {
+        protected final Object string() throws Error {
             buf.setLength(0);
             while (c != '"') {
                 if (c == '\\') {
@@ -783,11 +819,11 @@ public class JSON {
             return buf.toString();
         }
         
-        protected void digits() {
+        protected final void digits() {
             while (Character.isDigit(c)) {buf.append(c); c = it.next();}
         }
         
-        protected char unicode(int length) throws Error {
+        protected final char unicode(int length) throws Error {
             int val = 0;
             for (int i = 0; i < length; ++i) {
                 c = it.next();
@@ -815,8 +851,8 @@ public class JSON {
 
     /**
      * Evaluates a JSON string as a limited untyped value, returns a 
-     * <code>HashMap</code>, 
-     * <code>ArrayList</code>, 
+     * <code>JSON.O</code>, 
+     * <code>JSON.A</code>, 
      * <code>String</code>,
      * <code>BigDecimal</code>, 
      * <code>BigInteger</code>, 
@@ -830,7 +866,8 @@ public class JSON {
      * @return an untyped Object
      * @throws Error
      */
-    public static Object eval(String json, int containers, int iterations) 
+    public static final 
+    Object eval(String json, int containers, int iterations) 
     throws Error {
         if (json == null) 
             return null;
@@ -847,8 +884,7 @@ public class JSON {
      * @return an untyped Object
      * @throws Error
      */
-    public static Object eval(String json) 
-    throws Error {
+    public static final Object eval(String json) throws Error {
         if (json == null) 
             return null;
         else 
@@ -856,7 +892,7 @@ public class JSON {
     }
     
     /**
-     * Evaluates a JSON object, returns a new <code>HashMap</code>   
+     * Evaluates a JSON object, returns a new <code>JSON.O</code>   
      * or throws a JSON.Error if the string does not represent a valid object. 
      * 
      * @param json the string to evaluate
@@ -865,9 +901,9 @@ public class JSON {
      * @return a new <code>HashMap</code>
      * @throws Error
      */
-    public static final O object(
-        String json, int containers, int iterations
-        ) throws Error {
+    public static final 
+    O object(String json, int containers, int iterations) 
+    throws Error {
         if (json == null) 
             return null;
         else {
@@ -887,8 +923,9 @@ public class JSON {
     }
         
     /**
-     * Evaluates a JSON array, returns a new <code>ArrayList</code>   
-     * or throws a JSON.Error if the string does not represent a valid array. 
+     * Evaluates a JSON array, returns a new <code>JSON.A</code>   
+     * or throws a JSON.Error if the string does not represent a 
+     * valid array. 
      * 
      * @param json the string to evaluate
      * @param containers the maximum number of containers allowed 
@@ -896,9 +933,9 @@ public class JSON {
      * @return a new <code>JSON.A</code> array
      * @throws Error
      */
-    public static A array(
-        String json, int containers, int iterations
-        ) throws Error {
+    public static final 
+    A array(String json, int containers, int iterations) 
+    throws Error {
         if (json == null) 
             return null;
         else {
@@ -913,7 +950,7 @@ public class JSON {
         } 
     }
             
-    public static A array(String json) throws Error {
+    public static final A array(String json) throws Error {
         return array(json, 65355, 65355);
     }
                 
@@ -926,7 +963,8 @@ public class JSON {
     protected static final String _ctrl_r = "\\r";
     protected static final String _ctrl_t = "\\t";
     
-    public static StringBuffer strb(StringBuffer sb, String s) {
+    public static final 
+    StringBuffer strb(StringBuffer sb, String s) {
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
         for (char c = it.first(); c != _done; c = it.next()) {
@@ -953,7 +991,7 @@ public class JSON {
     protected static final String _unicode = "\\u";
     protected static final char[] _hex = "0123456789ABCDEF".toCharArray();
     
-    protected static StringBuffer unicode(StringBuffer sb, char c) {
+    protected static final StringBuffer unicode(StringBuffer sb, char c) {
         sb.append(_unicode);
         int n = c;
         for (int i = 0; i < 4; ++i) {
@@ -970,7 +1008,8 @@ public class JSON {
     protected static final String _true = "true";
     protected static final String _false = "false";
     
-    public static StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
+    public static final 
+    StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
         Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
@@ -992,7 +1031,8 @@ public class JSON {
         return sb;
     }
     
-    public static StringBuffer strb(StringBuffer sb, Iterator it) {
+    public static final 
+    StringBuffer strb(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;
@@ -1007,7 +1047,8 @@ public class JSON {
         return sb;
     }
     
-    public static StringBuffer strb(StringBuffer sb, Object value) {
+    public static final 
+    StringBuffer strb(StringBuffer sb, Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -1028,17 +1069,19 @@ public class JSON {
         else if (value instanceof Object[]) 
             strb(sb, Simple.iterator((Object[]) value));
         else if (value instanceof JSON) 
-            strb(sb, ((JSON) value).string);
+            ((JSON) value).jstrb(sb);
+        else if (value instanceof Error) 
+            ((Error) value).jsrtb(sb);
         else 
             strb(sb, value.toString());
         return sb;
     }
     
-    public static String str(Object value) {
+    public static final String str(Object value) {
         return strb(new StringBuffer(), value).toString();
     }
     
-    protected static StringBuffer xjson(StringBuffer sb, String s) {
+    protected static final StringBuffer xjson(StringBuffer sb, String s) {
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
         for (char c = it.first(); c != _done; c = it.next()) {
@@ -1062,7 +1105,8 @@ public class JSON {
         return sb;
     }
     
-    protected static StringBuffer xjson(StringBuffer sb, Map map, Iterator it) {
+    protected static final 
+    StringBuffer xjson(StringBuffer sb, Map map, Iterator it) {
         Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
@@ -1084,7 +1128,8 @@ public class JSON {
         return sb;
     }
     
-    protected static StringBuffer xjson(StringBuffer sb, Iterator it) {
+    protected static final 
+    StringBuffer xjson(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;
@@ -1099,7 +1144,8 @@ public class JSON {
         return sb;
     }
     
-    protected static StringBuffer xjson(StringBuffer sb, Object value) {
+    protected static final 
+    StringBuffer xjson(StringBuffer sb, Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -1120,22 +1166,23 @@ public class JSON {
         else if (value instanceof Object[]) 
             xjson(sb, Simple.iterator((Object[]) value));
         else if (value instanceof JSON) 
-            xjson(sb, ((JSON) value).string);
+            ((JSON) value).jstrb(sb);
+        else if (value instanceof Error) 
+            ((Error) value).jsrtb(sb);
         else 
             xjson(sb, value.toString());
         return sb;
     }
     
-    public static String xjson(Object value) {
+    public static final String xjson(Object value) {
         return xjson(new StringBuffer(), value).toString();
     }
     
     protected static final String _crlf = "\r\n";
     protected static final String _indent = "  ";
     
-    protected static StringBuffer repr(
-        StringBuffer sb, Map map, Iterator it, String indent
-        ) {
+    protected static final 
+    StringBuffer repr(StringBuffer sb, Map map, Iterator it, String indent) {
         Object key; 
         if (!it.hasNext()) {
             sb.append("{}");
@@ -1161,9 +1208,8 @@ public class JSON {
         return sb;
     }
     
-    protected static StringBuffer repr(
-        StringBuffer sb, Iterator it, String indent
-        ) {
+    protected static final 
+    StringBuffer repr(StringBuffer sb, Iterator it, String indent) {
         if (!it.hasNext()) {
             sb.append("[]");
             return sb;
@@ -1182,9 +1228,8 @@ public class JSON {
         return sb;
     }
     
-    protected static StringBuffer repr(
-        StringBuffer sb, Object value, String indent
-        ) {
+    protected static final 
+    StringBuffer repr(StringBuffer sb, Object value, String indent) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -1204,20 +1249,60 @@ public class JSON {
             repr(sb, object, Simple.iterator(names), indent);
         } else if (value instanceof List) 
             repr(sb, ((List) value).iterator(), indent);
-        else if (value instanceof JSON) 
-            strb(sb, ((JSON) value).string);
+        else if (value instanceof JSON) {
+            try {
+                strb(sb, JSON.eval(((JSON) value).jstr()));
+            } catch (Error e) {
+                e.jsrtb(sb);
+            }
+        } else if (value instanceof Error) 
+            ((Error) value).jsrtb(sb);
         else 
             strb(sb, value.toString());
         return sb;
     }
     
-    public static String repr(Object value) {
+    public static final String repr(Object value) {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
     
-    public String string;
+    protected String string = null;
     
-    public JSON(Object value) {this.string = str(value);}
+    public JSON(Object value) {string = str(value);}
+    
+    public StringBuffer jstrb(StringBuffer sb) {
+        sb.append(string);
+        return sb;
+    }
+    
+    public String jstr() {return string;}
     
 }
 
+/* Note about this implementation
+
+If you read the sources, you should have noticed the high density of final
+classes, members and methods. This is not an interface and besides the
+error and interpreter classes, there is little to extend.
+
+JSON is an application protocol, this is a final implementation in Java,
+an API to use more and extend less.
+
+Remember? 
+
+It's all about less java for more application.
+
+That why I used short names, to do the simplest:
+
+    Object value = JSON.eval("null");
+    
+and the complex
+
+    BigDecimal d = JSON.object(
+        "{\"test\":[null,true,1,2.3,56789e-4]}", 2, 6
+        ).arry("test").deci(4);
+
+in one readable line, raising a practical JSON.Error that identify an
+error in the instanciation and typed access to a network object model.
+  
+*/
