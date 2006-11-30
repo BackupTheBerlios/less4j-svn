@@ -74,10 +74,12 @@ public class Simple {
      * or null if nothing was read, if the buffer has overflowed or if
      * an exception was raised.
      * 
-     * <p>Usage:
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...
      * 
      * <blockquote>
-     * <pre>String resource = fileBuffer("my.xml", 16384);</pre>
+     * <pre>String resource = fileBuffer("my.xml", new byte[16384], "UTF-8");</pre>
      * </blockquote>
      * 
      * Note that since it does not throw exceptions, this method can
@@ -142,15 +144,25 @@ public class Simple {
     public static final int netBufferSize = 16384;
     
     /**
-    * Try to read a complete file into a buffer of 16K bytes, then
-    * decode it all at once with the given encoding and return a String
-    * or null if nothing was read, if the buffer has overflowed or if
-    * an exception was raised.
-
+     * Try to read a complete file into a buffer of 16K bytes, then
+     * decode it all at once with the given encoding and return a String
+     * or null if nothing was read, if the buffer has overflowed or if
+     * an exception was raised.
+     *
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...
+     * 
+     * <blockquote>
+     * <pre>String resource = fileBuffer("my.xml", "UTF-8");</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * 
      * @param name the file's name
      * @param encoding to decode UNICODE string from the bytes read
      * @return a UNICODE String or null 
-    */
+     */
     static public String fileBuffer (String name, String encoding) {
         return fileBuffer(name, new byte[netBufferSize], encoding);
     }
@@ -161,28 +173,23 @@ public class Simple {
      * Try to read a complete file into a buffer of 16K bytes, then
      * decode it all at once as UTF-8 and return a String or null if nothing 
      * was read, if the buffer has overflowed or if an exception was raised.
-
-      * @param name the file's name
-      * @return a UNICODE String or null 
+     *
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...
+     * 
+     * <blockquote>
+     * <pre>String resource = fileBuffer("my.xml");</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * @param name the file's name
+     * @return a UNICODE String or null 
      */
      static public String fileBuffer (String name) {
          return fileBuffer(name, new byte[netBufferSize], netEncoding);
      }
      
-	/**
-	 * A no-nonsense implementation of the Iterator interface for
-	 * primitive array of untyped Java objects. 
-	 * 
-	 * <p>Usage:
-	 * 
-     * <blockquote>
-	 * <pre>new ObjectIterator (new Object[]{1,2,3})</pre>
-     * </blockquote>
-     *     
-     * Note that the <code>Iterator.remove</code> interface is <em>not</em> 
-     * implemented. By the way, if you find a good reason for optional
-     * interfaces in an API specification, send it to Sun, they need one.</p>
-	 */
 	protected static class ObjectIterator implements Iterator {
 		private Object[] _objects;
 		private int _index = -1;
@@ -193,12 +200,14 @@ public class Simple {
 	}
 
 	/**
-	 * A duck-typing convenience to iterate around a "primitive" array. 
+	 * A convenience to iterate around a "primitive" array. 
 	 * 
-	 * <p>Usage:
+	 * <h4>Synopsis</h4>
+     * 
+     * <p>...
 	 * 
      * <blockquote>
-	 * <pre>Iterator iter = Simple.iterate(new Object[]{x, y, z});</pre>
+	 * <pre>Iterator iter = Simple.iterator(new Object[]{x, y, z});</pre>
      * </blockquote>
 	 *     
 	 * Usefull to iterate through final arrays, a prime construct in web
@@ -212,6 +221,15 @@ public class Simple {
 		return new ObjectIterator(objects);
 		}
     
+    /**
+     * Encode a <code>unicode</code> string in the given characterset 
+     * <code>encoding</code> or use the default if a 
+     * <code>UnsupportedEncodingException</code> was throwed.
+     * 
+     * @param unicode the <code>String</code> to encode
+     * @param encoding the character set name
+     * @return a array of <code>byte</code>
+     */
     public static byte[] encode(String unicode, String encoding) {
         try {
             return unicode.getBytes(encoding);
@@ -220,8 +238,26 @@ public class Simple {
         }
     }
 	
-    public static void join (
-        String separator, Iterator iter, StringBuffer sb
+    /**
+     * If you miss Python's <code>join</code>, here it is ;-) 
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...
+     * 
+     * <blockquote>
+     * <pre>Iterator iter = Simple.iterator(new Object[]{"A", "B", "C"});
+     *StringBuffer joined = Simple.join(", ", iter, new StringBuffer())</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * 
+     * @param separator
+     * @param iter
+     * @param sb
+     */
+    public static StringBuffer join (
+        Object separator, Iterator iter, StringBuffer sb
         ) {
         if (iter.hasNext())
             sb.append(iter.next());
@@ -229,12 +265,29 @@ public class Simple {
                 sb.append(separator);
                 sb.append(iter.next()); 
             }
+        return sb;
     }
     
-    public static String join (String separator, Iterator iter) {
-        StringBuffer sb = new StringBuffer();
-        join(separator, iter, sb);
-        return sb.toString();
+    /**
+     * If you miss Python's <code>join</code>, here it is ;-) 
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...
+     * 
+     * <blockquote>
+     * <pre>Iterator iter = Simple.iterator(new Object[]{"A", "B", "C"});
+     *String joined = Simple.join(", ", iter)</pre>
+     * </blockquote>
+     * 
+     * ...</p>
+     * 
+     * @param separator
+     * @param iter
+     * @return
+     */
+    public static String join (Object separator, Iterator iter) {
+        return join(separator, iter, new StringBuffer()).toString();
     }
     
 }
