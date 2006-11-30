@@ -169,37 +169,37 @@ public class JSON {
     protected static final char _done = CharacterIterator.DONE;
     
     protected static final BigInteger intg (Object value) throws Error {
-        if (value != null && value instanceof BigInteger) {
+        if (value instanceof BigInteger) {
             return (BigInteger) value;
         } else throw new Error("BigInteger Type Error");
     }   
     protected static final BigDecimal deci(Object value) throws Error {
-        if (value != null && value instanceof BigDecimal) {
+        if (value instanceof BigDecimal) {
             return (BigDecimal) value;
         } else throw new Error("BigDecimal Type Error");
     }
     protected static final Double dble(Object value) throws Error {
-        if (value != null && value instanceof Double) {
+        if (value instanceof Double) {
             return (Double) value;
         } else throw new Error("Double Type Error");
     }
     protected static final Boolean bool(Object value) throws Error {
-        if (value != null && value instanceof Boolean) {
+        if (value instanceof Boolean) {
             return (Boolean) value;
         } else throw new Error("Boolean Type Error");
     }
     protected static final String stri(Object value) throws Error {
-        if (value != null && value instanceof String) {
+        if (value instanceof String) {
             return (String) value;
         } else throw new Error("String Type Error");
     }
     protected static final A arry(Object value) throws Error {
-        if (value != null && value instanceof A) {
+        if (value instanceof A) {
             return (A) value;
         } else throw new Error("Array Type Error");
     }
     protected static final O objc(Object value) throws Error {
-        if (value != null && value instanceof O) {
+        if (value instanceof O) {
             return (O) value;
         } else throw new Error("Object Type Error");
     }
@@ -239,12 +239,12 @@ public class JSON {
      * The convenience is double. At runtime it distinguishes a JSON
      * type value error from other type casting allow programs to be
      * executed like a scripting language against to access a dynamic  
-     * object model and continue in Java.
+     * object model and continue in Java.</p>
      * 
-     * The second advantage for developper is trivial but practical:
+     * <p>The second advantage for developper is trivial but practical:
      * most java IDE support autocompletion and namespace browsing by
      * type. Not having to break the chain for "manual" type casting
-     * helps a lot and make the whole a lot clearer to read and debug. 
+     * helps a lot and make the whole a lot clearer to read and debug.</p> 
      * 
      * @author Laurent Szyster     *
      */
@@ -440,11 +440,11 @@ public class JSON {
      * <pre>JSON.Error e;
      *JSON.Interpreter interpreter = new JSON.Interpreter(16, 256);
      *try {
-     *    Object one = ji.eval("{\"size\": 0}");
-     *    Object two = ji.eval("[1.0, true, null]");
-     *    Object three = ji.eval("1.0");
-     *    Object four = ji.eval("true");
-     *    Object five = ji.eval("null");
+     *    Object one = interpreter.eval("{\"size\": 0}");
+     *    Object two = interpreter.eval("[1.0, true, null]");
+     *    Object three = interpreter.eval("1.0");
+     *    Object four = interpreter.eval("true");
+     *    Object five = interpreter.eval("null");
      *} catch (JSON.Error e) {
      *    System.out.println(e.getMessage());
      *}</pre>

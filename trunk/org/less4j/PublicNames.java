@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 /**
- * <p>A simple protocol to uniformely encode and validate well-articulated 
+ * <p>A protocol to uniformely encode and validate well-articulated 
  * context graphs of UNICODE strings (may bring some intelligent order to 
  * the semantic chaos of network application interfaces names).</p>
  * 
