@@ -172,7 +172,6 @@ import java.text.StringCharacterIterator;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @author Laurent Szyster
  * @version 0.20
  */
 public class JSONR extends JSON {
@@ -201,8 +200,7 @@ public class JSONR extends JSON {
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
-     * @author Laurent Szyster
-     * @version 0.1.0
+     * @version 0.20
      */
     public static class Error extends JSON.Error {
         static final long serialVersionUID = 0L; // TODO: regenerate
@@ -272,8 +270,9 @@ public class JSONR extends JSON {
      * 
      * into the appropriate <code>java.util.Date</code> instance.</p>
      * 
-     * @author Laurent Szyster
-     *
+     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * 
+     * @version 0.20
      */
     public static interface Type {
         /**

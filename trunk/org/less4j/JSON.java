@@ -221,7 +221,6 @@ import java.text.StringCharacterIterator;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @author Laurent Szyster
  * @version 0.20
  */
 public class JSON {
@@ -243,8 +242,7 @@ public class JSON {
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
-     * @author Laurent Szyster
-     * @version 0.1.0
+     * @version 0.20
      */
     public static class Error extends Exception {
         
@@ -419,7 +417,9 @@ public class JSON {
      * type. Not having to break the chain for "manual" type casting
      * helps a lot and make the whole a lot clearer to read and debug.</p> 
      * 
-     * @author Laurent Szyster     *
+     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * 
+     * @version 0.20
      */
     public static final class O extends HashMap {
         static final long serialVersionUID = 0L; // TODO: regenerate
@@ -474,7 +474,9 @@ public class JSON {
      * 
      * ...</p>
      * 
-     * @author Laurent Szyster     *
+     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * 
+     * @version 0.20
      */
     public static final class A extends ArrayList {
         static final long serialVersionUID = 0L; // TODO: regenerate
