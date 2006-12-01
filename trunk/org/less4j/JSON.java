@@ -278,7 +278,11 @@ public class JSON {
             }
         
         /**
-         * <p>Buffers a JSON error as a JSON string:
+         * Buffers the JSON representation of a <code>JSON.Error</code>.
+         * 
+         * <h4>Synopsis</h4>
+         * 
+         * <p>...
          * 
          * <blockquote>
          *<pre>StringBuffer sb = new StringBuffer();
@@ -294,7 +298,7 @@ public class JSON {
          * 
          * @return the updated StringBuffer
          */
-        public final StringBuffer jsrtb(StringBuffer sb) {
+        public final StringBuffer jstrb(StringBuffer sb) {
             sb.append('[');
             JSON.strb(sb, getMessage());
             sb.append(',');
@@ -306,16 +310,31 @@ public class JSON {
         }
         
         /**
-         * <p>Represents a JSON error as an array like
+         * <p>Represents a JSON error as a JSON array with three elements:
+         * the error message, the character index where the error occurred
+         * and the path in the object model.
          * 
-         *   ["error message"], 23, [1, 2]] 
+         * <h4>Synopsis</h4>
+         * 
+         * <p>...
+         * 
+         * <blockquote>
+         * <pre>["error message"], 23, [1, 2]]</pre> 
+         * </blockquote>
          *   
-         * and return a JSON string.</p>
+         * ...</p>
          * 
          * @return a JSON string
          */
         public final String jstr() {
-            return jsrtb(new StringBuffer()).toString();
+            return jstrb(new StringBuffer()).toString();
+        }
+        
+        public String toString() {
+            StringBuffer sb = new StringBuffer();
+            sb.append("JSON error ");
+            jstrb(sb);
+            return sb.toString(); 
         }
         
     }
@@ -503,7 +522,7 @@ public class JSON {
         }
     }
     
-    public static final class Partial {
+    protected static final class Partial {
 
         protected String string = null;
         
@@ -635,7 +654,7 @@ public class JSON {
         else if (value instanceof Partial) 
             ((Partial) value).jstrb(sb);
         else if (value instanceof Error) 
-            ((Error) value).jsrtb(sb);
+            ((Error) value).jstrb(sb);
         else 
             strb(sb, value.toString());
         return sb;
@@ -732,7 +751,7 @@ public class JSON {
         else if (value instanceof Partial) 
             ((Partial) value).jstrb(sb);
         else if (value instanceof Error) 
-            ((Error) value).jsrtb(sb);
+            ((Error) value).jstrb(sb);
         else 
             xjson(sb, value.toString());
         return sb;
@@ -817,10 +836,10 @@ public class JSON {
             try {
                 strb(sb, (new JSON()).eval(((Partial) value).jstr()));
             } catch (Error e) {
-                e.jsrtb(sb);
+                e.jstrb(sb);
             }
         } else if (value instanceof Error) 
-            ((Error) value).jsrtb(sb);
+            ((Error) value).jstrb(sb);
         else 
             strb(sb, value.toString());
         return sb;

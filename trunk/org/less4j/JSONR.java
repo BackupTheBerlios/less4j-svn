@@ -203,13 +203,26 @@ public class JSONR extends JSON {
      * @version 0.20
      */
     public static class Error extends JSON.Error {
+        
         static final long serialVersionUID = 0L; // TODO: regenerate
+        
         /**
          * Instanciate a JSONR error with an error message.
          * 
          * @param message the error message
          */
         public Error(String message) {super(message);}
+        
+        /**
+         * ...
+         */
+        public String toString() {
+            StringBuffer sb = new StringBuffer();
+            sb.append("JSON error ");
+            jstrb(sb);
+            return sb.toString(); 
+        }
+        
     }
     
     private static final long serialVersionUID = 0L; 
