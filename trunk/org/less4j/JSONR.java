@@ -35,6 +35,10 @@ import java.text.StringCharacterIterator;
  * ranges, regular text, formated dates, typed collections, typed records and 
  * typed objects. 
  * 
+ * <p>A safe JSON intepreter to evaluate and validate a UNICODE string 
+ * as a limited tree of Java instances that matches a regular pattern
+ * of types and values.</p> 
+ *
  * <h3>JSON Regular</h3>
  * 
  * <p>JSON Regular (JSONR) is a protocol to define a JSON regular type
@@ -137,10 +141,11 @@ import java.text.StringCharacterIterator;
  * 
  * <blockquote>
  * <pre>try {
- *    HashMap map = JSONR("{\"my model\": null).object(
- *        "{\"my model\": \"is a constant\"}", 1, 2
+ *    JSONR.O jsonr = new JSONR.O ("{\"pass\": null);
+ *    JSON.O map = jsonr.eval(
+ *        "{\"pass\": true}", 1, 2
  *        );
- *    HashMap map = JSONR("{}").object(
+ *    JSON.A list = JSONR.A("[]").eval(
  *        "{\"will this fail?\": true}", 1, 2
  *        );
  *} catch (JSONR.Error e) {
@@ -168,9 +173,9 @@ import java.text.StringCharacterIterator;
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
  * @author Laurent Szyster
- * @version 0.1.0
+ * @version 0.20
  */
-public final class JSONR {
+public class JSONR extends JSON {
     
     /**
      * A simple JSONR exception throwed for any type or value error found 
@@ -464,7 +469,7 @@ public final class JSONR {
         public Type copy() {return new TypeRegexp(pattern);}
     }
     
-    public static final class TypeArray implements Type {
+    protected static final class TypeArray implements Type {
         public Type[] types = null;
         public TypeArray (Type[] types) {this.types = types;}
         public final Object value (Object instance) throws Error {
@@ -474,23 +479,7 @@ public final class JSONR {
                 throw new Error(JSON.ARRAY_TYPE_ERROR);
             }
         public final Object eval (String string) throws JSON.Error {
-            return eval(string, 65355, 65355);
-        }
-        public final JSON.A eval(
-            String string, int containers, int iterations
-            ) throws JSON.Error {
-            if (string == null) 
-                return null;
-            else {
-                JSON.A a = new JSON.A();
-                JSON.Error e = (
-                    new Interpreter(containers, iterations)
-                    ).extend(a, string, this);
-                if (e == null)
-                    return a;
-                else
-                    throw e;
-            } 
+            return (new JSONR(this)).eval(string);
         }
         protected final Iterator iterator() {
             return new Simple.ObjectIterator(types);
@@ -504,7 +493,7 @@ public final class JSONR {
             }
     }
     
-    public static final class TypeObject implements Type {
+    protected static final class TypeObject implements Type {
         protected static final String IRREGULAR_OBJECT = 
             "irregular Object";
         public Set names;
@@ -526,23 +515,7 @@ public final class JSONR {
                 throw new Error(JSON.OBJECT_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
-            return eval(string, 65355, 65355);
-        }
-        public final 
-        JSON.O eval(String string, int containers, int iterations) 
-        throws JSON.Error {
-            if (string == null) 
-                return null;
-            else {
-                JSON.O o = new JSON.O();
-                JSON.Error e = (
-                    new Interpreter(containers, iterations)
-                    ).update(o, string, this);
-                if (e == null)
-                    return o;
-                else
-                    throw e;
-            }
+            return (new JSONR(this)).eval(string);
         }
         public final JSON.O filterQuery(Map query) {
             Type type;
@@ -793,282 +766,6 @@ public final class JSONR {
         public Type copy() {return new TypeDecimalRelative(limit);}
     }
     
-    /**
-     * <p>A safe JSON intepreter to evaluate and validate a UNICODE string 
-     * as a limited tree of Java instances that matches a regular pattern
-     * of types and values.</p> 
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <p>This class provides methods similar to the one found in 
-     * <code>JSON.Interpreter</code>, but with one extra 
-     * <code>JSONR.Type</code> argument for <code>eval</code>,
-     * <code>update</code> and <code>extend</code>.</p>
-     * 
-     * <p>Directly invoking your own interpreter is usefull only to
-     * evaluate and validate more than one JSON value at a time under
-     * global size constraints.</p>
-     * 
-     * <p>To instanciate a single regular JSON value at a time, use the 
-     * JSONR instance methods instead.</p> 
-     * 
-     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
-     * 
-     * @author Laurent Szyster
-     * @version 0.1.0
-     */
-    public static class Interpreter extends JSON.Interpreter {
-        
-        protected static final String IRREGULAR_ARRAY = 
-            "irregular array";
-        protected static final String PARTIAL_ARRAY = 
-            "partial array";
-        protected static final String ARRAY_OVERFLOW = 
-            "array overflow";
-        protected static final String NAME_ERROR = 
-            "name error";
-
-        public Interpreter() {super();}
-        
-        public Interpreter(int containers, int iterations) {
-            super(containers, iterations);
-        }
-        
-        public final Object eval(String json, Type type) 
-        throws JSON.Error {
-            buf = new StringBuffer();
-            it = new StringCharacterIterator(json);
-            try {
-                c = it.first();
-                return value(type);
-            } finally {
-                buf = null;
-                it = null;
-            }
-        }
-        
-        public final JSON.Error update(Map o, String json, Type type) {
-            if (!(type instanceof TypeObject))
-                return new Error(JSON.OBJECT_TYPE_ERROR);
-            
-            TypeObject to = (TypeObject) type;
-            buf = new StringBuffer();
-            it = new StringCharacterIterator(json);
-            try {
-                c = it.first();
-                while (Character.isWhitespace(c)) c = it.next();
-                if (c == '{') {
-                    c = it.next();
-                    to.value(object(o, to.namespace));
-                    return null;
-                } else
-                    return error(JSON.OBJECT_TYPE_ERROR);
-            } catch (JSON.Error e){
-                return e;
-            } finally {
-                buf = null;
-                it = null;
-            }
-        }
-        
-        public final JSON.Error extend(List a, String json, Type type) {
-            if (!(type instanceof TypeArray))
-                return new Error(JSON.ARRAY_TYPE_ERROR);
-            
-            buf = new StringBuffer();
-            it = new StringCharacterIterator(json);
-            try {
-                c = it.first();
-                while (Character.isWhitespace(c)) c = it.next();
-                if (c == '[') {
-                    c = it.next();
-                    array(a, ((TypeArray) type).iterator());
-                    return null;
-                } else
-                    return error(JSON.ARRAY_TYPE_ERROR);
-            } catch (JSON.Error e){
-                return e;
-            } finally {
-                buf = null;
-                it = null;
-            }
-        }
-        
-        protected final Object value(Type type) 
-        throws JSON.Error {
-            while (Character.isWhitespace(c)) c = it.next();
-            switch(c){
-            case '{': {
-                if (type instanceof TypeObject) {
-                    TypeObject to = (TypeObject) type;
-                    c = it.next();
-                    return to.value(object(new JSON.O(), to.namespace));
-                } else if (type == TypeUndefined.singleton) {
-                    c = it.next();
-                    return object(new JSON.O());
-                } else
-                    throw error(TypeObject.IRREGULAR_OBJECT);
-            }
-            case '[': {
-                if (type instanceof TypeArray) { 
-                    c = it.next(); 
-                    Iterator types = ((TypeArray) type).iterator();
-                    if (types.hasNext())
-                        return array(new JSON.A(), types);
-                    else
-                        return array(new JSON.A());
-                } else if (type == TypeUndefined.singleton) {
-                    c = it.next();
-                    return array(new JSON.A());
-                } else 
-                    throw error(IRREGULAR_ARRAY);
-            }
-            case '"': {c = it.next(); return type.value(string());}
-            case '0': case '1': case '2': case '3': case '4':  
-            case '5': case '6': case '7': case '8': case '9': 
-            case '-': {
-                return type.value(number());
-            }
-            case 't': {
-                if (next('r') && next('u') && next('e')) {
-                    c = it.next(); return type.value(Boolean.TRUE);
-                } else
-                    throw error(TRUE_EXPECTED);
-            }
-            case 'f': {
-                if (next('a') && next('l') && next('s') && next('e')) {
-                    c = it.next(); return type.value(Boolean.FALSE);
-                } else
-                    throw error(FALSE_EXPECTED);
-            }
-            case 'n': {
-                if (next('u') && next('l') && next('l')) {
-                    c = it.next(); return type.value(null);
-                } else
-                    throw error(NULL_EXPECTED);
-            }
-            case ',': {c = it.next(); return COMMA;} 
-            case ':': {c = it.next(); return COLON;}
-            case ']': {c = it.next(); return ARRAY;} 
-            case '}': {c = it.next(); return OBJECT;}
-            case JSON._done:
-                throw error(UNEXPECTED_END);
-            default: 
-                throw error(UNEXPECTED_CHARACTER);
-            }
-        }
-        
-        protected final Object value(Type type, String name) 
-        throws JSON.Error {
-            try {
-                return value(type);
-            } catch (Error e) {
-                e.jsonIndex = it.getIndex();
-                e.jsonPath.add(0, name);
-                throw e;
-            } catch (JSON.Error e) {
-                e.jsonPath.add(0, name);
-                throw e;
-            }
-        }
-        
-        protected final Object value(Type type, int index) 
-        throws JSON.Error {
-            try {
-                return value(type);
-            } catch (Error e) {
-                e.jsonIndex = it.getIndex();
-                e.jsonPath.add(0, BigInteger.valueOf(index));
-                throw e;
-            } catch (JSON.Error e) {
-                e.jsonPath.add(0, BigInteger.valueOf(index));
-                throw e;
-            }
-        }
-        
-        protected final Object object(Map o, HashMap namespace) 
-        throws JSON.Error {
-            if (--containers < 0) 
-                throw error(CONTAINERS_OVERFLOW);
-            
-            Type type;
-            String name; 
-            Object val;
-            Object token = value();
-            while (token != OBJECT) {
-                if (!(token instanceof String))
-                    throw error(STRING_EXPECTED);
-                
-                if (--iterations < 0) 
-                    throw error(ITERATIONS_OVERFLOW);
-                
-                name = (String) token;
-                type = (Type) namespace.get(name);
-                if (value() == COLON) {
-                    if (type == null)
-                        // throw new Error(NAME_ERROR);
-                        val = value(name);
-                    else
-                        val = value(type, name);
-                    if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
-                        throw error(VALUE_EXPECTED);
-                    
-                    o.put(name, val);
-                    token = value();
-                    if (token == COMMA)
-                        token = value();
-                } else {
-                    throw error(COLON_EXPECTED);
-                }
-            }
-            return o;
-        }
-        
-        protected final Object array(List a, Iterator types) 
-        throws JSON.Error {
-            if (--containers < 0) 
-                throw error(CONTAINERS_OVERFLOW);
-
-            int i = 0;
-            Type type = (Type) types.next();
-            Object token = value(type, i++);
-            if (types.hasNext()) {
-                while (token != ARRAY) {
-                    if (token==COLON || token==COMMA || token==OBJECT)
-                        throw error(VALUE_EXPECTED);
-                    
-                    if (--iterations < 0) 
-                        throw error(ITERATIONS_OVERFLOW);
-                 
-                    a.add(token);
-                    token = value(); 
-                    if (token == COMMA)
-                        if (types.hasNext())
-                            token = value((Type) types.next(), i++);
-                        else
-                            throw new Error(ARRAY_OVERFLOW);
-                }
-                if (types.hasNext())
-                    throw error(PARTIAL_ARRAY);
-            } else {
-                while (token != ARRAY) {
-                    if (token==COLON || token==COMMA || token==OBJECT)
-                        throw error(VALUE_EXPECTED);
-                    
-                    if (--iterations < 0) 
-                        throw error(ITERATIONS_OVERFLOW);
-                 
-                    a.add(token);
-                    token = value(); 
-                    if (token == COMMA)
-                        token = value(type, i++);
-                }
-            }
-            return a;
-        }
-        
-    }
-    
     protected static final Type compile(
         Object regular, Map extensions, HashMap cache
         ) {
@@ -1151,62 +848,276 @@ public final class JSONR {
     public static final Type compile(Object regular, Map extensions) {
         return compile(regular, extensions, new HashMap());
     }
-
-    protected static final TypeObject O(Map regular, Map extensions) {
-        return (TypeObject) compile(regular, extensions, new HashMap());
-    }
     
-    protected static final TypeArray A(List regular, Map extensions) {
-        return (TypeArray) compile(regular, extensions, new HashMap());
-    }
-        
+    protected static final String IRREGULAR_ARRAY = 
+        "irregular array";
+    protected static final String PARTIAL_ARRAY = 
+        "partial array";
+    protected static final String ARRAY_OVERFLOW = 
+        "array overflow";
+    protected static final String NAME_ERROR = 
+        "name error";
+
     public Type type = null;
     
-    public JSONR(Object object, Map extensions) {
-        type = compile(object, extensions);
+    public JSONR(Type type) {super(); this.type = type;}
+    
+    public JSONR(Type type, int containers, int iterations) {
+        super(containers, iterations); this.type = type;
     }
     
-    public JSONR(Object object) {
-        type = compile(object, TYPES);
-    }
-
-    public JSONR(String json, Map extensions) throws JSON.Error  {
-        type = compile(JSON.eval(json), extensions);
+    public JSONR(Object regular) throws JSON.Error {
+        super(); type = compile(regular, TYPES);
     }
     
-    public JSONR(String json) throws JSON.Error {
-        type = compile(JSON.eval(json), TYPES);
-    }
-
-    public final Object eval(String json, int containers, int iterations) 
+    public JSONR(Object regular, int containers, int iterations) 
     throws JSON.Error {
-        return (new Interpreter(containers, iterations)).eval(json, type);
+        super(containers, iterations); type = compile(regular, TYPES);
     }
-
-    public final JSON.O object(String json, int containers, int iterations) 
+    
+    public JSONR(String pattern) throws JSON.Error {
+        super(); type = compile((new JSON()).eval(pattern), TYPES);
+    }
+    
+    public JSONR(String pattern, int containers, int iterations) 
     throws JSON.Error {
-        JSON.O o = new JSON.O();
-        JSON.Error e = (
-            new Interpreter(containers, iterations)
-            ).update(o, json, type);
-        if (e == null)
-            return o;
-        else
+        super(containers, iterations); 
+        type = compile((new JSON()).eval(pattern), TYPES);
+    }
+    
+    public Object eval(String json) 
+    throws JSON.Error {
+        buf = new StringBuffer();
+        it = new StringCharacterIterator(json);
+        try {
+            c = it.first();
+            return value(type);
+        } finally {
+            buf = null;
+            it = null;
+        }
+    }
+    
+    public JSON.Error update(Map o, String json) {
+        if (!(type instanceof TypeObject))
+            return new Error(JSON.OBJECT_TYPE_ERROR);
+        
+        TypeObject to = (TypeObject) type;
+        buf = new StringBuffer();
+        it = new StringCharacterIterator(json);
+        try {
+            c = it.first();
+            while (Character.isWhitespace(c)) c = it.next();
+            if (c == '{') {
+                c = it.next();
+                to.value(object(o, to.namespace));
+                return null;
+            } else
+                return error(JSON.OBJECT_TYPE_ERROR);
+        } catch (JSON.Error e){
+            return e;
+        } finally {
+            buf = null;
+            it = null;
+        }
+    }
+    
+    public JSON.Error extend(List a, String json) {
+        if (!(type instanceof TypeArray))
+            return new Error(JSON.ARRAY_TYPE_ERROR);
+        
+        buf = new StringBuffer();
+        it = new StringCharacterIterator(json);
+        try {
+            c = it.first();
+            while (Character.isWhitespace(c)) c = it.next();
+            if (c == '[') {
+                c = it.next();
+                array(a, ((TypeArray) type).iterator());
+                return null;
+            } else
+                return error(JSON.ARRAY_TYPE_ERROR);
+        } catch (JSON.Error e){
+            return e;
+        } finally {
+            buf = null;
+            it = null;
+        }
+    }
+    
+    protected final Object value(Type type) 
+    throws JSON.Error {
+        while (Character.isWhitespace(c)) c = it.next();
+        switch(c){
+        case '{': {
+            if (type instanceof TypeObject) {
+                TypeObject to = (TypeObject) type;
+                c = it.next();
+                return to.value(object(new JSON.O(), to.namespace));
+            } else if (type == TypeUndefined.singleton) {
+                c = it.next();
+                return object(new JSON.O());
+            } else
+                throw error(TypeObject.IRREGULAR_OBJECT);
+        }
+        case '[': {
+            if (type instanceof TypeArray) { 
+                c = it.next(); 
+                Iterator types = ((TypeArray) type).iterator();
+                if (types.hasNext())
+                    return array(new JSON.A(), types);
+                else
+                    return array(new JSON.A());
+            } else if (type == TypeUndefined.singleton) {
+                c = it.next();
+                return array(new JSON.A());
+            } else 
+                throw error(IRREGULAR_ARRAY);
+        }
+        case '"': {c = it.next(); return type.value(string());}
+        case '0': case '1': case '2': case '3': case '4':  
+        case '5': case '6': case '7': case '8': case '9': 
+        case '-': {
+            return type.value(number());
+        }
+        case 't': {
+            if (next('r') && next('u') && next('e')) {
+                c = it.next(); return type.value(Boolean.TRUE);
+            } else
+                throw error(TRUE_EXPECTED);
+        }
+        case 'f': {
+            if (next('a') && next('l') && next('s') && next('e')) {
+                c = it.next(); return type.value(Boolean.FALSE);
+            } else
+                throw error(FALSE_EXPECTED);
+        }
+        case 'n': {
+            if (next('u') && next('l') && next('l')) {
+                c = it.next(); return type.value(null);
+            } else
+                throw error(NULL_EXPECTED);
+        }
+        case ',': {c = it.next(); return COMMA;} 
+        case ':': {c = it.next(); return COLON;}
+        case ']': {c = it.next(); return ARRAY;} 
+        case '}': {c = it.next(); return OBJECT;}
+        case JSON._done:
+            throw error(UNEXPECTED_END);
+        default: 
+            throw error(UNEXPECTED_CHARACTER);
+        }
+    }
+    
+    protected final Object value(Type type, String name) 
+    throws JSON.Error {
+        try {
+            return value(type);
+        } catch (Error e) {
+            e.jsonIndex = it.getIndex();
+            e.jsonPath.add(0, name);
             throw e;
-    }
-            
-    public final JSON.A array(String json, int containers, int iterations) 
-    throws JSON.Error {
-        JSON.A a = new JSON.A();
-        JSON.Error e = (
-            new Interpreter(containers, iterations)
-            ).extend(a, json, type);
-        if (e == null)
-            return a;
-        else
+        } catch (JSON.Error e) {
+            e.jsonPath.add(0, name);
             throw e;
+        }
     }
+    
+    protected final Object value(Type type, int index) 
+    throws JSON.Error {
+        try {
+            return value(type);
+        } catch (Error e) {
+            e.jsonIndex = it.getIndex();
+            e.jsonPath.add(0, BigInteger.valueOf(index));
+            throw e;
+        } catch (JSON.Error e) {
+            e.jsonPath.add(0, BigInteger.valueOf(index));
+            throw e;
+        }
+    }
+    
+    protected final Object object(Map o, HashMap namespace) 
+    throws JSON.Error {
+        if (--containers < 0) 
+            throw error(CONTAINERS_OVERFLOW);
+        
+        Type type;
+        String name; 
+        Object val;
+        Object token = value();
+        while (token != OBJECT) {
+            if (!(token instanceof String))
+                throw error(STRING_EXPECTED);
             
+            if (--iterations < 0) 
+                throw error(ITERATIONS_OVERFLOW);
+            
+            name = (String) token;
+            type = (Type) namespace.get(name);
+            if (value() == COLON) {
+                if (type == null)
+                    // throw new Error(NAME_ERROR);
+                    val = value(name);
+                else
+                    val = value(type, name);
+                if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
+                    throw error(VALUE_EXPECTED);
+                
+                o.put(name, val);
+                token = value();
+                if (token == COMMA)
+                    token = value();
+            } else {
+                throw error(COLON_EXPECTED);
+            }
+        }
+        return o;
+    }
+    
+    protected final Object array(List a, Iterator types) 
+    throws JSON.Error {
+        if (--containers < 0) 
+            throw error(CONTAINERS_OVERFLOW);
+
+        int i = 0;
+        Type type = (Type) types.next();
+        Object token = value(type, i++);
+        if (types.hasNext()) {
+            while (token != ARRAY) {
+                if (token==COLON || token==COMMA || token==OBJECT)
+                    throw error(VALUE_EXPECTED);
+                
+                if (--iterations < 0) 
+                    throw error(ITERATIONS_OVERFLOW);
+             
+                a.add(token);
+                token = value(); 
+                if (token == COMMA)
+                    if (types.hasNext())
+                        token = value((Type) types.next(), i++);
+                    else
+                        throw new Error(ARRAY_OVERFLOW);
+            }
+            if (types.hasNext())
+                throw error(PARTIAL_ARRAY);
+        } else {
+            while (token != ARRAY) {
+                if (token==COLON || token==COMMA || token==OBJECT)
+                    throw error(VALUE_EXPECTED);
+                
+                if (--iterations < 0) 
+                    throw error(ITERATIONS_OVERFLOW);
+             
+                a.add(token);
+                token = value(); 
+                if (token == COMMA)
+                    token = value(type, i++);
+            }
+        }
+        return a;
+    }
+    
 }
 
 /* Note about this implementation

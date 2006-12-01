@@ -28,8 +28,7 @@ import java.util.Iterator;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @author Laurent Szyster
- * @version 0.1.0
+ * @version 0.10
  */
 public class PublicNames {
     

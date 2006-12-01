@@ -147,8 +147,7 @@ import javax.servlet.http.Cookie;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @author Laurent Szyster
- * @version 0.1.0
+ * @version 0.10
  */
 public class Actor {
     
@@ -315,7 +314,7 @@ public class Actor {
         String s = (String) configuration.get(less4jJSON);
         if (s != null)
             try {
-                json = JSON.object(s, 65355, 65355);
+                json = (new JSON(65355, 65355)).object(s);
             } catch (JSON.Error e) {
                 logError(e);
             }
@@ -484,7 +483,7 @@ public class Actor {
         String s = (String) configuration.get(less4jJSON);
         if (s != null)
             try {
-                json = JSON.object(s, 65355, 65355);
+                json = (new JSON(65355, 65355)).object(s);
             } catch (JSON.Error e) {
                 logError(e);
                 return false;
@@ -1074,7 +1073,7 @@ public class Actor {
     public boolean jsonGET(int containers, int iterations) {
         String xjson = request.getHeader(jsonXJSON);
         if (xjson != null) try {
-            json = JSON.object(xjson, containers, iterations);
+            json = (new JSON(containers, iterations)).object(xjson);
         } catch (JSON.Error e) {;}
         return (json != null);
     }
@@ -1110,9 +1109,8 @@ public class Actor {
         else {
             // parse JSON when the buffer is filled but not overflowed
             try {
-                json = JSON.object(
-                    new String(body, less4jCharacterSet),
-                    containers, iterations
+                json = (new JSON(containers, iterations)).object(
+                    new String(body, less4jCharacterSet)
                     );
                 return (json != null);
             } catch (Exception e) {
@@ -1132,11 +1130,8 @@ public class Actor {
             return false; 
         else {
             try {
-                json = pattern.object(
-                    new String(body, less4jCharacterSet),
-                    containers, iterations
-                    );
-                return (json != null);
+                json = pattern.object(new String(body, less4jCharacterSet));
+                return true;
             } catch (Exception e) {
                 logError(e);
                 return false;
@@ -1144,8 +1139,8 @@ public class Actor {
         }
     }
     
-    public boolean jsonPOST (JSONR model) {
-        return jsonPOST(model, 16384, 65355, 65355);
+    public boolean jsonPOST (JSONR pattern) {
+        return jsonPOST(pattern, 16384, 65355, 65355);
         }
     
     /**

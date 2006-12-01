@@ -28,7 +28,9 @@ import java.security.NoSuchAlgorithmException;
  * A simple test suite of less4j base classes: Simple, SHA1, Netunicode, 
  * PublicNames, JSON and JSONR.
  * 
- * @author Laurent Szyster
+ * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * 
+ * @version 0.10
  *
  */
 public class Test {
@@ -141,7 +143,8 @@ public class Test {
         }
         public void run () {
             try {
-                for (int i=0;i<10;i++) JSON.eval(input, 65355, 65355);
+                for (int i=0;i<10;i++) 
+                    (new JSON()).eval(input);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -155,7 +158,7 @@ public class Test {
         System.out.print("evaluated ");
         long t = System.currentTimeMillis();
         for (int i = 0; i < scale; i++)
-            JSON.eval(input, 65355, 65355);
+            (new JSON()).eval(input);
         t = System.currentTimeMillis() - t;
         System.out.print(input.length()*scale);
         if (t > 0) {
@@ -225,7 +228,7 @@ public class Test {
                 System.out.print(filename);
                 String input = Simple.fileRead(dir + filename);
                 try {
-                    Object o = JSON.eval(input, 65355, 65355);
+                    Object o = (new JSON()).eval(input);
                     System.out.print(" = ");
                     String output = JSON.str(o);
                     System.out.println(JSON.repr(o));
@@ -245,19 +248,16 @@ public class Test {
         protected JSONR pattern;
         protected int containers, iterations;
         public jsonrEvalThread (
-            String input, ThreadCount tc,
-            JSONR pattern, int containers, int iterations
+            String input, ThreadCount tc, JSONR pattern
             ) {
             this.input = input;
             this.tc = tc;
             this.pattern = pattern;
-            this.containers = containers;
-            this.iterations = iterations;
         }
         public void run () {
             try {
                 for (int i=0; i<10; i++)
-                    pattern.eval(input, containers, iterations);
+                    pattern.eval(input);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -267,14 +267,13 @@ public class Test {
     }
     
     protected static void jsonrBenchmarkEval(
-        String input, int scale, 
-        JSONR pattern, int containers, int iterations
+        String input, int scale, JSONR pattern
         ) 
     throws JSON.Error {
         System.out.print("evaluated ");
         long t = System.currentTimeMillis();
         for (int i = 0; i < scale; i++)
-            pattern.eval(input, containers, iterations);
+            pattern.eval(input);
         t = System.currentTimeMillis() - t;
         System.out.print(input.length()*scale);
         if (t > 0) {
@@ -292,9 +291,9 @@ public class Test {
         ThreadCount tc = new ThreadCount(scale/10);
         t = System.currentTimeMillis();
         for (int i = 0; i < scale/10; i++)
-            new jsonrEvalThread(
-                input, tc, pattern, containers, iterations
-                ).start();
+            new jsonrEvalThread(input, tc, new JSONR(
+                pattern.type, pattern.containers, pattern.iterations
+                )).start();
         while (!tc.zero()) {;}
         t = System.currentTimeMillis() - t;
         System.out.print(input.length()*scale);
@@ -330,9 +329,11 @@ public class Test {
             return;
         
         HashMap modelJSON;
+        JSONR pattern; 
         String model = Simple.fileRead(dir + "/test.jsonr");
         try {
-            modelJSON = testModel.object(model, 65355, 65355);
+            modelJSON = testModel.object(model);
+            pattern = new JSONR(modelJSON.get("meta"));
         } catch (JSONR.Error e) {
             System.out.println(model.substring(0, e.jsonIndex));
             System.out.print("Type Error ");
@@ -348,10 +349,9 @@ public class Test {
             e.printStackTrace();
             return;
         }
-        JSONR pattern = new JSONR(modelJSON.get("meta"));
         ArrayList limits = (ArrayList) modelJSON.get("limits");
-        int containers = ((Number) limits.get(0)).intValue();
-        int iterations = ((Number) limits.get(1)).intValue();
+        pattern.containers = ((Number) limits.get(0)).intValue();
+        pattern.iterations = ((Number) limits.get(1)).intValue();
         dir += File.separatorChar; 
         Iterator filenames = Simple.iterator(dirlist);
         while (filenames.hasNext()) {
@@ -361,11 +361,11 @@ public class Test {
                 String input = Simple.fileRead(dir + filename);
                 System.out.print(" = ");
                 try {
-                    Object o = pattern.eval(input, containers, iterations);
+                    Object o = pattern.eval(input);
                     System.out.print(" = ");
                     System.out.println(JSON.repr(o));
                     jsonrBenchmarkEval(
-                        input, scale, pattern, containers, iterations
+                        input, scale, pattern
                         );
                 } catch (JSONR.Error e) {
                     System.out.println(input.substring(0, e.jsonIndex));
