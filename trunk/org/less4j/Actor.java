@@ -730,7 +730,7 @@ public class Actor {
      * @return true if there is at least one valid action
      */
     public boolean urlActions(JSONR pattern) {
-        actions = pattern.filter(request.getParameterMap());
+        // actions = pattern.filter(request.getParameterMap());
         return !actions.isEmpty();
     }
 

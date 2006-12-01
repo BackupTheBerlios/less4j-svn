@@ -37,7 +37,7 @@ import java.text.StringCharacterIterator;
  * <code>Double</code>, 
  * <code>BigDecimal</code>, 
  * <code>BigInteger</code>, 
- * <code>Boolean</code>
+ * <code>Boolean</code>,
  * </blockquote>
  *
  * two convenience extending <code>HashMap</code> and <code>ArrayList</code>, 
@@ -161,8 +161,22 @@ import java.text.StringCharacterIterator;
  * @author Laurent Szyster
  * @version 0.1.0
  */
-public class JSON {
+public final class JSON {
     
+    protected static final String OBJECT_TYPE_ERROR = 
+        "Object type error";
+    protected static final String ARRAY_TYPE_ERROR = 
+        "Array type error";
+    protected static final String STRING_TYPE_ERROR = 
+        "String type error";
+    protected static final String BOOLEAN_TYPE_ERROR = 
+        "Boolean type error";
+    protected static final String DOUBLE_TYPE_ERROR = 
+        "Double type error";
+    protected static final String BIGDECIMAL_TYPE_ERROR = 
+        "BigDecimal type error";
+    protected static final String BIGINTEGER_TYPE_ERROR = 
+        "BigInteger type error";
     protected static final String NULL_JSON_STRING = 
         "null JSON string";
     
@@ -171,37 +185,37 @@ public class JSON {
     protected static final BigInteger intg (Object value) throws Error {
         if (value instanceof BigInteger) {
             return (BigInteger) value;
-        } else throw new Error("BigInteger Type Error");
+        } else throw new Error(BIGINTEGER_TYPE_ERROR);
     }   
     protected static final BigDecimal deci(Object value) throws Error {
         if (value instanceof BigDecimal) {
             return (BigDecimal) value;
-        } else throw new Error("BigDecimal Type Error");
+        } else throw new Error(BIGDECIMAL_TYPE_ERROR);
     }
     protected static final Double dble(Object value) throws Error {
         if (value instanceof Double) {
             return (Double) value;
-        } else throw new Error("Double Type Error");
+        } else throw new Error(DOUBLE_TYPE_ERROR);
     }
     protected static final Boolean bool(Object value) throws Error {
         if (value instanceof Boolean) {
             return (Boolean) value;
-        } else throw new Error("Boolean Type Error");
+        } else throw new Error(BOOLEAN_TYPE_ERROR);
     }
     protected static final String stri(Object value) throws Error {
         if (value instanceof String) {
             return (String) value;
-        } else throw new Error("String Type Error");
+        } else throw new Error(STRING_TYPE_ERROR);
     }
     protected static final A arry(Object value) throws Error {
         if (value instanceof A) {
             return (A) value;
-        } else throw new Error("Array Type Error");
+        } else throw new Error(ARRAY_TYPE_ERROR);
     }
     protected static final O objc(Object value) throws Error {
         if (value instanceof O) {
             return (O) value;
-        } else throw new Error("Object Type Error");
+        } else throw new Error(OBJECT_TYPE_ERROR);
     }
     
     /**
@@ -491,10 +505,6 @@ public class JSON {
      */
     public static class Interpreter {
         
-        protected static final String NOT_AN_OBJECT = 
-            "not an object";
-        protected static final String NOT_AN_ARRAY = 
-            "not an array";
         protected static final String ILLEGAL_UNICODE_SEQUENCE = 
             "illegal UNICODE sequence";
         protected static final String ILLEGAL_ESCAPE_SEQUENCE = 
@@ -559,7 +569,7 @@ public class JSON {
          * <code>Boolean</code>,
          * null or throws a JSON.Error if a syntax error occured.
          * 
-         * @param json the string to evaluate
+         * @param json string to evaluate
          * @return an untyped Object
          * @throws Error
          */
@@ -569,7 +579,7 @@ public class JSON {
             try {
                 c = it.first();
                 if (c == _done)
-                    return null;
+                    throw error(NULL_JSON_STRING);
                 else
                     return value();
             } finally {
@@ -584,7 +594,7 @@ public class JSON {
          * represent a valid object. 
          * 
          * @param map the <code>Map</code> to update
-         * @param json the string to evaluate
+         * @param json string to evaluate
          * @return null or a <code>JSON.Error</code>
          */
         public final Error update(Map map, String json) {
@@ -598,7 +608,7 @@ public class JSON {
                     object(map);
                     return null;
                 } else
-                    return error(NOT_AN_OBJECT);
+                    return error(OBJECT_TYPE_ERROR);
             } catch (Error e) {
                 return e;
             } finally {
@@ -613,7 +623,7 @@ public class JSON {
          * represent a valid array. 
          * 
          * @param list the <code>List</code> to extend
-         * @param json the string to evaluate
+         * @param json string to evaluate
          * @return null or a <code>JSON.Error</code>
          */
         public final Error extend(List list, String json) {
@@ -627,7 +637,7 @@ public class JSON {
                     array(list);
                     return null;
                 } else
-                    return error(NOT_AN_ARRAY);
+                    return error(ARRAY_TYPE_ERROR);
             } catch (Error e) {
                 return e;
             } finally {
@@ -862,7 +872,7 @@ public class JSON {
      * <code>Boolean</code>,
      * null or throws a JSON.Error if a syntax error occured.
      * 
-     * @param json the string to evaluate
+     * @param json string to evaluate
      * @param containers the maximum number of containers allowed 
      * @param iterations the limit on the count of values 
      * @return an untyped Object
@@ -871,10 +881,7 @@ public class JSON {
     public static final 
     Object eval(String json, int containers, int iterations) 
     throws Error {
-        if (json == null) 
-            return null;
-        else 
-            return (new Interpreter(containers, iterations)).eval(json);
+        return (new Interpreter(containers, iterations)).eval(json);
     }
     
     /**
@@ -882,54 +889,57 @@ public class JSON {
      * containers (arrays or objects) and as many iterations (ie: distinct 
      * values).
      * 
-     * @param json the string to evaluate
+     * @param json string to evaluate
      * @return an untyped Object
      * @throws Error
      */
     public static final Object eval(String json) throws Error {
-        if (json == null) 
-            return null;
-        else 
-            return (new Interpreter()).eval(json);
+        return (new Interpreter()).eval(json);
     }
     
     /**
      * Evaluates a JSON object, returns a new <code>JSON.O</code>   
-     * or throws a JSON.Error if the string does not represent a valid object. 
+     * or throws a JSON.Error if the string does not represent a 
+     * valid object or if it exceeds the limits set on the number
+     * of containers and iterations. 
      * 
-     * @param json the string to evaluate
+     * @param json string to evaluate
      * @param containers the maximum number of containers allowed 
      * @param iterations the limit on the count of values 
-     * @return a new <code>HashMap</code>
+     * @return a new <code>JSON.O</code>
      * @throws Error
      */
     public static final 
     O object(String json, int containers, int iterations) 
     throws Error {
-        if (json == null) 
-            return null;
-        else {
-            O o = new O();
-            Error e = (
-                new Interpreter(containers, iterations)
-                ).update(o, json);
-            if (e == null)
-                return o;
-            else
-                throw e;
-        }
+        O o = new O();
+        Error e = (new Interpreter(containers, iterations)).update(o, json);
+        if (e == null)
+            return o;
+        else
+            throw e;
     }
     
+    /**
+     * Evaluates a JSON object, returns a new <code>JSON.O</code> or throws 
+     * a <code>JSON.Error</code> if the string does not represent a valid 
+     * object or if it exceeds the default limit (65355) for containers or 
+     * iterations. 
+     * 
+     * @param json string to evaluate
+     * @return a new <code>JSON.O</code>
+     * @throws Error
+     */
     public static final O object(String json) throws Error {
         return object(json, 65355, 65355);
     }
         
     /**
-     * Evaluates a JSON array, returns a new <code>JSON.A</code>   
-     * or throws a JSON.Error if the string does not represent a 
-     * valid array. 
+     * Evaluates a JSON array, returns a new <code>JSON.A</code> or throws   
+     * a <code>JSON.Error</code> if the string does not represent a valid 
+     * array or if it exceeds the limits on containers and iterations. 
      * 
-     * @param json the string to evaluate
+     * @param json string to evaluate
      * @param containers the maximum number of containers allowed 
      * @param iterations the limit on the count of values 
      * @return a new <code>JSON.A</code> array
@@ -938,20 +948,23 @@ public class JSON {
     public static final 
     A array(String json, int containers, int iterations) 
     throws Error {
-        if (json == null) 
-            return null;
-        else {
-            A a = new A();
-            Error e = (
-                new Interpreter(containers, iterations)
-                ).extend(a, json);
-            if (e == null)
-                return a;
-            else
-                throw e;
-        } 
+        A a = new A();
+        Error e = (new Interpreter(containers, iterations)).extend(a, json);
+        if (e == null)
+            return a;
+        else
+            throw e;
     }
             
+    /**
+     * Evaluates a JSON array, returns a new <code>JSON.A</code> or throws   
+     * a <code>JSON.Error</code> if the string does not represent a valid 
+     * array or if it exceeds the default size limits. 
+     * 
+     * @param json string to evaluate
+     * @return a new <code>JSON.A</code> array
+     * @throws Error
+     */
     public static final A array(String json) throws Error {
         return array(json, 65355, 65355);
     }

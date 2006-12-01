@@ -170,7 +170,7 @@ import java.text.StringCharacterIterator;
  * @author Laurent Szyster
  * @version 0.1.0
  */
-public class JSONR {
+public final class JSONR {
     
     /**
      * A simple JSONR exception throwed for any type or value error found 
@@ -256,13 +256,13 @@ public class JSONR {
      * can be mapped to this name 
      * 
      * <blockquote>
-     * <pre>"yyyyMMddHHmmssZ"</pre>
+     * <pre>"yyyy-MM-ddTHH:mm:ss"</pre>
      * </blockquote>
      * 
      * to cast a JSON string like
      * 
      * <blockquote>
-     * <pre>"20060704120856-0700"</pre>
+     * <pre>"2006-07-04T12:08:56"</pre>
      * </blockquote>
      * 
      * into the appropriate <code>java.util.Date</code> instance.</p>
@@ -271,9 +271,38 @@ public class JSONR {
      *
      */
     public static interface Type {
+        /**
+         * This public <code>singleton</code> is <code>null</code> by
+         * default and needs only to be assigned an instance of the
+         * type class if you expect it to be reused in other types.
+         */
         public final static Type singleton = null;
+        /**
+         * 
+         * @param instance to validate as a regular type and value
+         * @return a regular <code>Object</code>, or
+         * @throws Error if the type or value is irregular
+         */
         public Object value(Object instance) throws Error ;
+        /**
+         * Evaluate a JSON string <em>and</em> validate it as regular
+         * 
+         * @param string to evaluate as a regular type and value
+         * @return a regular <code>Object</code>, or
+         * @throws JSON.Error if the string is irregular
+         */
         public Object eval(String string) throws JSON.Error;
+        /**
+         * Make a "deep" copy of the <code>Type</code>, something that
+         * can safely be passed to a distinct thread.
+         * 
+         * <p>Note that is is only required by applications that expect to
+         * alter their JSONR patterns after compilation, something quite
+         * unsual. Applications that don't (the overwhelming majority)
+         * can consider a <code>JSONR.Type</code> as thread-safe.</p>
+         * 
+         * @return an unsynchronized copy as a <code>Type</code> 
+         */
         public Type copy();
     } // at last some use for java interfaces ;-)
     
@@ -294,16 +323,14 @@ public class JSONR {
     }
 
     protected static final class TypeBoolean implements Type {
-        protected static final String NOT_A_BOOLEAN_VALUE = 
-            "not a boolean value";
-        protected static final String NOT_A_BOOLEAN_TYPE = 
-            "not a Boolean type";
+        protected static final String BOOLEAN_VALUE_ERROR = 
+            "Boolean value error";
         public static final TypeBoolean singleton = new TypeBoolean();
         public final Object value (Object instance) throws Error {
             if (instance instanceof Boolean)
                 return instance;
             else
-                throw new Error(NOT_A_BOOLEAN_TYPE);
+                throw new Error(JSON.BOOLEAN_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
             if (string.equals(JSON._true))
@@ -311,41 +338,37 @@ public class JSONR {
             else if (string.equals(JSON._false))
                 return Boolean.FALSE;
             else
-                throw new Error(NOT_A_BOOLEAN_VALUE);
+                throw new Error(BOOLEAN_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
     }
 
     protected static final class TypeInteger implements Type {
-        protected static final String NOT_AN_INTEGER_VALUE = 
-            "not an integer value";
-        protected static final String NOT_AN_INTEGER_TYPE = 
-            "not an integer type";
+        protected static final String BIGINTEGER_VALUE_ERROR = 
+            "BigInteger value error";
         public static final TypeInteger singleton = new TypeInteger();
         public final Object value (Object instance) throws Error {
             if (instance instanceof BigInteger)
                 return instance;
             else
-                throw new Error(NOT_AN_INTEGER_TYPE);
+                throw new Error(JSON.BIGINTEGER_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
             if (string != null) {
                 try {
                     return new BigInteger(string);
                 } catch (Exception e) {
-                    throw new Error(NOT_AN_INTEGER_VALUE);
+                    throw new Error(BIGINTEGER_VALUE_ERROR);
                 }
             } else
-                throw new Error(NOT_AN_INTEGER_VALUE);
+                throw new Error(BIGINTEGER_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
     }
 
     protected static final class TypeDouble implements Type {
-        protected static final String NOT_A_DOUBLE_VALUE = 
-            "not a double value";
-        protected static final String NOT_A_DOUBLE_TYPE = 
-            "not a double type";
+        protected static final String DOUBLE_VALUE_ERROR = 
+            "Double value error";
         public static final TypeDouble singleton = new TypeDouble();
         public final Object value (Object instance) throws Error {
             if (instance instanceof Double)
@@ -353,22 +376,20 @@ public class JSONR {
             else if (instance instanceof Number)
                 return new Double(((Number) instance).doubleValue());
             else
-                throw new Error(NOT_A_DOUBLE_TYPE);
+                throw new Error(JSON.DOUBLE_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
             if (string != null) {
                 return new Double(string);
             } else
-                throw new Error(NOT_A_DOUBLE_VALUE);
+                throw new Error(DOUBLE_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
     }
 
     protected static final class TypeDecimal implements Type {
-        protected static final String NOT_A_DECIMAL_VALUE = 
-            "not a decimal value";
-        protected static final String NOT_A_DECIMAL_TYPE = 
-            "not a decimal type";
+        protected static final String DOUBLE_VALUE_ERROR = 
+            "BigDecimal value error";
         public final Object value (Object instance) throws Error {
             BigDecimal b;
             if (instance instanceof BigDecimal) {
@@ -376,24 +397,22 @@ public class JSONR {
             } else if (instance instanceof Number) {
                 b = new BigDecimal(((Number) instance).doubleValue());
             } else
-                throw new Error(NOT_A_DECIMAL_TYPE);
+                throw new Error(JSON.DOUBLE_TYPE_ERROR);
             return b;
         }
         public final Object eval (String string) throws JSON.Error {
             if (string != null) {
                 return (new BigDecimal(string));
             } else
-                throw new Error(NOT_A_DECIMAL_VALUE);
+                throw new Error(DOUBLE_VALUE_ERROR);
         }
         public static final Type singleton = new TypeDecimal();
         public final Type copy() {return singleton;}
     }
 
     protected static final class TypeString implements Type {
-        protected static final String NULL_STRING_VALUE = 
-            "null string value";
-        protected static final String NOT_A_STRING_TYPE = 
-            "not a string type";
+        protected static final String STRING_VALUE_ERROR = 
+            "String value error";
         public static final TypeString singleton = new TypeString();
         public final Object value (Object instance) throws Error {
             if (instance instanceof String) {
@@ -401,40 +420,40 @@ public class JSONR {
                 if (s.length() > 0)
                     return instance;
                 else
-                    throw new Error(NULL_STRING_VALUE);
+                    throw new Error(STRING_VALUE_ERROR);
             } else
-                throw new Error(NOT_A_STRING_TYPE);
+                throw new Error(JSON.STRING_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
             if (string == null || string.length() == 0) 
-                throw new Error(NULL_STRING_VALUE);
+                throw new Error(STRING_VALUE_ERROR);
             else
                 return string;
         }
         public final Type copy() {return singleton;}
     }
     
-    protected static final class TypeRegular implements Type {
-        protected static final String IRREGULAR_STRING_VALUE = 
-            "irregular string value";
+    protected static final class TypeRegexp implements Type {
+        protected static final String IRREGULAR_STRING = 
+            "irregular String";
         protected Pattern pattern = null;
-        protected TypeRegular (Pattern pattern) {
+        protected TypeRegexp (Pattern pattern) {
             this.pattern = pattern;
         } 
-        public TypeRegular (String expression) {
+        public TypeRegexp (String expression) {
             pattern = Pattern.compile(expression);
         } 
         protected final Object test (String string) throws Error {
             if (pattern.matcher(string).matches())
                 return string;
             else
-                throw new Error(IRREGULAR_STRING_VALUE);
+                throw new Error(IRREGULAR_STRING);
         }
         public final Object value (Object instance) throws Error {
             if (instance instanceof String) {
                 return this.test((String) instance);
             } else
-                throw new Error(TypeString.NOT_A_STRING_TYPE);
+                throw new Error(JSON.STRING_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
             if (string != null)
@@ -442,24 +461,22 @@ public class JSONR {
             else
                 return null;
         }
-        public Type copy() {return new TypeRegular(pattern);}
+        public Type copy() {return new TypeRegexp(pattern);}
     }
     
-    protected static final class TypeArray implements Type {
-        protected static final String NOT_AN_ARRAY_TYPE = 
-            "not an array type";
+    public static final class TypeArray implements Type {
         public Type[] types = null;
         public TypeArray (Type[] types) {this.types = types;}
         public final Object value (Object instance) throws Error {
             if (instance == null || instance instanceof ArrayList)
                 return instance;
             else
-                throw new Error(NOT_AN_ARRAY_TYPE);
+                throw new Error(JSON.ARRAY_TYPE_ERROR);
             }
         public final Object eval (String string) throws JSON.Error {
-            return array(string, 65355, 65355);
+            return eval(string, 65355, 65355);
         }
-        public final JSON.A array(
+        public final JSON.A eval(
             String string, int containers, int iterations
             ) throws JSON.Error {
             if (string == null) 
@@ -475,7 +492,7 @@ public class JSONR {
                     throw e;
             } 
         }
-        public final Iterator iterator() {
+        protected final Iterator iterator() {
             return new Simple.ObjectIterator(types);
             }
         public static final Type singleton = new TypeArray(new Type[]{});
@@ -487,11 +504,9 @@ public class JSONR {
             }
     }
     
-    protected static final class TypeObject implements Type {
-        protected static final String NOT_AN_OBJECT_TYPE = 
-            "not an object type";
+    public static final class TypeObject implements Type {
         protected static final String IRREGULAR_OBJECT = 
-            "irregular object";
+            "irregular Object";
         public Set names;
         public HashMap namespace;
         public TypeObject (HashMap ns) {
@@ -508,12 +523,13 @@ public class JSONR {
                 else
                     throw new Error(IRREGULAR_OBJECT);
             } else
-                throw new Error(NOT_AN_OBJECT_TYPE);
+                throw new Error(JSON.OBJECT_TYPE_ERROR);
         }
         public final Object eval (String string) throws JSON.Error {
-            return object(string, 65355, 65355);
+            return eval(string, 65355, 65355);
         }
-        public final JSON.O object(String string, int containers, int iterations) 
+        public final 
+        JSON.O eval(String string, int containers, int iterations) 
         throws JSON.Error {
             if (string == null) 
                 return null;
@@ -538,9 +554,10 @@ public class JSONR {
                 name = (String) iter.next();
                 type = (Type) namespace.get(name);
                 strings = (String[]) query.get(name);
-                if (type != null && strings != null && strings.length > 0) try {
-                    o.put(name, type.eval(strings[0]));
-                } catch (JSON.Error e) {;}
+                if (type != null && strings != null && strings.length > 0) 
+                    try {
+                        o.put(name, type.eval(strings[0]));
+                    } catch (JSON.Error e) {;}
             }
             return o;
         }
@@ -588,8 +605,8 @@ public class JSONR {
         public static final String name = "DateTime"; 
         protected static final SimpleDateFormat format = 
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        protected static final String NOT_A_DATETIME_VALUE = 
-            "not a DateTime value";
+        protected static final String DATETIME_VALUE_ERROR = 
+            "DateTime value error";
         public final Object value (Object instance) throws JSONR.Error {
             return eval((String) STRING.value(instance));
         }
@@ -600,7 +617,7 @@ public class JSONR {
                 dt.setTime(format.parse(string));
                 return dt;
             } catch (Exception e) {
-                throw new JSONR.Error(NOT_A_DATETIME_VALUE);
+                throw new JSONR.Error(DATETIME_VALUE_ERROR);
             }
         }
         public static final Type singleton = new TypeDateTime();
@@ -628,7 +645,7 @@ public class JSONR {
     
     // the built-in regular numeric types
     
-    protected static class TypeIntegerAbsolute implements Type {
+    protected static final class TypeIntegerAbsolute implements Type {
         private static final String POSITIVE_INTEGER_OVERFLOW = 
             "positive integer overflow";
         private static final String NEGATIVE_INTEGER = 
@@ -652,7 +669,7 @@ public class JSONR {
         public final Type copy() {return new TypeIntegerAbsolute(limit);}
     }
 
-    protected static class TypeIntegerRelative implements Type {
+    protected static final class TypeIntegerRelative implements Type {
         private static final String INTEGER_OVERFLOW = 
             "integer overflow";
         BigInteger limit;
@@ -674,7 +691,7 @@ public class JSONR {
 
     private static final Double _double_zero = new Double(0.0);
     
-    protected static class TypeDoubleAbsolute implements Type {
+    protected static final class TypeDoubleAbsolute implements Type {
         private static final String POSITIVE_DOUBLE_OVERFLOW = 
             "positive double overflow";
         private static final String NEGATIVE_DOUBLE = 
@@ -698,7 +715,7 @@ public class JSONR {
         public final Type copy() {return new TypeDoubleAbsolute(limit);}
     }
     
-    protected static class TypeDoubleRelative implements Type {
+    protected static final class TypeDoubleRelative implements Type {
         private static final String DOUBLE_OVERFLOW = 
             "double overflow";
         double limit;
@@ -722,7 +739,7 @@ public class JSONR {
     
     private static final BigDecimal _decimal_zero = BigDecimal.valueOf(0);
     
-    protected static class TypeDecimalAbsolute implements Type {
+    protected static final class TypeDecimalAbsolute implements Type {
         private static final String POSITIVE_DECIMAL_OVERFLOW = 
             "positive decimal overflow";
         private static final String NEGATIVE_DECIMAL = 
@@ -751,7 +768,7 @@ public class JSONR {
         public final Type copy() {return new TypeDecimalAbsolute(limit);}
     }
     
-    protected static class TypeDecimalRelative implements Type {
+    protected static final class TypeDecimalRelative implements Type {
         private static final String DECIMAL_OVERFLOW = 
             "decimal overflow";
         BigDecimal limit;
@@ -802,14 +819,14 @@ public class JSONR {
      */
     public static class Interpreter extends JSON.Interpreter {
         
-        protected static final String NOT_A_JSONR_ARRAY_TYPE = 
-            "array type error";
-        protected static final String NOT_A_JSONR_OBJECT_TYPE = 
-            "object type error";
-        protected static final String IRREGULAR_ARRAY = "irregular array";
-        protected static final String PARTIAL_ARRAY = "partial array";
-        protected static final String ARRAY_OVERFLOW = "array overflow";
-        protected static final String NAME_ERROR = "name error";
+        protected static final String IRREGULAR_ARRAY = 
+            "irregular array";
+        protected static final String PARTIAL_ARRAY = 
+            "partial array";
+        protected static final String ARRAY_OVERFLOW = 
+            "array overflow";
+        protected static final String NAME_ERROR = 
+            "name error";
 
         public Interpreter() {super();}
         
@@ -832,7 +849,7 @@ public class JSONR {
         
         public final JSON.Error update(Map o, String json, Type type) {
             if (!(type instanceof TypeObject))
-                return new Error(NOT_A_JSONR_OBJECT_TYPE);
+                return new Error(JSON.OBJECT_TYPE_ERROR);
             
             TypeObject to = (TypeObject) type;
             buf = new StringBuffer();
@@ -845,7 +862,7 @@ public class JSONR {
                     to.value(object(o, to.namespace));
                     return null;
                 } else
-                    return error(NOT_AN_OBJECT);
+                    return error(JSON.OBJECT_TYPE_ERROR);
             } catch (JSON.Error e){
                 return e;
             } finally {
@@ -856,7 +873,7 @@ public class JSONR {
         
         public final JSON.Error extend(List a, String json, Type type) {
             if (!(type instanceof TypeArray))
-                return new Error(NOT_A_JSONR_ARRAY_TYPE);
+                return new Error(JSON.ARRAY_TYPE_ERROR);
             
             buf = new StringBuffer();
             it = new StringCharacterIterator(json);
@@ -868,7 +885,7 @@ public class JSONR {
                     array(a, ((TypeArray) type).iterator());
                     return null;
                 } else
-                    return error(NOT_AN_ARRAY);
+                    return error(JSON.ARRAY_TYPE_ERROR);
             } catch (JSON.Error e){
                 return e;
             } finally {
@@ -894,12 +911,12 @@ public class JSONR {
             }
             case '[': {
                 if (type instanceof TypeArray) { 
-                    Iterator types = ((TypeArray) type).iterator();
                     c = it.next(); 
+                    Iterator types = ((TypeArray) type).iterator();
                     if (types.hasNext())
                         return array(new JSON.A(), types);
                     else
-                        return array(new ArrayList());
+                        return array(new JSON.A());
                 } else if (type == TypeUndefined.singleton) {
                     c = it.next();
                     return array(new JSON.A());
@@ -1053,7 +1070,7 @@ public class JSONR {
     }
     
     protected static final Type compile(
-        Object regular, HashMap extensions, HashMap cache
+        Object regular, Map extensions, HashMap cache
         ) {
         String pattern = JSON.str(regular);
         if (cache.containsKey(pattern))
@@ -1069,7 +1086,7 @@ public class JSONR {
             if (extensions != null && extensions.containsKey(s))
                 type = (Type) extensions.get(s);
             else if (s.length() > 0)
-                type = new TypeRegular(s);
+                type = new TypeRegexp(s);
             else
                 type = STRING;
         } else if (regular instanceof BigInteger) {
@@ -1131,21 +1148,21 @@ public class JSONR {
         return type;
     }
     
-    public static final Type compile(Object regular, HashMap extensions) {
+    public static final Type compile(Object regular, Map extensions) {
         return compile(regular, extensions, new HashMap());
     }
 
-    protected static final TypeObject O(Map regular, HashMap extensions) {
+    protected static final TypeObject O(Map regular, Map extensions) {
         return (TypeObject) compile(regular, extensions, new HashMap());
     }
     
-    protected static final TypeArray A(List regular, HashMap extensions) {
+    protected static final TypeArray A(List regular, Map extensions) {
         return (TypeArray) compile(regular, extensions, new HashMap());
     }
         
     public Type type = null;
     
-    public JSONR(Object object, HashMap extensions) {
+    public JSONR(Object object, Map extensions) {
         type = compile(object, extensions);
     }
     
@@ -1153,12 +1170,12 @@ public class JSONR {
         type = compile(object, TYPES);
     }
 
-    public JSONR(String string, HashMap extensions) throws JSON.Error  {
-        type = compile(JSON.eval(string), extensions);
+    public JSONR(String json, Map extensions) throws JSON.Error  {
+        type = compile(JSON.eval(json), extensions);
     }
     
-    public JSONR(String string) throws JSON.Error {
-        type = compile(JSON.eval(string), TYPES);
+    public JSONR(String json) throws JSON.Error {
+        type = compile(JSON.eval(json), TYPES);
     }
 
     public final Object eval(String json, int containers, int iterations) 
@@ -1168,72 +1185,28 @@ public class JSONR {
 
     public final JSON.O object(String json, int containers, int iterations) 
     throws JSON.Error {
-        if (json == null) 
-            return null;
-        else {
-            JSON.O o = new JSON.O();
-            JSON.Error e = (
-                new Interpreter(containers, iterations)
-                ).update(o, json, type);
-            if (e == null)
-                return o;
-            else
-                throw e;
-        }
+        JSON.O o = new JSON.O();
+        JSON.Error e = (
+            new Interpreter(containers, iterations)
+            ).update(o, json, type);
+        if (e == null)
+            return o;
+        else
+            throw e;
     }
             
     public final JSON.A array(String json, int containers, int iterations) 
     throws JSON.Error {
-        if (json == null) 
-            return null;
-        else {
-            JSON.A a = new JSON.A();
-            JSON.Error e = (
-                new Interpreter(containers, iterations)
-                ).extend(a, json, type);
-            if (e == null)
-                return a;
-            else
-                throw e;
-        } 
+        JSON.A a = new JSON.A();
+        JSON.Error e = (
+            new Interpreter(containers, iterations)
+            ).extend(a, json, type);
+        if (e == null)
+            return a;
+        else
+            throw e;
     }
             
-    public final JSON.O filter(Map query) {
-        Type type;
-        String name;
-        String[] strings;
-        HashMap namespace = ((TypeObject) this.type).namespace;
-        JSON.O o = new JSON.O();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            type = (Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (type != null && strings != null && strings.length > 0) try {
-                o.put(name, type.eval(strings[0]));
-            } catch (JSON.Error e) {;}
-        }
-        return o;
-    }
-    
-    public final JSON.O match(Map query) throws Error {
-        Type type;
-        String name;
-        String[] strings;
-        HashMap namespace = ((TypeObject) this.type).namespace;
-        JSON.O o = new JSON.O();
-        Iterator iter = query.keySet().iterator();
-        while (iter.hasNext()) {
-            name = (String) iter.next();
-            type = (Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (type != null && strings != null && strings.length > 0) try {
-                o.put(name, type.eval(strings[0]));
-            } catch (JSON.Error e) {;}
-        }
-        return o;
-    }
-    
 }
 
 /* Note about this implementation
