@@ -35,10 +35,6 @@ import java.text.StringCharacterIterator;
  * ranges, regular text, formated dates, typed collections, typed records and 
  * typed objects. 
  * 
- * <p>A safe JSON intepreter to evaluate and validate a UNICODE string 
- * as a limited tree of Java instances that matches a regular pattern
- * of types and values.</p> 
- *
  * <h3>JSON Regular</h3>
  * 
  * <p>JSON Regular (JSONR) is a protocol to define a JSON regular type
@@ -46,73 +42,143 @@ import java.text.StringCharacterIterator;
  * 
  * <p>For instance, the JSON object
  * 
- *<pre>{"width": 800, "height": 600}</pre>
+ * <blockquote>
+ * <pre>{"width": 800, "height": 600}</pre>
+ * </blockquote>
  *
  * is is also a practical specification of any object with a non-negative 
  * integer "width" below or equal 800 and an integer "height" that is not 
- * smaller than zero and not greater than 600.</p>
+ * smaller than zero and not greater than 600, for instance:
+ * 
+ * <blockquote>
+ * <pre>{"width": 270, "height": 420}</pre>
+ * </blockquote>
+ * 
+ * or
+ * 
+ * <blockquote>
+ * <pre>{"width": 768, "height": 240}</pre>
+ * </blockquote>
  * 
  * <p>And this JSON array
  * 
- *<pre>[[800, 600, true, 0.0]]</pre>
+ * <blockquote>
+ * <pre>[[800, 600, true, 0.0]]</pre>
+ * </blockquote>
  *
- * is quite a telling and concise expression to define a collection of 
- * records, a table of zero or more fixed length rows of typed values</p>
+ * is quite a concise expression to define a collection of records, a table 
+ * of zero or more fixed length rows of typed values, for instance</p>
  * 
- * <p>JSONR is a <em>very</em> practical protocol, because it makes
- * the implementation of all its applications a lot simpler since a JSON 
- * interpreter can be reused to parse and compile the type tree. This is true 
- * in Java as it is in any language: of all the possible ways to specify a 
- * JSON model, this the easiest to implement everywhere it is needed.</p> 
+ * <blockquote>
+ * <pre>[
+ *    [270, 420, true, 10.0]
+ *    [24, 24, true, 1.0]
+ *    [768, 240, true, 50.0]
+ *    [799, 599, false, 10000.0]
+ *    ]</pre>
+ * </blockquote>
+ *
+ * JSONR expressions can validate complex JSON expressions, like this
+ * one to many relationship, 
+ * 
+ * <blockquote>
+ * <pre>{
+ *    "name": ".+", 
+ *    "courses" = [
+ *        ["+", "", 31, ]
+ *        ]</pre>
+ *    }</pre>
+ * </blockquote>
+ *
+ * ...</p>
+ *
+ * <h4>Duck typing</h4>
  * 
  * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr><td>null</td><td>an undefined type and value</td></tr>
- * <tr><td>true</td><td>a boolean value, true or false</td></tr>
- * <tr><td>0</td><td>any integer value</td></tr>
- * <tr><td>0e+</td><td>a double value</td></tr>
- * <tr><td>0.0</td><td>any decimal value</td></tr>
- * <tr><td>""</td><td>any non empty string</td></tr>
- * <tr><td>[]</td><td>a list of undefined types an values</td></tr>
- * <tr><td>{}</td><td>an object of undefined names, types and values</td></tr>
+ * <tr><td><code>null</code></td><td>any value</td></tr>
+ * <tr><td><code>true</code></td><td>a boolean value, true or false</td></tr>
+ * <tr><td><code>0</code></td><td>any integer value</td></tr>
+ * <tr><td><code>0e+</code></td><td>a double value</td></tr>
+ * <tr><td><code>0.0</code></td><td>any decimal value</td></tr>
+ * <tr><td><code>""</code></td><td>any string value</td></tr>
+ * <tr><td><code>[]</code></td><td>a collection of untyped values</td></tr>
+ * <tr>
+ *  <td><code>{}</code></td>
+ *  <td>an object of undefined names, types and values</td></tr>
  * </table>
  * 
- * <p>...</p>
+ * <h4>Simple Ranges and PERL Regular Expression</h4>
  * 
- * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr><td>12</td><td>a non-negative integer lower than or equal 12</td></tr>
- * <tr><td>1e+3</td><td>a non-negative double value lower than or equal 1000</td></tr>
- * <tr><td>10.01</td><td>a non-negative decimal rounded to a two digits value 
- * lower than 10.01, or more practically defined, any two digit decimal between
- * 0 and 10</td></tr>
- * <tr><td>-1</td><td>an integer greater than -1</td></tr>
- * <tr><td>1e-3</td><td>a double greater than -1000</td></tr>
- * <tr><td>-9.99</td><td>a two digit decimal greater or equal than -9.99</td></tr>
- * <tr><td>"[a-z]*"</td><td>any string matching this regular expression</td></tr>
+ * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="" >
+ * <tr><td><code>12</code></td>
+ * <td>a non-negative integer lower than or equal 12</td></tr>
+ * <tr><td><code>1e+3</code></td>
+ * <td>a non-negative double value lower than or equal 1000</td></tr>
+ * <tr><td><code>10.01</code></td>
+ * <td>a non-negative decimal rounded to a two digits value 
+ * lower than 10.01, or more practically defined, any two digit decimal 
+ * between 0 and 10</td></tr>
+ * <tr><td><code>-1</code></td>
+ * <td>an integer greater than -1</td></tr>
+ * <tr><td><code>1e-3</code></td>
+ * <td>a double greater than -1000</td></tr>
+ * <tr><td><code>-9.99</code></td>
+ * <td>a two digit decimal greater or equal than -9.99</td></tr>
+ * <tr><td><code>"[a-z]*"</code></td>
+ * <td>any string matching this regular expression</td></tr>
  * </table>
  * 
- * <p>...</p>
+ * <h4>Collections, Records and Namespaces</h4>
  * 
  * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr><td>[12]</td><td>a list of zero or more integers between 1 and 12</td></tr>
- * <tr><td>[1.0e-1]</td><td>a list of zero or more doubles above -1.0</td></tr>
- * <tr><td>[""]</td><td>a list of zero or more non-empty strings</td></tr>
  * <tr>
- * <td>["[a-z]*"]</td>
- * <td>a list of zero or more strings matching this regular expression</td></tr>
- * <tr>
- * <td>["[a-z]+", 0.0, "", true]</td>
- * <td>a fixed list of four typed instances, aka a row</td>
+ *  <td><code>[12]</code></td>
+ *  <td>a list of zero or more integers between 1 and 12</td>
+ * </tr>
+ * <tr><td><code>[1.0e-1]</code></td>
+ *  <td>a list of zero or more doubles above -1.0</td>
  * </tr>
  * <tr>
- * <td>[["[a-z]+", 0.0, "", true]]</td>
- * <td>a list of at least one row, aka a table</td>
+ *  <td><code>[""]</code></td>
+ *  <td>a list of zero or more non-empty strings</td>
+ * </tr>
+ * <tr>
+ *  <td><code>["[a-z]*"]</code></td>
+ *  <td>a list of zero or more strings matching this regular expression</td>
+ * </tr>
+ * <tr>
+ *  <td><code>["[a-z]+", 0.0, "", true]</code></td>
+ *  <td>a fixed list of four typed instances, aka a row</td>
+ * </tr>
+ * <tr>
+ *  <td><code>[["[a-z]+", 0.0, "", true]]</code></td>
+ *  <td>a list of at least one row, aka a table</td>
  * </tr>
  * </table>
  * 
- * <p>...</p>
+ * <h4>Extension Types</h4>
+ * 
+ * <p>Some application demand specialized data types, most notably date
+ * and time types. This implementation provides only one, the most common
+ * JSON extension type:
+ * 
+ * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
+ * <tr>
+ *  <td><code>"yyyy-MM-ddTHH:mm:ss"</code></td>
+ *  <td>a valid date and type value formated alike, as the defacto standard
+ *  JavaScript 1.7 serialization of a date and time instance.</td>
+ * </tr>
+ * </table>
+ * 
+ * As a decent implementation of JSONR, this one is extensible and provides
+ * a Java interface and enough singleton to do so easely.</p>
  * 
  * <h3>Synopsis</h3>
  * 
+ * <p>A safe JSON intepreter to evaluate and validate a UNICODE string 
+ * as a limited tree of Java instances that matches a regular pattern
+ * of types and values.</p> 
+ *
  * <p>To compile a JSONR pattern with the default set of extension types,
  * for instance a dummy constant model:
  * 
@@ -133,42 +199,73 @@ import java.text.StringCharacterIterator;
  * 
  * but will raise a <code>JSONR.Error</code> for the second.</p>
  * 
- * <h4>Regular Evaluation</h4>
+ * <h4>JSON Regular Evaluation</h4>
  * 
  * <p>The <code>JSONR</code> class provides similar interfaces than 
  * <code>JSON</code> in the form of instance methods to evaluate and
- * validate JSON objects
+ * validate any JSON values:
  * 
  * <blockquote>
- * <pre>try {
- *    JSONR.O jsonr = new JSONR.O ("{\"pass\": null);
- *    JSON.O map = jsonr.eval(
- *        "{\"pass\": true}", 1, 2
+ * <pre>JSON.O map;
+ *try {
+ *    JSONR pattern = new JSONR("{\"pass\": null}");
+ *    map = pattern.eval(
+ *        "{\"pass\": true}"
  *        );
- *    JSON.A list = JSONR.A("[]").eval(
- *        "{\"will this fail?\": true}", 1, 2
+ *    map = pattern.eval(
+ *        "{\"will this fail?\": true}"
  *        );
  *} catch (JSONR.Error e) {
  *    System.out.println(e.str());
  *}</pre>
  * </blockquote>
  * 
- * and arrays 
+ * extend arrays
  * 
  * <blockquote>
- * <pre>try {
- *    ArrayList list = JSONR("[\".+\"]").array(
- *        "[\"my model\": \"is a constant\"]", 1, 2
- *        );
- *    ArrayList list = JSONR("[\".+\"]").array(
- *        "[\"will this fail?\", true]", 1, 2
- *        );
- *} catch (JSONR.Error e) {
- *    System.out.println(e.str());
- *}</pre>
+ * <pre>JSONR pattern = new JSONR("[\".+\"]");
+ *JSON.A list = new JSON.A(); 
+ *JSONR.Error e = pattern.extend(
+ *    list, "[\"my model\": \"is a constant\"]"
+ *    );
+ *if (e != null)    
+ *    System.out.println(e.str());</pre>
  * </blockquote>
  * 
- * against a pattern, with safety limits.</p>
+ * or update maps
+ *  
+ * <blockquote>
+ * <pre>JSONR pattern = new JSONR("[\".+\"]");
+ *JSON.O map = new JSON.O();
+ *JSONR.Error e = pattern.update(
+ *    map, "{\"will this fail?\": true}"
+ *    );
+ *if (e != null)    
+ *    System.out.println(e.str());</pre>
+ * </blockquote>
+ * 
+ * eventually with safety limits
+ * 
+ * <blockquote>
+ * <pre>JSONR.Error e;
+ *JSON.A list = new JSON.A();
+ *JSONR pattern = new JSONR("[0]", 1, 7);
+ *e = pattern.extend(list, "[1,2,3,4,5]"
+ *if (e != null)    
+ *    System.out.println(e.str());
+ *e = pattern.extend(list, "[1,2,3,4,5,6,7,8,9,0]");
+ *if (e != null)
+ *    System.out.println(e.str());</pre>
+ * </blockquote>
+ * 
+ * <h4>JSON Regular Matches and Filter</h4>
+ * 
+ * <p>...
+ * 
+ * 
+ * ...</p>
+ * 
+ * or throw a <code>JSONR.Error</code> and stop the evaluation.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -433,11 +530,7 @@ public class JSONR extends JSON {
         public static final TypeString singleton = new TypeString();
         public final Object value (Object instance) throws Error {
             if (instance instanceof String) {
-                String s = (String) instance;
-                if (s.length() > 0)
-                    return instance;
-                else
-                    throw new Error(STRING_VALUE_ERROR);
+                return instance;
             } else
                 throw new Error(JSON.STRING_TYPE_ERROR);
         }
