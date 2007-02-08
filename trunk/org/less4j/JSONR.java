@@ -17,6 +17,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j; // less java for more applications
 
 import java.util.Set;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Iterator;
@@ -30,152 +31,14 @@ import java.text.SimpleDateFormat;
 import java.text.StringCharacterIterator;
 
 /**
- * Compile simple regular JSON patterns to evaluate and validate a JSON 
- * string against an extensible type model with built-in JSON types, numeric 
- * ranges, regular text, formated dates, typed collections, typed records and 
- * typed objects. 
- * 
- * <h3>JSON Regular</h3>
- * 
- * <p>JSON Regular (JSONR) is a protocol to define a JSON regular type
- * and value pattern <em>in</em> JSON.</p>
- * 
- * <p>For instance, the JSON object
- * 
- * <blockquote>
- * <pre>{"width": 800, "height": 600}</pre>
- * </blockquote>
- *
- * is is also a practical specification of any object with a non-negative 
- * integer "width" below or equal 800 and an integer "height" that is not 
- * smaller than zero and not greater than 600, for instance:
- * 
- * <blockquote>
- * <pre>{"width": 270, "height": 420}</pre>
- * </blockquote>
- * 
- * or
- * 
- * <blockquote>
- * <pre>{"width": 768, "height": 240}</pre>
- * </blockquote>
- * 
- * <p>And this JSON array
- * 
- * <blockquote>
- * <pre>[[800, 600, true, 0.0]]</pre>
- * </blockquote>
- *
- * is quite a concise expression to define a collection of records, a table 
- * of zero or more fixed length rows of typed values, for instance</p>
- * 
- * <blockquote>
- * <pre>[
- *    [270, 420, true, 10.0]
- *    [24, 24, true, 1.0]
- *    [768, 240, true, 50.0]
- *    [799, 599, false, 10000.0]
- *    ]</pre>
- * </blockquote>
- *
- * JSONR expressions can validate complex JSON expressions, like this
- * one to many relationship, 
- * 
- * <blockquote>
- * <pre>{
- *    "name": ".+", 
- *    "courses" = [
- *        ["+", "", 31, ]
- *        ]</pre>
- *    }</pre>
- * </blockquote>
- *
- * ...</p>
- *
- * <h4>Duck typing</h4>
- * 
- * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr><td><code>null</code></td><td>any value</td></tr>
- * <tr><td><code>true</code></td><td>a boolean value, true or false</td></tr>
- * <tr><td><code>0</code></td><td>any integer value</td></tr>
- * <tr><td><code>0e+</code></td><td>a double value</td></tr>
- * <tr><td><code>0.0</code></td><td>any decimal value</td></tr>
- * <tr><td><code>""</code></td><td>any string value</td></tr>
- * <tr><td><code>[]</code></td><td>a collection of untyped values</td></tr>
- * <tr>
- *  <td><code>{}</code></td>
- *  <td>an object of undefined names, types and values</td></tr>
- * </table>
- * 
- * <h4>Simple Ranges and PERL Regular Expression</h4>
- * 
- * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="" >
- * <tr><td><code>12</code></td>
- * <td>a non-negative integer lower than or equal 12</td></tr>
- * <tr><td><code>1e+3</code></td>
- * <td>a non-negative double value lower than or equal 1000</td></tr>
- * <tr><td><code>10.01</code></td>
- * <td>a non-negative decimal rounded to a two digits value 
- * lower than 10.01, or more practically defined, any two digit decimal 
- * between 0 and 10</td></tr>
- * <tr><td><code>-1</code></td>
- * <td>an integer greater than -1</td></tr>
- * <tr><td><code>1e-3</code></td>
- * <td>a double greater than -1000</td></tr>
- * <tr><td><code>-9.99</code></td>
- * <td>a two digit decimal greater or equal than -9.99</td></tr>
- * <tr><td><code>"[a-z]*"</code></td>
- * <td>any string matching this regular expression</td></tr>
- * </table>
- * 
- * <h4>Collections, Records and Namespaces</h4>
- * 
- * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr>
- *  <td><code>[12]</code></td>
- *  <td>a list of zero or more integers between 1 and 12</td>
- * </tr>
- * <tr><td><code>[1.0e-1]</code></td>
- *  <td>a list of zero or more doubles above -1.0</td>
- * </tr>
- * <tr>
- *  <td><code>[""]</code></td>
- *  <td>a list of zero or more non-empty strings</td>
- * </tr>
- * <tr>
- *  <td><code>["[a-z]*"]</code></td>
- *  <td>a list of zero or more strings matching this regular expression</td>
- * </tr>
- * <tr>
- *  <td><code>["[a-z]+", 0.0, "", true]</code></td>
- *  <td>a fixed list of four typed instances, aka a row</td>
- * </tr>
- * <tr>
- *  <td><code>[["[a-z]+", 0.0, "", true]]</code></td>
- *  <td>a list of at least one row, aka a table</td>
- * </tr>
- * </table>
- * 
- * <h4>Extension Types</h4>
- * 
- * <p>Some application demand specialized data types, most notably date
- * and time types. This implementation provides only one, the most common
- * JSON extension type:
- * 
- * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr>
- *  <td><code>"yyyy-MM-ddTHH:mm:ss"</code></td>
- *  <td>a valid date and type value formated alike, as the defacto standard
- *  JavaScript 1.7 serialization of a date and time instance.</td>
- * </tr>
- * </table>
- * 
- * As a decent implementation of JSONR, this one is extensible and provides
- * a Java interface and enough singleton to do so easely.</p>
+ * Compile simple <a href="http://laurentszyster.be/jsonr/index.html">JSON 
+ * Regular</a> patterns to evaluate and validate a JSON string against an 
+ * extensible type model with built-in JSON types, numeric ranges, regular 
+ * text, formated dates, typed collections, typed records and typed objects.
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>A safe JSON intepreter to evaluate and validate a UNICODE string 
+ * <p>A safe JSONR intepreter to evaluate and validate a UNICODE string 
  * as a limited tree of Java instances that matches a regular pattern
  * of types and values.</p> 
  *
@@ -258,14 +121,24 @@ import java.text.StringCharacterIterator;
  *    System.out.println(e.str());</pre>
  * </blockquote>
  * 
- * <h4>JSON Regular Matches and Filter</h4>
- * 
- * <p>...
- * 
- * 
- * ...</p>
- * 
  * or throw a <code>JSONR.Error</code> and stop the evaluation.</p>
+ * 
+ * <h4>Extension Types</h4>
+ * 
+ * <p>Some application demand specialized data types, most notably date
+ * and time types. This implementation provides only one, the most common
+ * JSON extension type:
+ * 
+ * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
+ * <tr>
+ *  <td><code>"yyyy-MM-ddTHH:mm:ss"</code></td>
+ *  <td>a valid date and type value formated alike, as the defacto standard
+ *  JavaScript 1.7 serialization of a date and time instance.</td>
+ * </tr>
+ * </table>
+ * 
+ * As a decent implementation of JSONR, this one is extensible and provides
+ * a Java interface and enough singleton to do so easely.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -602,17 +475,30 @@ public class JSONR extends JSON {
         protected static final String IRREGULAR_OBJECT = 
             "irregular Object";
         public Set names;
+        public Set mandatory;
         public HashMap namespace;
         public TypeObject (HashMap ns) {
             namespace = ns;
             names = ns.keySet();
+            mandatory = new HashSet();
+            Iterator i = names.iterator();
+            while (i.hasNext()) {
+                String name = (String) i.next();
+                Object value = namespace.get(name); 
+                if (!(
+                    value instanceof TypeUndefined ||
+                    value instanceof TypeArray ||
+                    value instanceof TypeObject
+                    ))
+                    mandatory.add(name);
+                }
             }
         public final Object value (Object instance) throws Error {
             if (instance == null)
                 return null;
             else if (instance instanceof HashMap) {
                 HashMap map = (HashMap) instance;
-                if (map.keySet().containsAll(names))
+                if (map.keySet().containsAll(mandatory))
                     return map;
                 else
                     throw new Error(IRREGULAR_OBJECT);
@@ -954,6 +840,16 @@ public class JSONR extends JSON {
         return compile(regular, extensions, new HashMap());
     }
     
+    public static final Type compile(String pattern, Map extensions)
+    throws JSON.Error {
+        return compile((new JSON()).eval(pattern), extensions);
+    }
+    
+    public static final Type compile(String pattern)
+    throws JSON.Error {
+        return compile((new JSON()).eval(pattern), TYPES);
+    }
+
     protected static final String IRREGULAR_ARRAY = 
         "irregular array";
     protected static final String PARTIAL_ARRAY = 
@@ -981,13 +877,12 @@ public class JSONR extends JSON {
     }
     
     public JSONR(String pattern) throws JSON.Error {
-        super(); type = compile((new JSON()).eval(pattern), TYPES);
+        super(); type = compile(pattern, TYPES);
     }
     
     public JSONR(String pattern, int containers, int iterations) 
     throws JSON.Error {
-        super(containers, iterations); 
-        type = compile((new JSON()).eval(pattern), TYPES);
+        super(containers, iterations); type = compile(pattern, TYPES);
     }
     
     public Object eval(String json) 

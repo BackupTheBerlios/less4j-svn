@@ -16,16 +16,13 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-import java.util.HashMap;     // the one obvious way to do it right ...
-import java.util.Enumeration; // ... although that may not be obvious 
-                              // immediately, unless you're dutch. 
+import java.util.Iterator;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException; 
 import javax.servlet.http.HttpServlet;
-
-//import javax.servlet.http.HttpServletRequest;
-//import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * <p>A stateless servlet to configure, test and apply the <code>Actor</code>
@@ -34,11 +31,44 @@ import javax.servlet.http.HttpServlet;
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>...</p>
+ * <p>This class implements the <code>doGet</code> and <code>doPost</code>
+ * methods of <code>HttpServlet</code>, solving common issues for RESTful 
+ * AJAX applications: a request/response state configuration, test and 
+ * instanciation, user identification, requests authorization, input
+ * validation and application audit trail.</p>
+ * 
+ * <p>It does The Right Thing for its applications, leaving to developpers
+ * the profitable and creative part of the job as the implementation of one
+ * to five simple methods:</p>
+ * 
+ * <blockquote>
+ *<pre>jsonApplication (Actor $)
+ *jsonrModel(Actor $)
+ *irtd2Authorize (Actor $)
+ *httpResource (Actor $)
+ *less4jConfigure (Actor $)</pre>
+ * </blockquote>
+ * 
+ * <p>To quickly and safely scaffold applications from prototype to 
+ * production, all those methods are allready implemented.</p>
+ * 
+ * <blockquote>
+ * <pre>{
+ *  "": { 
+ *     "irtd2Timeout": 3600,
+ *     "postLimit": 4096,
+ *     "jsonContainers": 128,
+ *     "jsonIterations": 4096,
+ *     "jsonRegular": {"irdt2": {"username": ".+", "password": null}}
+ *  }
+ *}</pre>
+ * </blockquote>
+ * 
+ * ...</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.10
+ * @version 0.20
  *
  */
 public class Controller extends HttpServlet {
@@ -51,109 +81,159 @@ public class Controller extends HttpServlet {
 //        ((Actor.Action) actions.get(name)).play($);
 //    }
     
-    HashMap configuration = new HashMap ();
-    
-    public void setConfiguration(ServletConfig config) {
-        // TODO: move to JSON configuration ...
-        String property;
-        Enumeration properties = getServletConfig().getInitParameterNames ();
-        while (properties.hasMoreElements()) {
-            property = (String) properties.nextElement();
-            if (property.startsWith(Actor.less4j)) {
-                configuration.put(
-                    property, config.getInitParameter(property)
-                    );
-            }
-        }
-    }
+    protected JSON.O configuration = new JSON.O ();
     
     /**
      * Clone the controller's configuration HashMap.
      * 
      * @return a new Actor, a thread-safe place for instance variables
      */
-    public HashMap getConfiguration() {
-        synchronized (configuration) {
-            return (HashMap) configuration.clone ();
+    protected JSON.O getConfiguration() {
+        synchronized (configuration) {return configuration;}
+    }
+    
+    protected class Model {
+        public static final String jsonr = ("{" +
+            "\".*\": {" +
+                "\"irtd2Timeout\": 86400," +
+                "\"postLimit\": 65355," +
+                "\"jsonContainers\": 65355," +
+                "\"jsonIterations\": 65355," +
+                "\"jsonRegular\": null" +
+                "}" + 
+            "}"
+            );
+        public String irtd2Service = null;
+        public int irtd2Timeout = 3600;
+        public int postLimit = 16384;
+        public int jsonContainers = 635355;
+        public int jsonIterations = 635355;
+        public JSONR.Type jsonrType = null;
+        
+        public Model (JSON.O objc) {
+            irtd2Service = objc.stri("irtd2Service", null);
+            irtd2Timeout = objc.intValue("irtd2Timeout", 3600);
+            postLimit = objc.intValue("postLimit", 16384);
+            jsonContainers = objc.intValue("jsonContainers", 635355);
+            jsonIterations = objc.intValue("jsonIterations", 635355);
         }
     }
-
-    private static final String less4jRealPath = "less4j.realpath";
     
     /**
      * Initialize a servlet controller: extract the less4j properties,
-     * test the resource configured with a new Actor and raise a
-     * ServletException if the configuration is incomplete or fails
-     * the tests.
+     * test the resource configured with a new Actor and call the
+     * controller's <code>less4jConfigure</code> method or raise a
+     * ServletException if the configuration is incomplete and fails
+     * the Actor's tests.
      *  
+     * @param config the Servlet configuration <code>Map</code>
      */
     public void init (ServletConfig config) throws ServletException {
         super.init(config);
-        setConfiguration(config);
-        configuration.put(less4jRealPath, getServletContext().getRealPath(""));
-        Actor $ = new Actor (configuration);
-        if (!$.testConfiguration()) {
+        String conf = config.getInitParameter("less4j");
+        JSON.O o = new JSON.O();
+        if (conf != null) {
+            JSON.Error e = (new JSON()).update(o, conf);
+            if (e != null)
+                throw new ServletException(
+                    "Controller JSON configuration error", e
+                    );
+        }
+        o.put("j2eeRealPath", getServletContext().getRealPath(""));
+        Actor $ = new Actor (o);
+        if (!($.less4jConfigure() && this.less4jConfigure ($)))
             throw new ServletException(
-                "less4j configuration failed at runtime"
-            );
-        }
+                "Controller or Actor configuration failed runtime tests"
+                );
+        
+        synchronized (configuration) {this.configuration = o;}
     }
-
-}
-
-/* Note about this implementation
-
-I though about that issue a lot but the sheer weight of Java forces to
-cut the cat fast and easy: all the logic belongs to the controller, it
-is the application.
-
-From a J2EE point of view, a controller could be expressed like is this 
-in tight JSON and JSONR:
-
-    "\/insert": {
-        "columns": ["name", "department", "age"],
-        "rows": [
-            ["[a-Z\/w]{2:75}", "[A-Z]{2}", 65]
-            ]
+ 
+    /**
+     * Configure the controller for its less4j models: a map of url
+     * to JSONR regular expressions, IRTD2 timeout, HTTP maximum POST 
+     * content length and JSON containers and iterations limits.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>... derive ...</p>
+     * 
+     */
+    public boolean less4jConfigure (Actor $) {
+        try {
+            String key;
+            Model controllerModel;
+            JSON.O model;
+            JSON.O less4jModels = $.configuration.objc("less4jModels");
+            Iterator iter = less4jModels.keySet().iterator(); 
+            while (iter.hasNext()){
+                key = (String) iter.next();
+                model = less4jModels.objc(key);
+                controllerModel = new Model(model);
+                if (model.containsKey("jsonRegular"))
+                    controllerModel.jsonrType = JSONR.compile(
+                        model.objc("jsonRegular"), JSONR.TYPES
+                        );
+                less4jModels.put(key, controllerModel);
+            }
+        } catch (JSON.Error e) {
+            $.logError(e); return false;
         }
-
-A path from the servlet's context mapping to a JSONR model controlling
-the rest of the interface, the state object model, types and values. 
-
-There is also only one XML resource, although the JSON model sandwiched 
-between the hypertext may be dynamically generated. The whole REST of the
-state transfered is allways sent as JSON objects or arrays, and rendered
-in the browser.
-
-Eventually each controllers may have to orchestrate many different actions
-to produce compound JSON resources, at once or by pieces. That can be a 
-complex process but within a few pages of readable source at most. It is
-therefore not enough to dedicate an Action class to each one and suffer the
-pain of magic-kool-aid-drink-hang-over. 
-
-Action dispatchers only give your application developers enough rope to hang 
-themselves with the simplest configuration file update. However, handling
-more than one resource by controller makes them too complicated. Since there
-is allready a URL dispatch articulation at the servlet level, let's use it!
-
-So, for each idempotent URL identified, we have
-
-  One Java class controlling access, actions, flow and logic for one
-  identified resource.
-  
-  One XML template, XSLT, CSS, JavaScript and dependencies controlling the 
-  client's view of the application.
+        return true;
+    }
     
-  One J2EE descriptor with one JSONR pattern for the administration of the
-  application public and private interfaces.
+    public Model less4jModel (Actor $) {
+        return (Model) $.configuration.get($.url);
+    }
     
-Each variation from the first trio will define a new service of the 
-application. Without pain, because they are decoupled with protocols
-each time. This means that it's simpler to add actions, design richer 
-views or tune better configurations. 
-
-With less code for more applications.
-
-
-
-*/
+    public void doGet (HttpServletRequest req, HttpServletResponse res) {
+        Actor $ = new Actor (getConfiguration(), req, res);
+        Model model = less4jModel ($);
+        if ($.irtd2Digested(model.irtd2Timeout))
+            if ($.httpIdempotent())
+                this.httpResource($);
+            else if ($.jsonGET(
+                model.jsonContainers, model.jsonIterations, model.jsonrType
+                ))
+                this.jsonApplication($);
+            else
+                $.rest302Redirect();
+        else 
+            this.irtd2Authorize($, model);
+    }
+    
+    public void doPost (HttpServletRequest req, HttpServletResponse res) {
+        Actor $ = new Actor (getConfiguration(), req, res);
+        Model model = less4jModel ($);
+        if ($.irtd2Digested(model.irtd2Timeout)) 
+            if ($.jsonPOST(
+                model.postLimit, 
+                model.jsonContainers, model.jsonIterations, model.jsonrType
+                )) 
+                this.jsonApplication($); 
+            else 
+                $.rest302Redirect();
+        else
+            this.irtd2Authorize($, model);
+    }
+    
+    public void irtd2Authorize (Actor $, Model model) {
+        $.rest302Redirect(model.irtd2Service);
+    }
+    
+    public void httpResource (Actor $) {
+        $.rest302Redirect("index.html"); // TODO: find where to redirect ... 
+        //
+        // return an HTML view with enough JavaScript to present a
+        // comprehensive user interface to the application model
+        // described in the configuration file.
+        //
+        // by default, for all resources the Controller redirects user agents
+        // to a conventional static file, the obvious "index.html" 
+    }
+    
+    public void jsonApplication (Actor $) {
+        $.json200Ok();
+    }
+    
+}

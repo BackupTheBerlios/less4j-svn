@@ -443,19 +443,69 @@ public class JSON {
     public static final class O extends HashMap {
         static final long serialVersionUID = 0L; // TODO: regenerate
         public final BigInteger intg(String name) throws Error {
-            return (JSON.intg(get(name)));
+            return JSON.intg(get(name));
+        }
+        public final int intValue(String name, int def) {
+            if (!containsKey(name)) 
+                return def;
+            
+            try {
+                return JSON.intg(get(name)).intValue();
+            } catch (Error e) {
+                return def;
+            }
         }
         public final BigDecimal deci(String name) throws Error {
             return JSON.deci(get(name));
         }
+        public final BigDecimal deci(String name, BigDecimal def) {
+            if (!containsKey(name)) 
+                return def;
+            
+            try {
+                return JSON.deci(get(name));
+            } catch (Error e) {
+                return def;
+            }
+        }
         public final Double dble(String name) throws Error {
             return (JSON.dble(get(name)));
+        }
+        public final double doubleValue(String name, double def) {
+            if (!containsKey(name)) 
+                return def;
+            
+            try {
+                return JSON.dble(get(name)).doubleValue();
+            } catch (Error e) {
+                return def;
+            }
         }
         public final Boolean bool(String name) throws Error {
             return (JSON.bool(get(name)));
         }
+        public final boolean bool(String name, boolean def) {
+            if (!containsKey(name)) 
+                return def;
+            
+            try {
+                return JSON.bool(get(name)).booleanValue();
+            } catch (Error e) {
+                return def;
+            }
+        }
         public final String stri(String name) throws Error {
             return (JSON.stri(get(name)));
+        }
+        public final String stri(String name, String def) {
+            if (!containsKey(name)) 
+                return def;
+            
+            try {
+                return JSON.stri(get(name));
+            } catch (Error e) {
+                return def;
+            }
         }
         public final A arry(String name) throws Error {
             return (JSON.arry(get(name)));
@@ -502,17 +552,67 @@ public class JSON {
         public final BigInteger intg(int index) throws Error {
             return (JSON.intg(get(index)));
         }
+        public final int intValue(int index, int def) {
+            if (index >= size()) 
+                return def;
+            
+            try {
+                return JSON.intg(get(index)).intValue();
+            } catch (Error e) {
+                return def;
+            }
+        }
         public final BigDecimal deci(int index) throws Error {
             return JSON.deci(get(index));
+        }
+        public final BigDecimal deci(int index, BigDecimal def) {
+            if (index >= size()) 
+                return def;
+            
+            try {
+                return JSON.deci(get(index));
+            } catch (Error e) {
+                return def;
+            }
         }
         public final Double dble(int index) throws Error {
             return (JSON.dble(get(index)));
         }
+        public final double doubleValue(int index, double def) {
+            if (index >= size()) 
+                return def;
+            
+            try {
+                return JSON.dble(get(index)).doubleValue();
+            } catch (Error e) {
+                return def;
+            }
+        }
         public final Boolean bool(int index) throws Error {
             return (JSON.bool(get(index)));
         }
+        public final boolean bool(int index, boolean def) {
+            if (index >= size()) 
+                return def;
+            
+            try {
+                return JSON.bool(get(index)).booleanValue();
+            } catch (Error e) {
+                return def;
+            }
+        }
         public final String stri(int index) throws Error {
             return (JSON.stri(get(index)));
+        }
+        public final String stri(int index, String def) {
+            if (index >= size()) 
+                return def;
+            
+            try {
+                return JSON.stri(get(index));
+            } catch (Error e) {
+                return def;
+            }
         }
         public final A arry(int index) throws Error {
             return (JSON.arry(get(index)));
@@ -615,6 +715,29 @@ public class JSON {
     }
     
     public static final 
+    StringBuffer strb(StringBuffer sb, Map map, Object[] names) {
+        Object key; 
+        if (names.length == 0)
+            sb.append(_object);
+        else {
+            sb.append('{');
+            key = names[0];
+            strb(sb, key);
+            sb.append(':');
+            strb(sb, map.get(key));
+            for (int i = 1; i < names.length; i++) {
+                sb.append(',');
+                key = names[i];
+                strb(sb, key);
+                sb.append(':');
+                strb(sb, map.get(key));
+            }
+            sb.append('}');
+        }
+        return sb;
+    }
+    
+    public static final 
     StringBuffer strb(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
@@ -646,10 +769,11 @@ public class JSON {
             Map object = (Map) value;
             Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            strb(sb, object, object.keySet().iterator());
+            strb(sb, object, names);
+            // strb(sb, object, Simple.iterator(names));
         } else if (value instanceof List) 
             strb(sb, ((List) value).iterator());
-        else if (value instanceof Object[]) 
+        else if (value instanceof Object[])
             strb(sb, Simple.iterator((Object[]) value));
         else if (value instanceof Partial) 
             ((Partial) value).jstrb(sb);

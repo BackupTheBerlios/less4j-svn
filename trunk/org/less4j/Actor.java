@@ -147,7 +147,7 @@ import javax.servlet.http.Cookie;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.10
+ * @version 0.20
  */
 public class Actor {
     
@@ -156,8 +156,6 @@ public class Actor {
 //        public static final Action singleton = null;
 //    } 
     
-    protected static final String TEST = "Test";
-    
     protected static final String less4j = "less4j";
     
     /**
@@ -165,28 +163,31 @@ public class Actor {
      * web 2.0 browsers (IE6, Firefox, etc ...) and java runtime
      * environments. Also the defacto standard for JSON encoding.</p>
      */
-    private static final String less4jCharacterSet = "UTF-8";
+    protected static final String less4jCharacterSet = "UTF-8";
     
-    private static final String less4jTrue = "true";
-    private static final String less4jTest = "less4j.test";
-    private static final String less4jJSON = "less4j.json";
+    /**
+     * A copy of the servlet controller's configuration, mapping all
+     * options listed in the servlet's XML configuration file and whose 
+     * name start with <code>"less4j"</code>. 
+     */
+    public JSON.O configuration;
 
-    private static final String less4jDigestSalt = "less4j.digest.salt";
-    private static final String less4jDigestedSalt = "less4j.digested.salt";
+    /**
+     * A boolean that indicates wether the Actor runtime environment is
+     * a test or a production one. It is set to <code>false</code> by
+     * defautlt.
+     */
+    public boolean test = false;
     
-    private static final String less4jJDBCDriver = "less4j.jdbc.driver";
-    private static final String less4jJDBCDataSource = "less4j.jdbc.datasource";
-    private static final String less4jJDBCURL = "less4j.jdbc.url";
-    private static final String less4jJDBCUsername = "less4j.jdbc.username";
-    private static final String less4jJDBCPassword = "less4j.jdbc.password";
+    /**
+     * The <code>HttpServletRequest</code> handled by this Actor instance.
+     */
+    public HttpServletRequest request;
     
-    private static final 
-    String less4jLDAPCtxFactory = "com.sun.jndi.ldap.LdapCtxFactory"; 
-    private static final String less4jLDAPSecurity = "simple"; 
-    private static final String less4jLDAPURL = "less4j.ldap.url";
-    private static final String less4jLDAPPrincipal = "less4j.ldap.principal";
-    private static final 
-    String less4jLDAPCredentials = "less4j.ldap.credentials";
+    /**
+     * The <code>HttpServletResponse</code> completed by this Actor instance.
+     */
+    public HttpServletResponse response;
 
     /**
      * The IRTD2 salt, encoded as 8-bit bytes
@@ -198,30 +199,6 @@ public class Actor {
      */
     public byte[] salted = null;
     
-    /**
-     * A boolean that indicates wether the Actor runtime environment is
-     * a test or a production one. It is set to <code>false</code> by
-     * defautlt.
-     */
-    public boolean test = false;
-    
-    /**
-     * A copy of the servlet controller's configuration, mapping all
-     * options listed in the servlet's XML configuration file and whose 
-     * name start with <code>"less4j"</code>. 
-     */
-    public HashMap configuration;
-
-    /**
-     * The <code>HttpServletRequest</code> handled by this Actor instance.
-     */
-    public HttpServletRequest request;
-    
-    /**
-     * The <code>HttpServletResponse</code> completed by this Actor instance.
-     */
-    public HttpServletResponse response;
-
     /**
      * The authenticated identity of this Actor's web user, as set from
      * the HTTP request's <code>IRTD2</code> cookie by a call to the 
@@ -289,35 +266,29 @@ public class Actor {
      * 
      * @param conf the controller's configuration HashMap
      */
-    public Actor (HashMap conf) {
+    public Actor (JSON.O conf) {
         configuration = conf;
-        test = (less4jTrue.equals((String)configuration.get(less4jTest)));
-        }
+        test = configuration.bool("test", false);
+    }
     
     /**
      * Initialize a new Actor to handle an HTTP request and response, 
-     * set the Actor's audit digest salt and eventually load.
+     * set the Actor's audit digest salt and eventually load ...
      * 
      * @param conf the controller's configuration HashMap
      * @param req the HTTP request to handle 
      * @param res the HTTP response to complete
      */
     public Actor (
-        HashMap conf, HttpServletRequest req, HttpServletResponse res
+        JSON.O conf, HttpServletRequest req, HttpServletResponse res
         ) {
         configuration = conf;
-        test = (less4jTrue.equals((String) configuration.get(less4jTest)));
-        salt = ((String) configuration.get(less4jDigestSalt)).getBytes();
         request = req;
-        url = request.getRequestURL().toString();
         response = res;
-        String s = (String) configuration.get(less4jJSON);
-        if (s != null)
-            try {
-                json = (new JSON(65355, 65355)).object(s);
-            } catch (JSON.Error e) {
-                logError(e);
-            }
+        url = request.getRequestURL().toString();
+        test = configuration.bool("test", false);
+        salt = configuration.stri("irtd2Salt", "").getBytes();
+        salted = configuration.stri("irtd2Salted", "").getBytes();
     }
 
     /**
@@ -450,11 +421,11 @@ public class Actor {
         System.err.println(sb.toString());
     }
     
-    private static final int less4jJDBCTimeout = 15;
+    // private static final int less4jJDBCTimeout = 15;
     
     /**
      * <p>Test wether this controller's configuration actually supports 
-     * this Actor class at runtime</p>
+     * this Actor class at runtime.</p>
      * 
      * <p>For this class, test wether:</p> 
      * 
@@ -475,40 +446,28 @@ public class Actor {
      * 
      * @return true if the test was successfull, false otherwise
      */
-    public boolean testConfiguration () {
-        if (!configuration.containsKey(less4jDigestSalt)) {
+    public boolean less4jConfigure () {
+        if (!configuration.containsKey("irtd2Salt")) {
             logInfo("add salt to digest cookies!", "Configuration");
             return false;
         }
-        String s = (String) configuration.get(less4jJSON);
-        if (s != null)
-            try {
-                json = (new JSON(65355, 65355)).object(s);
-            } catch (JSON.Error e) {
-                logError(e);
-                return false;
-            }
-        String dbn;
         try {
-            if (DriverManager.getLoginTimeout() < less4jJDBCTimeout)
-                DriverManager.setLoginTimeout(less4jJDBCTimeout);
-            if (DriverManager.getLogWriter() != null)
-                DriverManager.setLogWriter(null);
-            dbn = (String) configuration.get(less4jJDBCDriver);
-            if (dbn != null) {
-                Class.forName(dbn);
-                if (sqlOpen()) {sqlClose();} else return false;
-            } else {
-                dbn = (String) configuration.get(less4jJDBCDataSource);
-                if (dbn != null) {
-                    if (sqlOpen()) {sqlClose();} else return false;
-                }
-            }
+            if (configuration.containsKey("jdbcDriver")) {
+                Class.forName(configuration.stri("jdbcDriver"));
+                if (DriverManager.getLogWriter() != null)
+                    DriverManager.setLogWriter(null);
+                //if (DriverManager.getLoginTimeout() < less4jJDBCTimeout)
+                //    DriverManager.setLoginTimeout(less4jJDBCTimeout);
+                if (sqlOpen()) sqlClose(); else return false;
+                
+            } else if (configuration.containsKey("j2eeDataSource"))
+                if (sqlOpen()) sqlClose(); else return false;
+            
         } catch (Exception e) {
             logError(e);
             return false;
         }
-        if (test) logInfo("configuration OK", TEST);
+        if (test) logInfo("Actor configuration is OK", less4j);
         return true;
     }
     
@@ -558,10 +517,10 @@ public class Actor {
     protected static Pattern irtd2Split = Pattern.compile(":");
     
     /**
-     * <p>Try to collect a IRTD2 cookie in the request and test its digest 
+     * Try to collect a IRTD2 cookie in the request and test its digest 
      * against the secret(s) set by configuration for this actor's controller, 
      * digest a new cookie only if a the digested cookie is still valid in 
-     * time and bears the signature of this servlet, return false otherwise.</p> 
+     * time and bears the signature of this servlet, return false otherwise. 
      * 
      * <p>There are four benefits to expect from IRTD2 cookies for
      * J2EE public applications:</p>
@@ -570,13 +529,13 @@ public class Actor {
      * <li>Remove the weight of statefull sessions in the J2EE container.</li>
      * <li>Distribute the load of authorization on a cluster of servers 
      * without adding more contention and latency.</li>
-     * <li>Trace multiple interaction paths of each users.</li>
+     * <li>Trace identifed and authorized interactions in sequence.</li>
      * <li>Audit impersonation exploit by a man-in-the-middle.</li>
      * </ol>
      * 
      * <p>Note that it does <em>not</em> prevent cookie theft but it
      * does the only next-best actually possible for a public network
-     * application: detect cookie theft ASAP.</p>
+     * application: detect and report fraudulent actions.</p>
      * 
      * @param timeout the limit of an IRTD2 cookie's age, in seconds  
      * @return true if the request failed to be authenticated
@@ -625,19 +584,15 @@ public class Actor {
             String d = md.hexdigest();
             if (!d.equals(digested)) {
                 // try the previously digested salt instead
-                if (!configuration.containsKey(less4jDigestedSalt)) 
+                if (salted.length == 0) 
                     return false;
                 
-                salted = (
-                    (String) configuration.get(less4jDigestedSalt)
-                    ).getBytes();
                 md = new SHA1();
                 md.update(irtd);
                 md.update(salted);
                 d = md.hexdigest();
                 if (!d.equals(digested)) {
-                    // TODO: audit a possible fraud attempt!
-                    return false;  
+                    return false; // TODO: audit a possible fraud attempt!
                 }
             }
             irtd2Digest(irtd2Cookie.getPath());
@@ -645,18 +600,11 @@ public class Actor {
         } 
         catch (Exception e) {
             logError(e);
-            return false;           
+            return false;       
         }
     }
     
-    public boolean irtd2Authorized(String right, int timeout) {
-        if (irtd2Digested(timeout))
-            return rights.indexOf(right) > -1; 
-        else
-            return false;
-    }
-    
-    public boolean irtd2HasRights(String right) {
+    public boolean irtd2Has(String right) {
         if (digested != null)
             return rights.indexOf(right) > -1; 
         else
@@ -1080,6 +1028,14 @@ public class Actor {
     
     public boolean jsonGET() {return jsonGET(65355, 65355);}
     
+    public boolean jsonGET(int containers, int iterations, JSONR.Type type) {
+        String xjson = request.getHeader(jsonXJSON);
+        if (xjson != null) try {
+            json = (new JSONR(type, containers, iterations)).object(xjson);
+        } catch (JSON.Error e) {;}
+        return (json != null);
+    }
+    
     /**
      * <p>Try to read and parse the body of a POST request, assuming it 
      * contains a content of type <code>application/json</code> encoded
@@ -1123,14 +1079,16 @@ public class Actor {
     public boolean jsonPOST () {return jsonPOST(16384, 65355, 65355);}
     
     public boolean jsonPOST (
-        JSONR pattern, int limit, int containers, int iterations
+        int limit, int containers, int iterations, JSONR.Type type
         ) {
         byte[] body = httpPOST(limit);
         if (body == null) 
             return false; 
         else {
             try {
-                json = pattern.object(new String(body, less4jCharacterSet));
+                json = (
+                    new JSONR(type, containers, iterations)
+                    ).object(new String(body, less4jCharacterSet));
                 return true;
             } catch (Exception e) {
                 logError(e);
@@ -1139,9 +1097,32 @@ public class Actor {
         }
     }
     
-    public boolean jsonPOST (JSONR pattern) {
-        return jsonPOST(pattern, 16384, 65355, 65355);
+    public boolean jsonPOST (JSONR.Type type) {
+        return jsonPOST(16384, 65355, 65355, type);
         }
+    
+    public void jsonDigest(String digestedName, String digestName) {
+        byte[] buff = JSON.str(json.get(digestedName)).getBytes();
+        SHA1 md = new SHA1();
+        md.update(buff);
+        md.update(salt);
+        json.put(digestName, md.hexdigest());
+    }
+    
+    public boolean jsonDigested(String digestedName, String digestName) {
+        String sign = json.stri(digestName, "");
+        byte[] buff = JSON.str(json.get(digestedName)).getBytes();
+        SHA1 md = new SHA1();
+        md.update(buff);
+        md.update(salt);
+        if (md.hexdigest().equals(sign))
+            return true;
+        
+        md = new SHA1();
+        md.update(buff);
+        md.update(salted);
+        return md.hexdigest().equals(sign);
+    }
     
     /**
      * The constant content type for JSON includes the UTF-8 character set
@@ -1150,13 +1131,6 @@ public class Actor {
      */
     protected static final String jsonContentType = 
         "application/json;charset=UTF-8";
-    
-    public String jsonDigest(Object value) {
-        SHA1 md = new SHA1();
-        md.update(JSON.str(value).getBytes());
-        md.update(salt);
-        return md.hexdigest();
-    }
     
     /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON byte
@@ -1317,15 +1291,15 @@ public class Actor {
      */
     public boolean sqlOpen () {
         try {
-            if (configuration.get(less4jJDBCDriver) != null) {
+            if (configuration.containsKey("jdbcDriver")) {
                 sql = DriverManager.getConnection(
-                    (String) configuration.get(less4jJDBCURL),
-                    (String) configuration.get(less4jJDBCUsername),
-                    (String) configuration.get(less4jJDBCPassword)
+                    configuration.stri("jdbcURL"),
+                    configuration.stri("jdbcUsername"),
+                    configuration.stri("jdbcPassword")
                     );
             } else {
                 sql = ((DataSource) (new InitialContext()).lookup(
-                    (String) configuration.get(less4jJDBCDataSource)
+                    configuration.stri("j2eeDataSource")
                     )).getConnection(); 
             }
         } catch (Exception e) {
@@ -1339,7 +1313,7 @@ public class Actor {
             try {sql.close();} catch (SQLException ae) {logError(e);}
             return false;
         }
-        if (test) logInfo("connected to the database", TEST);
+        if (test) logInfo("connected to JDBC", less4j);
         return true;
     }
 
@@ -1350,9 +1324,9 @@ public class Actor {
      * 
      * @return true if the connection was successfull, false otherwise
      */
-    public boolean sqlOpen (String jdbc, String username, String password) {
+    public boolean sqlOpen (String dburl, String username, String password) {
         try {
-            sql = DriverManager.getConnection(jdbc, username, password);
+            sql = DriverManager.getConnection(dburl, username, password);
         } catch (Exception e) {
             logError(e);
             return false;
@@ -1364,7 +1338,7 @@ public class Actor {
             try {sql.close();} catch (SQLException ae) {logError(e);}
             return false;
         }
-        if (test) logInfo("connected to the database", TEST);
+        if (test) logInfo("connected to DataSource", less4j);
         return true;
     }
 
@@ -1386,7 +1360,7 @@ public class Actor {
         try {sql.rollback();} catch (SQLException e) {logError(e);}
         try {sql.close();} catch (SQLException e) {logError(e);}
         sql = null;
-        if (test) {logInfo("disconnected from the database", TEST);}
+        if (test) {logInfo("disconnected from the database", less4j);}
     }
     
     /**
@@ -1402,9 +1376,9 @@ public class Actor {
      */
     protected static ArrayList jdbc2array (ResultSet rs)
     throws SQLException {
-        int i;
         ArrayList rows = null;
         if (rs.next()) {
+            int i;
             Object[] row;
             rows = new ArrayList();
             ResultSetMetaData mt = rs.getMetaData();
@@ -1417,6 +1391,14 @@ public class Actor {
         }
         rs.close();
         return rows;
+    }
+
+    public boolean sqlNative (String statement) {
+        boolean success = false;
+        if (sqlOpen()) try {
+            sql.nativeSQL(statement); success = true;
+        } catch (Exception e) {logError(e);} finally {sqlClose();}
+        return success;
     }
     
     /**
@@ -1431,7 +1413,7 @@ public class Actor {
      */
     public Object[] sqlQuery (String statement) 
     throws SQLException {
-        if (test) logInfo(statement, TEST);
+        if (test) logInfo(statement, less4j);
         Object[] row = null;
         Statement st = null;
         try {
@@ -1468,24 +1450,18 @@ public class Actor {
      */
     public ArrayList sqlQuery (String statement, int fetch) 
     throws SQLException {
-        if (test) logInfo(statement, TEST);
+        if (test) logInfo(statement, less4j);
         ArrayList rows = null;
         Statement st = null;
-        ResultSet rs;
         try {
             st = sql.createStatement();
             st.setFetchSize(fetch);
-            rs = st.executeQuery(statement);
-            // TODO: ? Thread.yield();
-            rows = jdbc2array(rs);
+            rows = jdbc2array(st.executeQuery(statement));
             st.close();
-            rs = null;
             st = null; 
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException e) {;}
-                rs = null;
-                st = null;
+                try {st.close();} catch (SQLException e) {;} st = null;
             }
         }
         return rows;
@@ -1504,47 +1480,44 @@ public class Actor {
      */
     public ArrayList sqlQuery (String statement, Object[] args, int fetch) 
     throws SQLException {
-        if (test) logInfo(statement, TEST);
+        if (test) logInfo(statement, less4j);
         ArrayList rows = null;
         PreparedStatement st = null;
-        ResultSet rs;
         try {
             int i;
             st = sql.prepareStatement(statement);
             st.setFetchSize(fetch);
             for (i = 0; i < args.length; i++) st.setObject(i, args[i]);
-            rs = st.executeQuery(statement);
-            // TODO: ? Thread.yield();
-            rows = jdbc2array(rs);
+            rows = jdbc2array(st.executeQuery(statement));
             st.close();
-            rs = null;
             st = null;
         } finally {
             if (st != null) {
-                try {st.close();} catch (SQLException e) {;}
-                rs = null;
-                st = null;
+                try {st.close();} catch (SQLException e) {;} st = null;
             }
         }
         return rows;
     }
 
-    protected static HashMap jdbc2object (ResultSet rs)
+    protected static JSON.O jdbc2relations (ResultSet rs)
     throws SQLException {
         int i;
-        ArrayList row;
+        ArrayList rows, row;
         ResultSetMetaData mt = rs.getMetaData();
         int l = mt.getColumnCount();
-        HashMap model = new HashMap();
+        JSON.O model = new JSON.O();
         row = new ArrayList();
         for (i = 0; i < l; i++) row.add(mt.getColumnName(i));
         model.put("columns", row);
-        ArrayList rows = new ArrayList();
-        while (rs.next()) {
-            row = new ArrayList();
-            for (i = 0; i < l; i++) row.add(rs.getObject(i));
-            rows.add(row);
-        }
+        if (rs.next()) {
+            rows = new JSON.A();
+            do {
+                row = new JSON.A();
+                for (i = 0; i < l; i++) row.add(rs.getObject(i));
+                rows.add(row);
+            } while (rs.next());
+        } else 
+            rows = null;
         model.put("rows", rows);
         rs.close();
         return model;
@@ -1552,7 +1525,7 @@ public class Actor {
     
     public HashMap sqlQuery (String statement, ArrayList args, int fetch) 
     throws SQLException {
-        if (test) logInfo(statement, TEST);
+        if (test) logInfo(statement, less4j);
         HashMap model = null;
         PreparedStatement st = null;
         try {
@@ -1561,7 +1534,7 @@ public class Actor {
             Iterator iter = args.iterator();
             int i = 0;
             while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
-            model = jdbc2object(st.executeQuery(statement));
+            model = jdbc2relations(st.executeQuery(statement));
             st.close();
             st = null;
         } finally {
@@ -1589,7 +1562,7 @@ public class Actor {
         String statement, HashMap args, String[] names, int fetch
         ) 
     throws SQLException {
-        if (test) logInfo(statement, TEST);
+        if (test) logInfo(statement, less4j);
         HashMap model = null;
         PreparedStatement st = null;
         try {
@@ -1598,7 +1571,7 @@ public class Actor {
             st.setFetchSize(fetch);
             for (i = 0; i < names.length; i++) 
                 st.setObject(i, args.get(names[i]));
-            model = jdbc2object(st.executeQuery(statement));
+            model = jdbc2relations(st.executeQuery(statement));
             st.close(); 
             st = null;
         } finally {
@@ -1610,11 +1583,29 @@ public class Actor {
         return model;
     }
 
+    public boolean sqlQuery (String statement, String[] names, int fetch) {
+        boolean success = false;
+        if (sqlOpen()) try {
+            json.putAll(sqlQuery(statement, json, names, fetch)); 
+            success = true;
+        } catch (Exception e) {logError(e);} finally {sqlClose();}
+        return success;
+    }
+        
+    public boolean sqlQuery (String statement, String name, int fetch) {
+        boolean success = false;
+        if (sqlOpen()) try {
+            json.put(name, sqlQuery(statement, fetch)); 
+            success = true;
+        } catch (Exception e) {logError(e);} finally {sqlClose();}
+        return success;
+    }
+        
     public HashMap sqlQuery (
         String statement, HashMap args, Iterator names, int fetch
         )
     throws SQLException {
-        if (test) logInfo(statement, TEST);
+        if (test) logInfo(statement, less4j);
         HashMap model = null;
         PreparedStatement st = null;
         try {
@@ -1625,7 +1616,7 @@ public class Actor {
                 st.setObject(i, args.get(names.next())); 
                 i++;
                 }
-            model = jdbc2object(st.executeQuery(statement));
+            model = jdbc2relations(st.executeQuery(statement));
             st.close(); 
             st = null;
         } finally {
@@ -1648,7 +1639,7 @@ public class Actor {
      */
     public int sqlUpdate (String statement) throws SQLException {
         int result = -1;
-        if (test) logInfo (statement, TEST);
+        if (test) logInfo (statement, less4j);
         Statement st = null;
         try {
             st = sql.createStatement(); 
@@ -1675,7 +1666,7 @@ public class Actor {
     public int sqlUpdate (String statement, Object[] args) 
     throws SQLException {
         int result = -1;
-        if (test) logInfo (statement, TEST);
+        if (test) logInfo (statement, less4j);
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
@@ -1703,7 +1694,7 @@ public class Actor {
     public int sqlUpdate (String statement, ArrayList args) 
     throws SQLException {
         int result = -1;
-        if (test) logInfo (statement, TEST);
+        if (test) logInfo (statement, less4j);
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
@@ -1736,7 +1727,7 @@ public class Actor {
         ) 
     throws SQLException {
         int result = -1;
-        if (test) logInfo (statement, TEST);
+        if (test) logInfo (statement, less4j);
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
@@ -1781,9 +1772,10 @@ public class Actor {
         ) 
     throws SQLException {return new ArrayList();}
             
-    public int sqlBatch (String statement, ArrayList rows) 
-        throws SQLException {return 0;}
-                
+    protected static final 
+    String ldapCtxFactory = "com.sun.jndi.ldap.LdapCtxFactory"; 
+    protected static final String ldapSecurity = "simple"; 
+
     /**
      * Try to open a new connection (establish a new "initial directory 
      * context" in j-speak) to the LDAP server configured, using a
@@ -1797,9 +1789,9 @@ public class Actor {
      */
     public boolean ldapOpen (Object principal, Object credentials) {
         Hashtable env = new Hashtable();
-        env.put(Context.INITIAL_CONTEXT_FACTORY, less4jLDAPCtxFactory);
-        env.put(Context.PROVIDER_URL, configuration.get(less4jLDAPURL));
-        env.put(Context.SECURITY_AUTHENTICATION, less4jLDAPSecurity);
+        env.put(Context.INITIAL_CONTEXT_FACTORY, ldapCtxFactory);
+        env.put(Context.PROVIDER_URL, configuration.get("ldapURL"));
+        env.put(Context.SECURITY_AUTHENTICATION, ldapSecurity);
         env.put(Context.SECURITY_PRINCIPAL, principal);
         env.put(Context.SECURITY_CREDENTIALS, credentials);  
         try {
@@ -1808,22 +1800,20 @@ public class Actor {
             logError(e);
             return false;
         }
-        if (test) logInfo("connected to the directory", TEST);
+        if (test) logInfo("connected to LDAP", less4j);
         return true;
     }
 
     /**
      * Try to open an LDAP connection using the configuration properties,
-     * principal and credentials. Catch any JNDI exception, return 
-     * true on success and false otherwise, log an information message
-     * in test mode.
+     * principal and credentials.
      * 
      * @return true if the connection was successfull, false otherwise
      */
     public boolean ldapOpen () {
         return ldapOpen(
-            configuration.get(less4jLDAPPrincipal), 
-            configuration.get(less4jLDAPCredentials)
+            configuration.get("ldapPrincipal"), 
+            configuration.get("ldapCredentials")
             );
     }
     
@@ -1834,23 +1824,23 @@ public class Actor {
     public void ldapClose () {
         try {ldap.close();} catch (NamingException e) {logError(e);}
         ldap = null;
-        if (test) logInfo("disconnected from the directory", TEST);
+        if (test) logInfo("disconnected from LDAP", less4j);
     }
     
     /**
-     * Try to update a JSON object with the attributes of an LDAP context, 
+     * Try to update a JSON.O object with the attributes of an LDAP context, 
      * return true if the context's name was resolved, false otherwise.
      * Attributes not named in the names iterator are filtered out.
      * 
      * @param dn the distinguished name to resolve
-     * @param object the JSONObject to update
+     * @param object the JSON.O object to update
      * @param names of the attribute values to get
      * @return true if the name was resolved, false otherwise
      */
     public boolean ldapResolve (
-        String dn, HashMap object, Iterator names
+        String dn, JSON.O object, Iterator names
         ) {
-        if (test) logInfo ("resolve LDAP dn=" + dn, TEST);
+        if (test) logInfo ("resolve LDAP dn=" + dn, less4j);
         Attributes attributes;
         try {
             attributes = ldap.getAttributes(dn);
@@ -1877,24 +1867,25 @@ public class Actor {
      * @param object the JSONObject to update
      * @return true if the name was resolve, false otherwise
      */
-    public boolean ldapResolve (String dn, HashMap object) {
+    public boolean ldapResolve (String dn, JSON.O object) {
         return ldapResolve(dn, object, object.keySet().iterator());
     }
     
     /**
-     * Try to create an LDAP context with attributes values from a JSON 
+     * Try to create an LDAP context with attributes values from a JSON.O 
      * object for the given attribute names, return true if the context 
      * was created, false otherwise.
      * 
      * @param dn the distinguished name of the context created
-     * @param object the JSON object from which to set the attribute values
+     * @param object the JSON.O object from which to set the attribute values
      * @param names of the attributes to create
      * @return true, false
      */
     public boolean ldapCreate (
-        String dn, HashMap object, Iterator names
+        String dn, JSON.O object, Iterator names
         ) {
-        if (test) logInfo ("create LDAP dn=" + dn, TEST);
+        if (test) logInfo ("create LDAP dn=" + dn, less4j);
+        Iterator iter;
         String key;
         Object value;
         BasicAttribute attribute;
@@ -1903,30 +1894,11 @@ public class Actor {
             key = (String) names.next();
             attribute = new BasicAttribute (key);
             value = object.get(key);
-            if (value == null) {
-                ;
-            } else if (value instanceof ArrayList) {
-                Object item;
-                Iterator j = ((ArrayList) object.get(key)).iterator();
-                while (j.hasNext()) {
-                    item = j.next();
-                    if (
-                        item instanceof String ||
-                        item instanceof Integer ||
-                        item instanceof Double ||
-                        item instanceof Boolean
-                        ) {
-                        attribute.add(item);
-                    }
-                }
-            } else if (
-                value instanceof String ||
-                value instanceof Integer ||
-                value instanceof Double ||
-                value instanceof Boolean
-                ) {
+            if (value instanceof JSON.A) {
+                iter = ((JSON.A) object.get(key)).iterator();
+                while (iter.hasNext()) attribute.add(iter.next());
+            } else 
                 attribute.add(value);
-            }
             attributes.put(key, attribute);
         }
         try {
@@ -1948,18 +1920,18 @@ public class Actor {
      * @param object the JSON object from which to set the attribute values
      * @return true, false
      */
-    public boolean ldapCreate (String dn, HashMap object) {
+    public boolean ldapCreate (String dn, JSON.O object) {
         return ldapCreate (dn, object, object.keySet().iterator());
     }
     
     public boolean ldapUpdate (
-        String dn, HashMap object, Iterator names
+        String dn, JSON.O object, Iterator names
         ) {
-        if (test) logInfo("update LDAP dn=" + dn, TEST);
+        if (test) logInfo("update LDAP dn=" + dn, less4j);
         return true;
     }
     
-    public boolean ldapUpdate (String dn, HashMap object) {
+    public boolean ldapUpdate (String dn, JSON.O object) {
         return ldapUpdate(dn, object, object.keySet().iterator());
     }
     
