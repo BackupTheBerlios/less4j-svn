@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * <p>A stateless servlet to configure, test and apply the <code>Actor</code>
  * programming intefaces, the base class from which to derive RESTfull
- * application resource controllers (aka SOA).</p>
+ * application resource controllers for Web 2.0 applications.</p>
  * 
  * <h3>Synopsis</h3>
  * 
@@ -36,6 +36,8 @@ import javax.servlet.http.HttpServletResponse;
  * AJAX applications: a request/response state configuration, test and 
  * instanciation, user identification, requests authorization, input
  * validation and application audit trail.</p>
+ * 
+ * <p>Protocol Interfaces</p>
  * 
  * <p>It does The Right Thing for its applications, leaving to developpers
  * the profitable and creative part of the job as the implementation of one
@@ -48,8 +50,9 @@ import javax.servlet.http.HttpServletResponse;
  *jsonApplication (Actor $)</pre>
  * </blockquote>
  * 
- * <p>To quickly and safely scaffold applications from prototype to 
- * production, all those methods are allready implemented.</p>
+ * <p>...</p>
+ * 
+ * <h4>Configurable Conveniences</h4>
  * 
  * <blockquote>
  * <pre>{
@@ -63,7 +66,7 @@ import javax.servlet.http.HttpServletResponse;
  *}</pre>
  * </blockquote>
  * 
- * ...</p>
+ * <p>...</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -73,6 +76,8 @@ import javax.servlet.http.HttpServletResponse;
 public class Controller extends HttpServlet {
     
     static final long serialVersionUID = 0L; // TODO: regenerate
+    
+    protected static final String less4j = "less4j";
     
     private JSON.O configuration = new JSON.O ();
     
@@ -187,7 +192,7 @@ public class Controller extends HttpServlet {
      */
     public boolean less4jConfigure (Actor $) {
         if (!$.configuration.containsKey("irtd2Salt")) {
-            $.logInfo("add salt to digest cookies!", "less4j");
+            $.logInfo("add salt to digest cookies!", less4j);
             return false;
         }
         try {
@@ -212,7 +217,7 @@ public class Controller extends HttpServlet {
         } catch (JSON.Error e) {
             $.logError(e); return false;
         }
-        if ($.test) $.logInfo("configuration ok", "less4j");
+        if ($.test) $.logInfo("configuration ok", less4j);
         return true;
     }
     
@@ -264,12 +269,12 @@ public class Controller extends HttpServlet {
                 $.configuration.stri(
                     "jdbcURL", 
                     "jdbc:mysql://localhost/less4j"),
-                $.configuration.stri("jdbcUsername", "less4j"),
-                $.configuration.stri("jdbcPassword", "less4j")
+                $.configuration.stri("jdbcUsername", less4j),
+                $.configuration.stri("jdbcPassword", "")
                 );
         else 
             return $.sqlOpenJ2EE(
-                $.configuration.stri("j2eeDataSource", "less4j")
+                $.configuration.stri("j2eeDataSource", less4j)
                 );
     }
 
@@ -318,8 +323,8 @@ public class Controller extends HttpServlet {
     public boolean ldapOpen (Actor $) {
         return $.ldapOpen(
             $.configuration.stri("ldapURL", "ldap://localhost/"),
-            $.configuration.stri("ldapPrincipal", "less4j"), 
-            $.configuration.stri("ldapCredentials", "less4j")
+            $.configuration.stri("ldapPrincipal", less4j), 
+            $.configuration.stri("ldapCredentials", "")
             );
     }
     
@@ -347,6 +352,8 @@ public class Controller extends HttpServlet {
             irtd2Authorize($);
     }
     
+    // To Subclass ...
+    
     // a standard HTTP handler for most Web 2.0 applications of J2EE 
     //
     // irdt2Authorize     Identify and grant rights in a URI context.
@@ -357,7 +364,7 @@ public class Controller extends HttpServlet {
     // "Everythin is going to be allright"
     
     public void irtd2Authorize (Actor $) {
-        $.rest302Redirect($.configuration.stri("irtd2Service", "/"));
+        $.rest302Redirect($.configuration.stri("irtd2Service", ""));
     }
     
     public void httpResource (Actor $) {

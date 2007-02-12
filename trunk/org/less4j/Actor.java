@@ -422,19 +422,26 @@ public class Actor {
     }
     
     protected static final String irtd2Name = "IRTD2";
+    protected static final char irtd2SplitChar = ' '; 
     
     /**
      * Literally "digest a cookie", transform the IRTD2 cookie sent with
      * the request into a new cookie bearing the Actor's time, to be sent
      * with the response.
      * 
-     * <p>The cookie value is a formatted string made as follow
+     * <p>The cookie value is a formatted string made as follow:</p>
      * 
      * <blockquote>
-     * <pre>Cookie: IRTD2=<strong>identity:roles:time:digested:digest</strong>; </pre>
+     * <pre>Cookie: IRTD2=<strong>identity roles time digested digest</strong>; </pre>
      * </blockquote>
      * 
-     * This method is only usefull in authorization controllers, like user
+     * <p>where <code>identity</code> and <code>roles</code> are respectively
+     * Public Names and netstrings of 7-bit ASCII characters only, followed
+     * by the controller's <code>time</code> representation and two SHA1 hex
+     * digests: the client's last digest for this cookie and the one computed 
+     * from the byte string that precedes it.</p>
+     * 
+     * <p>This method is usefull in authorization controllers, like user
      * identification or roles attribution services.</p>
      *
      * @param path in which the IRTD2 Cookie's is applied
@@ -444,16 +451,16 @@ public class Actor {
         String timeString = Long.toString(time);
         SHA1 md = new SHA1();
         sb.append(identity);
-        sb.append(':');
+        sb.append(irtd2SplitChar);
         sb.append(rights);
-        sb.append(':');
+        sb.append(irtd2SplitChar);
         sb.append(timeString);
-        sb.append(':');
+        sb.append(irtd2SplitChar);
         if (digested != null) sb.append(digested);
         md.update(sb.toString().getBytes());
         md.update(salt);
         digest = md.hexdigest();
-        sb.append(':');
+        sb.append(irtd2SplitChar);
         sb.append(digest);
         Cookie irtd2 = new Cookie(irtd2Name, sb.toString());
         irtd2.setDomain(request.getServerName());
@@ -513,13 +520,13 @@ public class Actor {
             StringBuffer sb = new StringBuffer();
             identity = irtd2[0];
             sb.append(identity);
-            sb.append(':');
+            sb.append(irtd2SplitChar);
             rights = irtd2[1];
             sb.append(rights);
-            sb.append(':');
+            sb.append(irtd2SplitChar);
             int lastTime = Integer.parseInt(irtd2[2]);
             sb.append(irtd2[2]);
-            sb.append(':');
+            sb.append(irtd2SplitChar);
             sb.append(irtd2[3]);
             byte[] irtd = sb.toString().getBytes();
             digested = irtd2[4];
@@ -561,12 +568,8 @@ public class Actor {
             return false;
     }
     
-    protected static final Pattern irtd2Identity = Pattern.compile(
-        "[\\x20-\\x2B][\\x2D-\\x39][\\x3C-x7E]+"
-        );
-    
-    protected static final Pattern irtd2Rights = Pattern.compile(
-        "([\\x20-\\x39][\\x3C-x7E]+)(?,([\\x20-\\x39][\\x3C-x7E]+))*"
+    protected static final Pattern ascii7bit = Pattern.compile(
+        "$[\\x21-\\x7E]+^" // ASCII 7-bit string
         );
     
     private static final String less4jAudit = "AUDIT: ";
