@@ -1366,7 +1366,7 @@ public class Actor {
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement, return an ArrayList of rows or null if the result
+     * statement, return an ArrayList of Object[] rows or null if the result
      * set was empty. In any case, close the statement JDBC statement
      * and result set to prevent any leak in the connections pool.
      * 
@@ -1385,38 +1385,6 @@ public class Actor {
             rows = jdbc2array(st.executeQuery(statement));
             st.close();
             st = null; 
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} st = null;
-            }
-        }
-        return rows;
-    }
-
-    /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and arguments, return an ArrayList of rows or null if 
-     * the result set was empty. In any case, close the statement JDBC 
-     * statement and result set to prevent any leak in the connections pool.
-     * 
-     * @param statement to prepare and execute as a query
-     * @param args a primitive array of arguments
-     * @return an ArrayList of Object[] or null
-     * @throws SQLException
-     */
-    public JSON.A sqlQuery (String statement, Object[] args, int fetch) 
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.A rows = null;
-        PreparedStatement st = null;
-        try {
-            int i;
-            st = sql.prepareStatement(statement);
-            st.setFetchSize(fetch);
-            for (i = 0; i < args.length; i++) st.setObject(i, args[i]);
-            rows = jdbc2array(st.executeQuery(statement));
-            st.close();
-            st = null;
         } finally {
             if (st != null) {
                 try {st.close();} catch (SQLException e) {;} st = null;
@@ -1449,7 +1417,22 @@ public class Actor {
         return model;
     }
     
-    public JSON.O sqlQuery (String statement, ArrayList args, int fetch) 
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument iterator, return a JSONObject model or null
+     * if the result set was empty. In any case, close the statement JDBC 
+     * statement and result set to prevent any leak in the connections pool.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...</p>
+     * 
+     * @param statement to prepare and execute as a query
+     * @param args a primitive array of arguments
+     * @return a JSONObject with a simple relational model
+     * @throws SQLException
+     */
+    public JSON.O sqlQuery (String statement, Iterator args, int fetch) 
     throws SQLException {
         if (test) logInfo(statement, less4j);
         JSON.O relations = null;
@@ -1457,9 +1440,8 @@ public class Actor {
         try {
             st = sql.prepareStatement(statement);
             st.setFetchSize(fetch);
-            Iterator iter = args.iterator();
             int i = 0;
-            while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
+            while(args.hasNext()) {st.setObject(i, args.next()); i++;}
             relations = jdbc2object(st.executeQuery(statement));
             st.close();
             st = null;
@@ -1472,70 +1454,6 @@ public class Actor {
         return relations;
     }
 
-    /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and named arguments, return a JSONObject model or null if 
-     * the result set was empty. In any case, close the statement JDBC 
-     * statement and result set to prevent any leak in the connections pool.
-     * 
-     * @param statement to prepare and execute as a query
-     * @param args a MashMap
-     * @param names a primitive array of argument names
-     * @return a JSONObject with a simple relational model
-     * @throws SQLException
-     */
-    public JSON.O sqlQuery (
-        String statement, HashMap args, String[] names, int fetch
-        ) 
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.O relations = null;
-        PreparedStatement st = null;
-        try {
-            int i;
-            st = sql.prepareStatement(statement);
-            st.setFetchSize(fetch);
-            for (i = 0; i < names.length; i++) 
-                st.setObject(i, args.get(names[i]));
-            relations = jdbc2object(st.executeQuery(statement));
-            st.close(); 
-            st = null;
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
-                st = null;
-            }
-        }
-        return relations;
-    }
-
-    public HashMap sqlQuery (
-        String statement, HashMap args, Iterator names, int fetch
-        )
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.O relations = null;
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            st.setFetchSize(fetch);
-            int i = 0;
-            while(names.hasNext()) {
-                st.setObject(i, args.get(names.next())); 
-                i++;
-                }
-            relations = jdbc2object(st.executeQuery(statement));
-            st.close(); 
-            st = null;
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
-                st = null;
-            }
-        }
-        return relations;
-    }
-    
     /**
      * Try to execute and UPDATE, INSERT, DELETE or DDL statement, close
      * the JDBC/DataSource statement, return the number of rows updated.
@@ -1562,77 +1480,16 @@ public class Actor {
 
     /**
      * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
-     * with a primitive array of arguments, close the JDBC/DataSource 
+     * with an arguments iterator, close the JDBC/DataSource 
      * statement and return the number of rows updated.
      * 
      * @param statement the SQL statement to execute
-     * @param args the statement arguments
+     * @param args the statement arguments iterator
      * @return -1 if the statement failed, 0 if no row update took place, 
      *         or the numbers of rows updated, deleted or inserted.
      * @throws SQLException
      */
-    public int sqlUpdate (String statement, Object[] args) 
-    throws SQLException {
-        int result = -1;
-        if (test) logInfo (statement, less4j);
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            for (int i = 0; i < args.length; i++) st.setObject(i, args[i]);
-            result = st.executeUpdate();
-            st.close();
-            st = null;
-        } finally {
-            if (st != null) try {st.close();} catch (SQLException se) {;}
-        }
-        return result;
-    }
-    
-    /**
-     * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
-     * with a JSON array of arguments, close the JDBC/DataSource 
-     * statement and return the number of rows updated.
-     * 
-     * @param statement the SQL statement to execute
-     * @param args the statement arguments
-     * @return -1 if the statement failed, 0 if no row update took place, 
-     *         or the numbers of rows updated, deleted or inserted.
-     * @throws SQLException
-     */
-    public int sqlUpdate (String statement, ArrayList args) 
-    throws SQLException {
-        int result = -1;
-        if (test) logInfo (statement, less4j);
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            Iterator iter = args.iterator();
-            int i = 0;
-            while(iter.hasNext()) {st.setObject(i, iter.next()); i++;}
-            result = st.executeUpdate();
-            st.close();
-            st = null;
-        } finally {
-            if (st != null) try {st.close();} catch (SQLException se) {;}
-        }
-        return result;
-    }
-    
-    /**
-     * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
-     * with a JSON object of named arguments, close the JDBC/DataSource 
-     * statement and return the number of rows updated.
-     * 
-     * @param statement the SQL statement to execute
-     * @param args the JSONObject containing the statement arguments
-     * @param names an iterator of argument names
-     * @return -1 if the statement failed, 0 if no row update took place, 
-     *         or the numbers of rows updated, deleted or inserted.
-     * @throws SQLException
-     */
-    public int sqlUpdate (
-        String statement, HashMap args, Iterator names
-        ) 
+    public int sqlUpdate (String statement, Iterator args) 
     throws SQLException {
         int result = -1;
         if (test) logInfo (statement, less4j);
@@ -1640,9 +1497,7 @@ public class Actor {
         try {
             st = sql.prepareStatement(statement);
             int i = 0;
-            while(names.hasNext()) {
-                st.setObject(i, args.get(names.next())); i++;
-                }
+            while(args.hasNext()) {st.setObject(i, args.next()); i++;}
             result = st.executeUpdate();
             st.close();
             st = null;
@@ -1654,21 +1509,35 @@ public class Actor {
     
     /**
      * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
-     * with a JSON object of named arguments, close the JDBC/DataSource 
-     * statement and return the number of rows updated.
+     * with many arguments iterator, close the JDBC/DataSource 
+     * statement and return a JSON array that list the number of rows 
+     * updated for each set of arguments.
      * 
      * @param statement the SQL statement to execute
-     * @param args the JSONObject containing the statement arguments
-     * @param names a primitive array of argument names
-     * @return -1 if the statement failed, 0 if no row update took place, 
-     *         or the numbers of rows updated, deleted or inserted.
-     * @throws SQLException
+     * @param args the statement arguments iterator
+     * @return a JSON array of integers
+     * @throws SQLException, JSON.Error
      */
-    public int sqlUpdate (
-        String statement, HashMap args, String[] names
-        ) 
-    throws SQLException {
-        return sqlUpdate(statement, args, Simple.iterator(names));
+    public JSON.A sqlUpdate (String statement, JSON.A params) 
+    throws SQLException, JSON.Error {
+        int j; int L = params.size();
+        Iterator args;
+        JSON.A result = null;
+        if (test) logInfo (statement, less4j);
+        PreparedStatement st = null;
+        try {
+            st = sql.prepareStatement(statement);
+            for (int i=0; i<L; ) {
+                args = params.arry(i).iterator(); j = 0;
+                while(args.hasNext()) {st.setObject(j, args.next()); j++;}
+                result.add(new Integer(st.executeUpdate()));
+            }
+            st.close();
+            st = null;
+        } finally {
+            if (st != null) try {st.close();} catch (SQLException se) {;}
+        }
+        return result;
     }
     
     protected static final 

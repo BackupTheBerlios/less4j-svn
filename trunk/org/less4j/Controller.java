@@ -120,34 +120,37 @@ public class Controller extends HttpServlet {
                 type = JSONR.compile(model);
             } catch (JSON.Error e) {
                 throw new ServletException(
-                    "Invalid less4j configuration model"
+                    "Invalid less4j configuration model."
                     );
             }
             JSON.Error e;
             if (type == null) {
                 e = (new JSON()).update(o, conf);
                 if (e != null) throw new ServletException(
-                    "Invalid less4j configuration string", e
+                    "Invalid less4j configuration JSON string.", e
                     );
             } else {
                 e = (new JSONR(type)).update(o, conf);
                 if (e != null) throw new ServletException(
-                    "Irregular less4j configuration", e
+                    "Irregular less4j configuration.", e
                     );
             }
         }
         o.put("j2eeRealPath", getServletContext().getRealPath(""));
         Actor $ = new Actor (o);
         if (!this.less4jConfigure ($)) throw new ServletException(
-            "Failed less4j configuration"
+            "Failed less4j configuration, check your SQL or LDAP parameters."
             );
         
         setConfiguration(o);
     }
  
-    private static final String less4jModel = ("{" +
+    /**
+     * The default JSONR model for less4j controller's configuration.
+     */
+    public static final String less4jModel = ("{" +
         "\".*\": {" +
-            "\"irtd2Salt\": \".+\"," +
+            "\"irtd2Salt\": \".{20}\"," + // mandatory, 20 chars minimum
             "\"irtd2Salted\": null," +
             "\"irtd2Service\": null," +
             "\"irtd2Timeout\": null," +
@@ -220,13 +223,40 @@ public class Controller extends HttpServlet {
         if ($.test) $.logInfo("configuration ok", less4j);
         return true;
     }
-    
+
+    /**
+     * Test the IRTD2 cookie if any, returns true only if such cookie was
+     * digested with one of the two salts in this Actor's configuration
+     * before the <code>irdt2Timeout</code> configured or the one hour 
+     * set as default.
+     * 
+     * @param $ the Actor state
+     * @return true if the HTTP request came with a digestable IRTD2 cookie
+     */
     public boolean irtd2Digested (Actor $) {
         return $.irtd2Digested(
             $.configuration.intValue("irtd2Timeout", 3600)
             );
         } 
     
+    /**
+     * Parse the request query string in the Actor's <code>json</code> state
+     * enforce the configured constraints on containers and iterations
+     * and eventualy apply a configured JSONR model, return <code>true</code>
+     * if a valid JSON object was successfully updated.  
+     * 
+     * <h4>Synospis</h3>
+     * 
+     * <p>This method is applied by <code>doGet</h3> to discriminate 
+     * requests that will be passed to <code>jsonApplication</code>,
+     * providing one way to instanciate the JSON state of an action.</p>
+     * 
+     * <p>Practically, there's little else to do: query strings are too 
+     * short to go crazy about more than what less4j allready provides.</p>
+     * 
+     * @param $ the Actor state
+     * @return true if a valid JSON expression was found in a GET request
+     */
     public boolean jsonGET (Actor $) {
         if ($.configuration.containsKey("jsonrModel"))
             return $.jsonGET(
@@ -241,6 +271,29 @@ public class Controller extends HttpServlet {
                 );
         }
     
+    /**
+     * Parse the request posted JSON string in the Actor's state, enforce the 
+     * configured constraints on POSTed bytes, containers and iterations,
+     * eventualy apply a configured JSONR model, return <code>true</code>
+     * if a valid JSON object was successfully updated.  
+     * 
+     * <h4>Synospis</h3>
+     * 
+     * <p>This method is applied by <code>doPost</h3> to discriminate 
+     * requests that will be passed to <code>jsonApplication</code>,
+     * providing one way to instanciate the JSON state of an action.</p>
+     * 
+     * <p>By default it enforces a strict 16KB limit on POSTed JSON data
+     * and allows for up to 65355 containers and iterations.</p>
+     * 
+     * <p>Again, there's little else to do, but you can still decide to
+     * handle POSTed JSON data in a completely different way and yet 
+     * let <code>doPost</code> work as expected by <code>jsonApplication</code>
+     * developed with this implementation.</p>
+     * 
+     * @param $ the Actor state
+     * @return true if a valid JSON expression was found in a POST request
+     */
     public boolean jsonPOST (Actor $) {
         if ($.configuration.containsKey("jsonrModel")) 
             return $.jsonPOST(
@@ -261,14 +314,46 @@ public class Controller extends HttpServlet {
      * Try to open an SQL connection using the configuration properties,
      * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code>.
      * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>A typical use of <code>sqlOpen</code> is to try to open a
+     * database connection and make a sequence of requests, handling each
+     * error conditions as branches in a simple procedure.</p>  
+     * 
+     * <pre>if (sqlOpen($)) {
+     *    try {
+     *        $.sqlQuery('this', 'SELECT ...', 10);
+     *        doThisAndThat();
+     *        $.sqlUpdate('that', 'INSERT ...');
+     *        $.sqlUpdate('didThisAndThat', 'UPDATE ...');
+     *        $.json200Ok();
+     *    catch (Exception e) {
+     *        $.logError(e);
+     *        undoThat();
+     *        $.sqlUpdate('undidThat', 'DELETE ...');
+     *        $.rest302Redirect();
+     *    } finally {
+     *        $.sqlClose();
+     *    }
+     *}</pre>
+     *
+     * <p>And do it without naming the database, user name and password
+     * in the application code, leaving it for configuration ... or better.</p>
+     * 
+     * <p>Here a convention can be used before configuration: use the
+     * local MySQL server and identify a <code>Class</code> user with
+     * an empty password string. That's a decent default which allows
+     * to configure authorization on the SQL server once for all the
+     * executions of this controller's class.</p>
+     * 
      * @return true if the connection was successfull, false otherwise
      */
     public boolean sqlOpen (Actor $) {
         if ($.configuration.containsKey("jdbcDriver"))
             return $.sqlOpenJDBC(
                 $.configuration.stri(
-                    "jdbcURL", 
-                    "jdbc:mysql://localhost/less4j"),
+                    "jdbcURL", "jdbc:mysql://127.0.0.1:3306/"
+                    ),
                 $.configuration.stri("jdbcUsername", less4j),
                 $.configuration.stri("jdbcPassword", "")
                 );
@@ -278,6 +363,14 @@ public class Controller extends HttpServlet {
                 );
     }
 
+    /**
+     * Try to open an SQL connection using the configuration properties -
+     * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code> - then
+     * execute a native SQL statement and return true if no exception was
+     * raised.
+     * 
+     * @return true if no exception was raised
+     */ 
     public boolean sqlNative (Actor $, String statement) {
         boolean success = false;
         if (sqlOpen($)) try {
@@ -286,45 +379,108 @@ public class Controller extends HttpServlet {
         return success;
     }
     
-    public boolean 
-    sqlQuery (Actor $, String statement, String[] names, int fetch) {
+    /**
+     * Try to open an SQL connection using the configuration properties -
+     * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code> - then
+     * execute an SQL query with the named arguments to update the Actor's 
+     * JSON named state and return true if no exception was raised.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...</p>
+     * 
+     * <pre>if (slqQuery(
+     *    $, "result", "select * from TABLE where COLUMN=?", 
+     *    String[]{"argument"}, 10
+     *    ) && $.json.get("result") != null)
+     *    ; // non-null result set fetched, do something with it ...
+     *else
+     *    ; // exception or null result set, handle the error ...
+     *$.json200Ok();
+     * 
+     * @return true if no exception was raised
+     */ 
+    public boolean sqlQuery (
+        Actor $, String name, String statement, String[] names, int fetch
+        ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.putAll($.sqlQuery(statement, $.json, names, fetch)); 
+            $.json.put(name, $.sqlQuery(
+                statement, Simple.itermap($.json, names), fetch
+                ));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
     }
         
-    public boolean 
-    sqlQuery (Actor $, String statement, String name, int fetch) {
+    public boolean sqlUpdate (
+        Actor $, String name, String statement, String[] names
+        ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(name, $.sqlQuery(statement, fetch)); 
+            $.json.put(name, new Integer($.sqlUpdate(
+                statement, Simple.itermap($.json, names)
+                )));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
     }
-        
+            
+    public boolean sqlUpdate (
+        Actor $, String name, String statement, JSON.A many
+        ) {
+        boolean success = false;
+        if (sqlOpen($)) try {
+            $.json.put(name, $.sqlUpdate(statement, many));
+            success = true;
+        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
+        return success;
+    }
+            
     /**
      * Try to open an LDAP connection using the configuration properties,
      * or the following defaults:
      * 
      * {
      *    "ldapURL": "ldap://127.0.0.1:389/",
-     *    "ldapPrincipal": "guest",
-     *    "ldapCredentials": ""
+     *    "ldapUsername": "org.less4j.Controller",
+     *    "ldapPassword": ""
      *    }
      * 
      * and return true if the connection was successfull, false otherwise.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>Here a convention can be used before configuration: use the
+     * local LDAP server and identify a <code>Class</code> user with
+     * an empty password string. That's a decent default which allows
+     * to configure authorization on the LDAP server once for all the
+     * executions of this controller's class.</p>
+     * 
+     * <p>A typical use of <code>ldapOpen</code> is to try to open an
+     * LDAP connection and make a sequence of requests, handling each
+     * error conditions as branches in a simple procedure.</p>  
+     * 
+     * <pre>if (ldapOpen($)) {
+     *    try {
+     *        $.ldapResolve('cn=cname');
+     *        $.json200Ok();
+     *    catch (Exception) {
+     *        $.rest302Redirect();
+     *    } finally {
+     *        $.ldapClose();
+     *    }
+     *}</pre>
+     *
+     * <p>...</p>
      * 
      * @return true if the connection was successfull, false otherwise
      */
     public boolean ldapOpen (Actor $) {
         return $.ldapOpen(
-            $.configuration.stri("ldapURL", "ldap://localhost/"),
-            $.configuration.stri("ldapPrincipal", less4j), 
-            $.configuration.stri("ldapCredentials", "")
+            $.configuration.stri("ldapURL", "ldap://127.0.0.1:389/"),
+            $.configuration.stri("ldapUsername", less4j), 
+            $.configuration.stri("ldapPassword", "")
             );
     }
     
@@ -356,21 +512,62 @@ public class Controller extends HttpServlet {
     
     // a standard HTTP handler for most Web 2.0 applications of J2EE 
     //
-    // irdt2Authorize     Identify and grant rights in a URI context.
-    // httpResource       Transfert a resource to identified users.
-    // jsonApplication    Control an audited interaction between an 
-    //                    identified user and a JSON application.
+    // irdt2Authorize     
+    // httpResource       
+    // jsonApplication    
     //
     // "Everythin is going to be allright"
     
+    /**
+     * Identify and grant rights in a URI context, redirect by default to
+     * the root context in this controller's domain.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>This is a method to overload in an application controller that
+     * identify and grant rights. The default is to delegate that service
+     * to another controller and redirect the user agent to the configured
+     * URI or this controller's root.</p>
+     *  
+     * @param $ the Actor's state
+     */
     public void irtd2Authorize (Actor $) {
-        $.rest302Redirect($.configuration.stri("irtd2Service", ""));
+        $.rest302Redirect($.configuration.stri("irtd2Service", "/"));
     }
     
+    /**
+     * <p>Transfert a resource to identified users, by default redirect to
+     * the <code>index.html</code> page in this controller's context.</p>
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>This is a method to overload in an application controller that
+     * serve resources in this servlet context to identified users. The 
+     * default is to delegate that service to another controller and redirect 
+     * the user agent to a static page <code>index.html</code>.</p>
+     * 
+     * <p>Practically, for database and directory controllers there is
+     * little else to do short of implementing your own database to URI 
+     * namespace mapping for resources. Subclassing this method makes
+     * it possible, but most controller will only need a static page
+     * to act as a bootstrap for a JSON application.</p>
+     *  
+     * @param $ the Actor's state
+     */
     public void httpResource (Actor $) {
         $.rest302Redirect("index.html");
     }
-    
+
+    /**
+     * Control an audited interaction between an identified user and a 
+     * JSON application.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...</p>
+     * 
+     * @param $ the Actor's state
+     */
     public void jsonApplication (Actor $) {
         $.json200Ok();
     }
