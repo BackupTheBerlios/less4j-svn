@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * A few utilities too simple for language experts, but damn usefull for 
@@ -235,6 +236,21 @@ public class Simple {
 	public static Iterator iterator (Object[] objects) {
 		return new ObjectIterator(objects);
 		}
+    
+    protected static class MapIterator implements Iterator {
+        private Map _map;
+        private Iterator _iter;
+        public MapIterator (Map map, Iterator iter) {
+            _map = map; _iter = iter;
+            }
+        public boolean hasNext () {return _iter.hasNext();}
+        public Object next () {return _map.get(_iter.next());}
+        public void remove () {/* optional interface? what else now ...*/}
+    }
+
+    public static Iterator itermap (Map map, Object[] keys) {
+        return new MapIterator(map, iterator(keys));
+        }
     
     /**
      * Encode a <code>unicode</code> string in the given characterset 
