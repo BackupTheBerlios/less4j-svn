@@ -16,7 +16,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-import java.sql.DriverManager;
+// import java.sql.DriverManager;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException; 
@@ -168,7 +168,7 @@ public class Controller extends HttpServlet {
             "}" + 
         "}");
                 
-    private static final int jdbcTimeout = 15;
+    // private static final int jdbcTimeout = 15;
     
     /**
      * <p>Test wether this controller's configuration actually supports 
@@ -201,10 +201,10 @@ public class Controller extends HttpServlet {
         try {
             if ($.configuration.containsKey("jdbcDriver")) {
                 Class.forName($.configuration.stri("jdbcDriver"));
-                if (DriverManager.getLogWriter() != null)
-                    DriverManager.setLogWriter(null);
-                if (DriverManager.getLoginTimeout() < jdbcTimeout)
-                    DriverManager.setLoginTimeout(jdbcTimeout);
+                //if (DriverManager.getLogWriter() != null)
+                //    DriverManager.setLogWriter(null);
+                //if (DriverManager.getLoginTimeout() < jdbcTimeout)
+                //    DriverManager.setLoginTimeout(jdbcTimeout);
                 if (sqlOpen($)) $.sqlClose(); else return false;
                 
             } else if ($.configuration.containsKey("j2eeDataSource"))
@@ -400,7 +400,41 @@ public class Controller extends HttpServlet {
      * 
      * @return true if no exception was raised
      */ 
-    public boolean sqlQuery (
+    public boolean sqlQueryOne (
+        Actor $, String name, String statement, String[] names
+        ) {
+        boolean success = false;
+        if (sqlOpen($)) try {
+            $.json.put(name, $.sqlQuery(
+                statement, Simple.itermap($.json, names)
+                ));
+            success = true;
+        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
+        return success;
+    }
+        
+    /**
+     * Try to open an SQL connection using the configuration properties -
+     * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code> - then
+     * execute an SQL query with the named arguments to update the Actor's 
+     * JSON named state and return true if no exception was raised.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...</p>
+     * 
+     * <pre>if (slqQuery(
+     *    $, "result", "select * from TABLE where COLUMN=?", 
+     *    String[]{"argument"}, 10
+     *    ) && $.json.get("result") != null)
+     *    ; // non-null result set fetched, do something with it ...
+     *else
+     *    ; // exception or null result set, handle the error ...
+     *$.json200Ok();
+     * 
+     * @return true if no exception was raised
+     */ 
+    public boolean sqlQueryMany (
         Actor $, String name, String statement, String[] names, int fetch
         ) {
         boolean success = false;
@@ -413,7 +447,7 @@ public class Controller extends HttpServlet {
         return success;
     }
         
-    public boolean sqlUpdate (
+    public boolean sqlUpdateOne (
         Actor $, String name, String statement, String[] names
         ) {
         boolean success = false;
@@ -426,7 +460,7 @@ public class Controller extends HttpServlet {
         return success;
     }
             
-    public boolean sqlUpdate (
+    public boolean sqlUpdateMany (
         Actor $, String name, String statement, JSON.A many
         ) {
         boolean success = false;
@@ -499,11 +533,14 @@ public class Controller extends HttpServlet {
     
     public void doPost (HttpServletRequest req, HttpServletResponse res) {
         Actor $ = new Actor (getConfiguration(), req, res);
-        if (irtd2Digested($)) 
-            if (jsonPOST($)) 
-                jsonApplication($); 
-            else 
-                $.rest302Redirect();
+        if (irtd2Digested($))
+            if ($.request.getHeader("Accept").indexOf("application/json")>-1)
+                if (jsonPOST($))
+                    jsonApplication($);
+                else 
+                    $.rest302Redirect();
+            else
+                ; // httpPost ();
         else
             irtd2Authorize($);
     }

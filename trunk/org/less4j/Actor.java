@@ -241,6 +241,12 @@ public class Actor {
     public String url;
     
     /**
+     * A usefull copy of <code>request.getServletPath()</code> to build
+     * dispatch the URL or redirect relatively to this servlet's context.
+     */
+    public String context;
+    
+    /**
      * An HashMap of the validated HTTP request's query string.
      */
     public HashMap actions = null;
@@ -286,6 +292,7 @@ public class Actor {
         request = req;
         response = res;
         url = request.getRequestURL().toString();
+        context = request.getServletPath(); // request.getContextPath() ?
         test = configuration.bool("test", false);
         salt = configuration.stri("irtd2Salt", "").getBytes();
         salted = configuration.stri("irtd2Salted", "").getBytes();
@@ -469,7 +476,7 @@ public class Actor {
         response.addCookie(irtd2);
     }
     
-    public void irtd2Digest() {irtd2Digest(request.getServletPath());}
+    public void irtd2Digest() {irtd2Digest(context);}
     
     protected static Pattern irtd2Split = Pattern.compile(":");
     
@@ -685,23 +692,19 @@ public class Actor {
      * 
      */
     public String urlAbsolute(String location) {
-        /* note that this implementation is inlined for maximum speed */
         if (location.length() == 0)
             return url;
         
         StringBuffer sb;
         char first = location.charAt(0);
         if (first == '?') {
-            sb = new StringBuffer();
-            sb.append(url);
-            sb.append(location);
+            sb = new StringBuffer(); sb.append(url); sb.append(location);
         } else if (first == '/') {
-            sb = new StringBuffer();
-            urlDomain(sb);
-            sb.append(location);
-        } else if (urlHTTPAbsolute.matcher(location).matches()) {
+            sb = new StringBuffer(); urlDomain(sb); sb.append(location);
+        } else if (urlHTTPAbsolute.matcher(location).matches())
             return location;
-        } else {
+            
+        else {
             sb = new StringBuffer();
             urlDomain(sb);
             sb.append(request.getContextPath());
@@ -736,20 +739,19 @@ public class Actor {
     public byte[] httpPOST(int limit) {
         int contentLength = request.getContentLength(); 
         if (contentLength < 1 || contentLength > limit)
-            return null;
+            return null; // don't do null or excess data
         
         byte[] body = new byte[contentLength];
-        try {
-            // first fill that buffer ASAP
+        try { // fill that buffer ASAP
             ServletInputStream is = request.getInputStream();
             int len;
             int off = 0;
             while (off < contentLength) {
-                len = is.read(body, off, contentLength - off); // block ...
+                len = is.read(body, off, contentLength - off);
                 if (len > -1)
                     off += len; 
                 else if (len == 0)
-                    Thread.yield(); // wait for input ...
+                    Thread.yield(); // ... wait for input ...
                 else
                     break;
             }
@@ -908,7 +910,7 @@ public class Actor {
     }
     
     public void rest302Redirect() {
-        rest302Redirect(request.getContextPath());
+        rest302Redirect(context);
     }
     
     /**
@@ -1296,6 +1298,85 @@ public class Actor {
     }
     
     /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement, fetch the first relation, return a JSON object or 
+     * null if the result set was empty. In any case, close the statement 
+     * JDBC statement to prevent any leak in the connections pool.
+     * 
+     * @param statement
+     * @return an array of Object or null
+     * @throws SQLException
+     */
+    public JSON.O sqlQuery (String statement) 
+    throws SQLException {
+        if (test) logInfo(statement, less4j);
+        JSON.O relation = null;
+        Statement st = null;
+        try {
+            st = sql.createStatement();
+            st.setFetchSize(1);
+            ResultSet rs = st.executeQuery(statement);
+            if (rs.next()) {
+                ResultSetMetaData mt = rs.getMetaData();
+                int L = mt.getColumnCount();
+                relation = new JSON.O();
+                for (int i = 0; i < L; i++) relation.put(
+                    mt.getColumnName(i), rs.getObject(i)
+                    );
+            }
+            rs.close();
+            st.close(); 
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;} 
+                st = null;
+            }
+        }
+        return relation;
+    }
+    
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement, return an ArrayList of Object[] rows or null if the result
+     * set was empty. In any case, close the statement JDBC statement
+     * and result set to prevent any leak in the connections pool.
+     * 
+     * @param statement
+     * @return a JSON object mapping the relation or null
+     * @throws SQLException
+     */
+    public JSON.O sqlQuery (String statement, Iterator args) 
+    throws SQLException {
+        if (test) logInfo(statement, less4j);
+        JSON.O relation = null;
+        PreparedStatement st = null;
+        try {
+            st = sql.prepareStatement(statement);
+            int i = 0;
+            while(args.hasNext()) {st.setObject(i, args.next()); i++;}
+            st.setFetchSize(1);
+            ResultSet rs = st.executeQuery(statement);
+            if (rs.next()) {
+                ResultSetMetaData mt = rs.getMetaData();
+                int L = mt.getColumnCount();
+                relation = new JSON.O();
+                for (i = 0; i < L; i++) relation.put(
+                    mt.getColumnName(i), rs.getObject(i)
+                    );
+            }
+            rs.close();
+            st.close();
+            st = null; 
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;} st = null;
+            }
+        }
+        return relation;
+    }
+
+    /**
      * Copy the JDBC result set into ArrayList of primitive Objects,
      * something to iterate through and index in a closed statement's
      * result, possibly defering that process to I/O time and yield 
@@ -1322,74 +1403,6 @@ public class Actor {
             } while (rs.next());
         }
         rs.close();
-        return rows;
-    }
-
-    /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement, fetch the first relation, return a JSON object or 
-     * null if the result set was empty. In any case, close the statement 
-     * JDBC statement to prevent any leak in the connections pool.
-     * 
-     * @param statement
-     * @return an array of Object or null
-     * @throws SQLException
-     */
-    public JSON.O sqlQuery (String statement) 
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.O relation = null;
-        Statement st = null;
-        try {
-            st = sql.createStatement();
-            st.setFetchSize(1);
-            ResultSet rs = st.executeQuery(statement);
-            if (rs.next()) {
-                ResultSetMetaData mt = rs.getMetaData();
-                int l = mt.getColumnCount();
-                relation = new JSON.O();
-                for (int i = 0; i < l; i++) relation.put(
-                    mt.getColumnName(i), rs.getObject(i)
-                    );
-            }
-            rs.close();
-            st.close(); 
-            st = null;
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
-                st = null;
-            }
-        }
-        return relation;
-    }
-    
-    /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement, return an ArrayList of Object[] rows or null if the result
-     * set was empty. In any case, close the statement JDBC statement
-     * and result set to prevent any leak in the connections pool.
-     * 
-     * @param statement
-     * @return an ArrayList of Object[] or null
-     * @throws SQLException
-     */
-    public JSON.A sqlQuery (String statement, int fetch) 
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.A rows = null;
-        Statement st = null;
-        try {
-            st = sql.createStatement();
-            st.setFetchSize(fetch);
-            rows = jdbc2array(st.executeQuery(statement));
-            st.close();
-            st = null; 
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} st = null;
-            }
-        }
         return rows;
     }
 
