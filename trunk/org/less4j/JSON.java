@@ -359,39 +359,32 @@ public class JSON {
     protected static final char _done = CharacterIterator.DONE;
     
     protected static final BigInteger intg (Object value) throws Error {
-        if (value instanceof BigInteger) {
-            return (BigInteger) value;
-        } else throw new Error(BIGINTEGER_TYPE_ERROR);
+        if (value instanceof BigInteger) {return (BigInteger) value;} 
+        else throw new Error(BIGINTEGER_TYPE_ERROR);
     }   
     protected static final BigDecimal deci(Object value) throws Error {
-        if (value instanceof BigDecimal) {
-            return (BigDecimal) value;
-        } else throw new Error(BIGDECIMAL_TYPE_ERROR);
+        if (value instanceof BigDecimal) {return (BigDecimal) value;}
+        else throw new Error(BIGDECIMAL_TYPE_ERROR);
     }
     protected static final Double dble(Object value) throws Error {
-        if (value instanceof Double) {
-            return (Double) value;
-        } else throw new Error(DOUBLE_TYPE_ERROR);
+        if (value instanceof Double) {return (Double) value;}
+        else throw new Error(DOUBLE_TYPE_ERROR);
     }
     protected static final Boolean bool(Object value) throws Error {
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        } else throw new Error(BOOLEAN_TYPE_ERROR);
+        if (value instanceof Boolean) {return (Boolean) value;}
+        else throw new Error(BOOLEAN_TYPE_ERROR);
     }
     protected static final String stri(Object value) throws Error {
-        if (value instanceof String) {
-            return (String) value;
-        } else throw new Error(STRING_TYPE_ERROR);
+        if (value instanceof String) {return (String) value;}
+        else throw new Error(STRING_TYPE_ERROR);
     }
     protected static final A arry(Object value) throws Error {
-        if (value instanceof A) {
-            return (A) value;
-        } else throw new Error(ARRAY_TYPE_ERROR);
+        if (value instanceof A) {return (A) value;} 
+        else throw new Error(ARRAY_TYPE_ERROR);
     }
     protected static final O objc(Object value) throws Error {
-        if (value instanceof O) {
-            return (O) value;
-        } else throw new Error(OBJECT_TYPE_ERROR);
+        if (value instanceof O) {return (O) value;} 
+        else throw new Error(OBJECT_TYPE_ERROR);
     }
     
     /**
@@ -414,13 +407,13 @@ public class JSON {
      *        "\"a list\": [null,true,1,2.0,3e+3]" +
      *        "\"another map\": {}" +
      *        "}");
-     *    Boolean b = map.objc("test");
+     *    Boolean b = map.bool("test");
      *    BigInteger i = map.intg("a big integer");
      *    BigDecimal d = map.deci("a big decimal");
      *    Double r = map.dble("a double");
      *    String s = map.stri("unicode");
-     *    JSON.A a = map.stri("a list");
-     *    JSON.O o = map.stri("a string");
+     *    JSON.A a = map.arry("a list");
+     *    JSON.O o = map.objc("another map");
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
@@ -446,72 +439,57 @@ public class JSON {
             return JSON.intg(get(name));
         }
         public final int intValue(String name, int def) {
-            if (!containsKey(name)) 
-                return def;
-            
-            try {
-                return JSON.intg(get(name)).intValue();
-            } catch (Error e) {
-                return def;
-            }
+            if (!containsKey(name)) return def;
+            try {return JSON.intg(get(name)).intValue();} 
+            catch (Error e) {return def;}
         }
         public final BigDecimal deci(String name) throws Error {
             return JSON.deci(get(name));
         }
         public final BigDecimal deci(String name, BigDecimal def) {
-            if (!containsKey(name)) 
-                return def;
-            
-            try {
-                return JSON.deci(get(name));
-            } catch (Error e) {
-                return def;
-            }
+            if (!containsKey(name)) return def;
+            try {return JSON.deci(get(name));} 
+            catch (Error e) {return def;}
         }
         public final Double dble(String name) throws Error {
             return (JSON.dble(get(name)));
         }
         public final double doubleValue(String name, double def) {
-            if (!containsKey(name)) 
-                return def;
-            
-            try {
-                return JSON.dble(get(name)).doubleValue();
-            } catch (Error e) {
-                return def;
-            }
+            if (!containsKey(name)) return def;
+            try {return JSON.dble(get(name)).doubleValue();} 
+            catch (Error e) {return def;}
         }
         public final Boolean bool(String name) throws Error {
             return (JSON.bool(get(name)));
         }
         public final boolean bool(String name, boolean def) {
-            if (!containsKey(name)) 
-                return def;
-            
-            try {
-                return JSON.bool(get(name)).booleanValue();
-            } catch (Error e) {
-                return def;
-            }
+            if (!containsKey(name)) return def;
+            try {return JSON.bool(get(name)).booleanValue();} 
+            catch (Error e) {return def;}
         }
         public final String stri(String name) throws Error {
             return (JSON.stri(get(name)));
         }
         public final String stri(String name, String def) {
-            if (!containsKey(name)) 
-                return def;
-            
-            try {
-                return JSON.stri(get(name));
-            } catch (Error e) {
-                return def;
-            }
+            if (!containsKey(name)) return def;
+            try {return JSON.stri(get(name));} 
+            catch (Error e) {return def;}
         }
         public final A arry(String name) throws Error {
             return (JSON.arry(get(name)));
         }
+        public final A arry(String name, JSON.A def) {
+            if (!containsKey(name)) return def;
+            try {return (JSON.arry(get(name)));} 
+            catch (Error e) {return def;}
+        }
         public final O objc(String name) throws Error {
             return (JSON.objc(get(name)));
+        }
+        public final O objc(String name, JSON.O def) {
+            if (!containsKey(name)) return def;
+            try {return (JSON.objc(get(name)));} 
+            catch (Error e) {return def;}
         }
     }
     
@@ -553,72 +531,57 @@ public class JSON {
             return (JSON.intg(get(index)));
         }
         public final int intValue(int index, int def) {
-            if (index >= size()) 
-                return def;
-            
-            try {
-                return JSON.intg(get(index)).intValue();
-            } catch (Error e) {
-                return def;
-            }
+            if (index >= size()) return def;
+            try {return JSON.intg(get(index)).intValue();} 
+            catch (Error e) {return def;}
         }
         public final BigDecimal deci(int index) throws Error {
             return JSON.deci(get(index));
         }
         public final BigDecimal deci(int index, BigDecimal def) {
-            if (index >= size()) 
-                return def;
-            
-            try {
-                return JSON.deci(get(index));
-            } catch (Error e) {
-                return def;
-            }
+            if (index >= size()) return def;
+            try {return JSON.deci(get(index));} 
+            catch (Error e) {return def;}
         }
         public final Double dble(int index) throws Error {
             return (JSON.dble(get(index)));
         }
         public final double doubleValue(int index, double def) {
-            if (index >= size()) 
-                return def;
-            
-            try {
-                return JSON.dble(get(index)).doubleValue();
-            } catch (Error e) {
-                return def;
-            }
+            if (index >= size()) return def;
+            try {return JSON.dble(get(index)).doubleValue();} 
+            catch (Error e) {return def;}
         }
         public final Boolean bool(int index) throws Error {
             return (JSON.bool(get(index)));
         }
         public final boolean bool(int index, boolean def) {
-            if (index >= size()) 
-                return def;
-            
-            try {
-                return JSON.bool(get(index)).booleanValue();
-            } catch (Error e) {
-                return def;
-            }
+            if (index >= size()) return def;
+            try {return JSON.bool(get(index)).booleanValue();} 
+            catch (Error e) {return def;}
         }
         public final String stri(int index) throws Error {
             return (JSON.stri(get(index)));
         }
         public final String stri(int index, String def) {
-            if (index >= size()) 
-                return def;
-            
-            try {
-                return JSON.stri(get(index));
-            } catch (Error e) {
-                return def;
-            }
+            if (index >= size()) return def;
+            try {return JSON.stri(get(index));} 
+            catch (Error e) {return def;}
         }
         public final A arry(int index) throws Error {
             return (JSON.arry(get(index)));
         }
+        public final A arry(int index, JSON.A def) {
+            if (index >= size()) return def;
+            try {return (JSON.arry(get(index)));} 
+            catch (Error e) {return def;}
+        }
         public final O objc(int index) throws Error {
             return (JSON.objc(get(index)));
+        }
+        public final O objc(int index, JSON.O def) {
+            if (index >= size()) return def;
+            try {return (JSON.objc(get(index)));} 
+            catch (Error e) {return def;}
         }
     }
     
