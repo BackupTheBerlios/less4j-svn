@@ -313,9 +313,9 @@ public class Simple {
      * 
      * ...</p>
      * 
-     * @param separator
-     * @param iter
-     * @return
+     * @param separator 
+     * @param iter 
+     * @return the joined string
      */
     public static String join (Object separator, Iterator iter) {
         return join(separator, iter, new StringBuffer()).toString();

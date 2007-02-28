@@ -26,7 +26,7 @@ import java.util.NoSuchElementException;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.10
+ * @version 0.20
  */
 public class Netunicode {
     
@@ -69,7 +69,7 @@ public class Netunicode {
         return sb.toString();
     }
 
-    private static class Netiterator implements Iterator {
+    protected static class Netiterator implements Iterator {
         
         private String buffer;
         private String item;
@@ -82,7 +82,7 @@ public class Netunicode {
             buffer = encoded;
             size = buffer.length();
             nostrip = !strip;
-            next();
+            try {next();} catch (NoSuchElementException e) {;}
         }
         
         public boolean hasNext() {return item != null;}
@@ -91,13 +91,12 @@ public class Netunicode {
             if (item == null) 
                 throw new NoSuchElementException();
             
-            Object result = (Object)item;
+            Object result = (Object) item;
             item = null;
             while (prev < size) {
                 pos = buffer.indexOf (':', prev);
-                if (pos < 1) {
-                    prev = size;
-                } else {
+                if (pos < 1) prev = size;
+                else {
                     try {
                         length = Integer.parseInt(
                             buffer.substring (prev, pos)
@@ -106,16 +105,12 @@ public class Netunicode {
                         prev = size;
                     }
                     next = pos + length + 1;
-                    if (next >= size) {
-                        prev = size;
-                    } else if (buffer.charAt(next) == ',') {
-                        if (nostrip || next-pos > 1) {
+                    if (next >= size) prev = size;
+                    else if (buffer.charAt(next) == ',') {
+                        if (nostrip || next-pos > 1)
                             item = buffer.substring (pos+1, next);
-                            };
                         prev = next + 1;
-                    } else {
-                        prev = size;
-                    }
+                    } else prev = size;
                 }
             }
             return result;

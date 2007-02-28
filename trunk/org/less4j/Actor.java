@@ -633,7 +633,7 @@ public class Actor {
     /**
      * Validate the request's actions Map against a JSONR type.
      * 
-     * @param pattern a compiled JSONR regular object
+     * @param type a compiled JSONR regular object
      * @return true if there is at least one valid action
      */
     public boolean urlActions(JSONR.Type type) {
@@ -1130,9 +1130,7 @@ public class Actor {
      *        &lt;script ... &gt;&lt;/script&gt;
      *    &lt;/header&gt;
      *    &lt;body&gt;
-     *        &lt;!-- &lt;script&gt; 
-     *            paint(placeholder()); 
-     *        &lt;/script&gt; --&gt;
+     *        &lt;!-- &lt;script&gt;&lt;less4json/&gt;&lt;/script&gt; --&gt;
      *    &lt;/body&gt;
      *&lt;/html&gt;</pre>
      * </blockquote>
@@ -1144,9 +1142,7 @@ public class Actor {
      * <p>...
      * 
      * <blockquote>
-     * <pre>this.template = $.ajaxTemplate(
-     *    "index.html", "placeholder[(][)]"
-     *);</pre>
+     * <pre>this.template = $.ajaxTemplate("index.html", "&lt;less4json/&gt;");</pre>
      * </blockquote>
      * 
      * ...</p>
@@ -1527,7 +1523,7 @@ public class Actor {
      * updated for each set of arguments.
      * 
      * @param statement the SQL statement to execute
-     * @param args the statement arguments iterator
+     * @param params the JSON array of parameter arrays
      * @return a JSON array of integers
      * @throws SQLException, JSON.Error
      */

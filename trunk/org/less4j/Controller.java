@@ -379,6 +379,29 @@ public class Controller extends HttpServlet {
         return success;
     }
     
+    public boolean sqlQuery (
+        Actor $, String statement, String[] parameters
+        ) {
+        boolean success = false;
+        if (sqlOpen($)) try {
+            $.json.putAll($.sqlQuery(statement, Simple.iterator(parameters)));
+            success = true;
+        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
+        return success;
+    }
+    
+    public boolean sqlQuery (
+        Actor $, String statement, String[] parameters, int fetch
+        ) {
+        boolean success = false;
+        if (sqlOpen($)) try {
+            $.json.putAll($.sqlQuery(
+                statement, Simple.iterator(parameters), fetch
+                ));
+        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
+        return success;
+    }
+        
     /**
      * Try to open an SQL connection using the configuration properties -
      * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code> - then
@@ -400,7 +423,7 @@ public class Controller extends HttpServlet {
      * 
      * @return true if no exception was raised
      */ 
-    public boolean sqlQueryOne (
+    public boolean sqlQuery (
         Actor $, String name, String statement, String[] names
         ) {
         boolean success = false;
@@ -434,7 +457,7 @@ public class Controller extends HttpServlet {
      * 
      * @return true if no exception was raised
      */ 
-    public boolean sqlQueryMany (
+    public boolean sqlQuery (
         Actor $, String name, String statement, String[] names, int fetch
         ) {
         boolean success = false;
@@ -447,7 +470,7 @@ public class Controller extends HttpServlet {
         return success;
     }
         
-    public boolean sqlUpdateOne (
+    public boolean sqlUpdate (
         Actor $, String name, String statement, String[] names
         ) {
         boolean success = false;
@@ -460,7 +483,7 @@ public class Controller extends HttpServlet {
         return success;
     }
             
-    public boolean sqlUpdateMany (
+    public boolean sqlUpdate (
         Actor $, String name, String statement, JSON.A many
         ) {
         boolean success = false;
