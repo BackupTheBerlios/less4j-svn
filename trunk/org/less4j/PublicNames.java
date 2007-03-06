@@ -142,4 +142,6 @@ public class PublicNames {
         encoded = validate(articulated, field, HORIZON);
     }
     
+    public String toString() {return encoded;}
+    
 } // that's all folks.

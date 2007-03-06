@@ -54,6 +54,10 @@ public class Netunicode {
             item = iter.next();
             if (item instanceof String)
                 s = (String) item;
+            else if (item instanceof String[])
+                s = encode((String[])item);
+            else if (item instanceof Iterator)
+                s = encode((Iterator)item);
             else
                 s = item.toString();
             sb.append(s.length());
