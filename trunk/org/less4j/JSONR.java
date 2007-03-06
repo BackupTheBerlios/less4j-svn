@@ -416,14 +416,14 @@ public class JSONR extends JSON {
         public final Type copy() {return singleton;}
     }
     
-    protected static final class TypeRegexp implements Type {
+    protected static final class TypeRegular implements Type {
         protected static final String IRREGULAR_STRING = 
             "irregular String";
         protected Pattern pattern = null;
-        protected TypeRegexp (Pattern pattern) {
+        protected TypeRegular (Pattern pattern) {
             this.pattern = pattern;
         } 
-        public TypeRegexp (String expression) {
+        public TypeRegular (String expression) {
             pattern = Pattern.compile(expression);
         } 
         protected final Object test (String string) throws Error {
@@ -444,9 +444,9 @@ public class JSONR extends JSON {
             else
                 return null;
         }
-        public Type copy() {return new TypeRegexp(pattern);}
+        public Type copy() {return new TypeRegular(pattern);}
     }
-    
+
     protected static final class TypeArray implements Type {
         public Type[] types = null;
         public TypeArray (Type[] types) {this.types = types;}
@@ -455,7 +455,7 @@ public class JSONR extends JSON {
                 return instance;
             else
                 throw new Error(JSON.ARRAY_TYPE_ERROR);
-            }
+        }
         public final Object eval (String string) throws JSON.Error {
             return (new JSONR(this)).eval(string);
         }
@@ -468,16 +468,45 @@ public class JSONR extends JSON {
                 return singleton;
             else
                 return new TypeArray(types);
-            }
+        }
     }
-    
-    protected static final class TypeObject implements Type {
+
+    protected static final class TypeDictionary implements Type {
+        protected static final String IRREGULAR_DICTIONARY = 
+            "irregular Dictionary";
+        public Type[] types;
+        public TypeDictionary (Type[] types) {
+            this.types = types;
+            }
+        public final Object value (Object instance) throws Error {
+            if (instance instanceof HashMap) {
+                HashMap map = (HashMap) instance;
+                if (map.keySet().iterator().hasNext())
+                    return map;
+                else
+                    throw new Error(IRREGULAR_DICTIONARY);
+            } else
+                throw new Error(JSON.OBJECT_TYPE_ERROR);
+        }
+        public final Object eval (String string) throws JSON.Error {
+            return (new JSONR(this)).eval(string);
+        }
+        public static final Type singleton = new TypeDictionary(new Type[]{
+            new TypeRegular(".+"), TypeUndefined.singleton 
+        });
+        public final Type copy() {
+            if (this == singleton) return singleton;
+            return new TypeDictionary(new Type[]{types[0], types[1]});
+        }
+    }
+
+    protected static final class TypeNamespace implements Type {
         protected static final String IRREGULAR_OBJECT = 
-            "irregular Object";
+            "irregular Namespace";
         public Set names;
         public Set mandatory;
         public HashMap namespace;
-        public TypeObject (HashMap ns) {
+        public TypeNamespace (HashMap ns) {
             namespace = ns;
             names = ns.keySet();
             mandatory = new HashSet();
@@ -488,7 +517,7 @@ public class JSONR extends JSON {
                 if (!(
                     value instanceof TypeUndefined ||
                     value instanceof TypeArray ||
-                    value instanceof TypeObject
+                    value instanceof TypeNamespace
                     ))
                     mandatory.add(name);
                 }
@@ -508,39 +537,7 @@ public class JSONR extends JSON {
         public final Object eval (String string) throws JSON.Error {
             return (new JSONR(this)).eval(string);
         }
-        public final JSON.O filterQuery(Map query) {
-            Type type;
-            String name;
-            String[] strings;
-            JSON.O o = new JSON.O();
-            Iterator iter = query.keySet().iterator();
-            while (iter.hasNext()) {
-                name = (String) iter.next();
-                type = (Type) namespace.get(name);
-                strings = (String[]) query.get(name);
-                if (type != null && strings != null && strings.length > 0) 
-                    try {
-                        o.put(name, type.eval(strings[0]));
-                    } catch (JSON.Error e) {;}
-            }
-            return o;
-        }
-        public final JSON.O matchQuery(Map query) throws JSON.Error {
-            Type type;
-            String name;
-            String[] strings;
-            JSON.O o = new JSON.O();
-            Iterator iter = query.keySet().iterator();
-            while (iter.hasNext()) {
-                name = (String) iter.next();
-                type = (Type) namespace.get(name);
-                strings = (String[]) query.get(name);
-                if (type != null && strings != null && strings.length > 0)
-                    o.put(name, type.eval(strings[0]));
-            }
-            return o;
-        }
-        public static final Type singleton = new TypeObject(new JSON.O());
+        public static final Type singleton = new TypeNamespace(new JSON.O());
         public final Type copy() {
             if (this == singleton) return singleton;
             
@@ -551,7 +548,7 @@ public class JSONR extends JSON {
                 name = (String) iter.next();
                 o.put(name, ((Type) namespace.get(name)).copy());
             }
-            return new TypeObject(o);
+            return new TypeNamespace(o);
         }
     }
     
@@ -774,7 +771,7 @@ public class JSONR extends JSON {
             if (extensions != null && extensions.containsKey(s))
                 type = (Type) extensions.get(s);
             else if (s.length() > 0)
-                type = new TypeRegexp(s);
+                type = new TypeRegular(s);
             else
                 type = STRING;
         } else if (regular instanceof BigInteger) {
@@ -818,17 +815,24 @@ public class JSONR extends JSON {
             HashMap object = (HashMap) regular;
             Iterator iter = object.keySet().iterator();
             if (!iter.hasNext())
-                type = TypeObject.singleton;
+                type = TypeNamespace.singleton;
             else {
                 String name;
+                int i = 0;
                 HashMap namespace = new HashMap();
                 do {
                     name = (String) iter.next();
                     namespace.put(name, compile(
                         object.get(name), extensions, cache
-                        ));
+                        )); i++;
                 } while (iter.hasNext());
-                type = new TypeObject(namespace);
+                if (i==1)
+                    type = new TypeDictionary(new Type[]{
+                        compile(name, extensions, cache),
+                        compile(object.get(name), extensions, cache)
+                        });
+                else
+                    type = new TypeNamespace(namespace);
             } 
         } else
             type = null;
@@ -885,7 +889,7 @@ public class JSONR extends JSON {
         super(containers, iterations); type = compile(pattern, TYPES);
     }
     
-    public Object eval(String json) 
+    public final Object eval(String json) 
     throws JSON.Error {
         buf = new StringBuffer();
         it = new StringCharacterIterator(json);
@@ -898,11 +902,11 @@ public class JSONR extends JSON {
         }
     }
     
-    public JSON.Error update(Map o, String json) {
-        if (!(type instanceof TypeObject))
+    public final JSON.Error update(Map o, String json) {
+        if (!(type instanceof TypeNamespace))
             return new Error(JSON.OBJECT_TYPE_ERROR);
         
-        TypeObject to = (TypeObject) type;
+        TypeNamespace to = (TypeNamespace) type;
         buf = new StringBuffer();
         it = new StringCharacterIterator(json);
         try {
@@ -922,7 +926,7 @@ public class JSONR extends JSON {
         }
     }
     
-    public JSON.Error extend(List a, String json) {
+    public final JSON.Error extend(List a, String json) {
         if (!(type instanceof TypeArray))
             return new Error(JSON.ARRAY_TYPE_ERROR);
         
@@ -950,15 +954,15 @@ public class JSONR extends JSON {
         while (Character.isWhitespace(c)) c = it.next();
         switch(c){
         case '{': {
-            if (type instanceof TypeObject) {
-                TypeObject to = (TypeObject) type;
+            if (type instanceof TypeNamespace) {
+                TypeNamespace to = (TypeNamespace) type;
                 c = it.next();
                 return to.value(object(new JSON.O(), to.namespace));
             } else if (type == TypeUndefined.singleton) {
                 c = it.next();
                 return object(new JSON.O());
             } else
-                throw error(TypeObject.IRREGULAR_OBJECT);
+                throw error(TypeNamespace.IRREGULAR_OBJECT);
         }
         case '[': {
             if (type instanceof TypeArray) { 
@@ -1035,6 +1039,36 @@ public class JSONR extends JSON {
             e.jsonPath.add(0, BigInteger.valueOf(index));
             throw e;
         }
+    }
+    
+    protected final Object dictionary(Map o, Type[] types) 
+    throws JSON.Error {
+        if (--containers < 0) 
+            throw error(CONTAINERS_OVERFLOW);
+        
+        Object val;
+        Object token = value(types[0]);
+        while (token != OBJECT) {
+            if (!(token instanceof String))
+                throw error(STRING_EXPECTED);
+            
+            if (--iterations < 0) 
+                throw error(ITERATIONS_OVERFLOW);
+            
+            if (value() == COLON) {
+                val = value(types[1]);
+                if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
+                    throw error(VALUE_EXPECTED);
+                
+                o.put(token, val);
+                token = value(types[0]);
+                if (token == COMMA)
+                    token = value();
+            } else {
+                throw error(COLON_EXPECTED);
+            }
+        }
+        return o;
     }
     
     protected final Object object(Map o, HashMap namespace) 
@@ -1116,6 +1150,46 @@ public class JSONR extends JSON {
             }
         }
         return a;
+    }
+    
+    public final JSON.O filter(Map query) {
+        if (!(type instanceof TypeNamespace))
+            return null;
+        
+        Type pattern;
+        String name;
+        String[] strings;
+        JSON.O o = new JSON.O();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            pattern = (Type) ((TypeNamespace) type).namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (pattern != null && strings != null && strings.length > 0) 
+                try {
+                    o.put(name, pattern.eval(strings[0]));
+                } catch (JSON.Error e) {;}
+        }
+        return o;
+    }
+    
+    public final JSON.O match(Map query) throws JSON.Error {
+        if (!(type instanceof TypeNamespace))
+            return null;
+        
+        Type pattern;
+        String name;
+        String[] strings;
+        JSON.O o = new JSON.O();
+        Iterator iter = query.keySet().iterator();
+        while (iter.hasNext()) {
+            name = (String) iter.next();
+            pattern = (Type) ((TypeNamespace) type).namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (pattern != null && strings != null && strings.length > 0)
+                o.put(name, pattern.eval(strings[0]));
+        }
+        return o;
     }
     
 }
