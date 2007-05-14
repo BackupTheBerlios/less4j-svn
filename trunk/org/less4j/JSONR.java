@@ -1162,7 +1162,7 @@ public class JSONR extends JSON {
         Type type = (Type) types.next();
         java.lang.Object token = value(type, i++);
         if (types.hasNext()) {
-            while (token != ARRAY) {
+            while (token != JSON.ARRAY) {
                 if (token==JSON.COLON || token==JSON.COMMA || token==JSON.OBJECT)
                     throw error(VALUE_EXPECTED);
                 
@@ -1180,7 +1180,7 @@ public class JSONR extends JSON {
             if (types.hasNext())
                 throw error(PARTIAL_ARRAY);
         } else {
-            while (token != ARRAY) {
+            while (token != JSON.ARRAY) {
                 if (token==JSON.COLON || token==JSON.COMMA || token==JSON.OBJECT)
                     throw error(VALUE_EXPECTED);
                 

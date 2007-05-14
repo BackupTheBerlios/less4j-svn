@@ -198,7 +198,7 @@ public class Test {
         System.out.print("serialized ");
         long t = System.currentTimeMillis();
         for (int i = 0; i < scale; i++)
-            JSON.str(o);
+            JSON.encode(o);
         t = System.currentTimeMillis() - t;
         System.out.print(output.length()*scale);
         if (t > 0) {
@@ -230,7 +230,7 @@ public class Test {
                 try {
                     Object o = (new JSON()).eval(input);
                     System.out.print(" = ");
-                    String output = JSON.str(o);
+                    String output = JSON.encode(o);
                     System.out.println(JSON.repr(o));
                     jsonBenchmarkEval(input, scale);
                     jsonBenchmarkStr(o, output, scale);
@@ -328,7 +328,7 @@ public class Test {
         if (dirlist == null)
             return;
         
-        HashMap modelJSON;
+        JSON.Object modelJSON;
         JSONR pattern; 
         String model = Simple.fileRead(dir + "/test.jsonr");
         try {
@@ -349,9 +349,9 @@ public class Test {
             e.printStackTrace();
             return;
         }
-        ArrayList limits = (ArrayList) modelJSON.get("limits");
-        pattern.containers = ((Number) limits.get(0)).intValue();
-        pattern.iterations = ((Number) limits.get(1)).intValue();
+        JSON.Array limits = modelJSON.A("limits", new JSON.Array());
+        pattern.containers = limits.intValue(0, 65355);
+        pattern.iterations = limits.intValue(1, 65355);
         dir += File.separatorChar; 
         Iterator filenames = Simple.iterator(dirlist);
         while (filenames.hasNext()) {
@@ -368,15 +368,25 @@ public class Test {
                         input, scale, pattern
                         );
                 } catch (JSONR.Error e) {
-                    System.out.println(input.substring(0, e.jsonIndex));
-                    System.out.print("Type Error ");
-                    System.out.println(e.jstr());
-                    System.out.println(input.substring(e.jsonIndex));
+                    if (e.jsonIndex > -1) {
+                        System.out.println(input.substring(0, e.jsonIndex));
+                        System.out.print("Irregular JSON value ");
+                        System.out.println(e.jstr());
+                        System.out.println(input.substring(e.jsonIndex));
+                    } else {
+                        System.out.print("Irregular JSON value ");
+                        System.out.println(e.jstr());
+                    }
                 } catch (JSON.Error e) {
-                    System.out.println(input.substring(0, e.jsonIndex));
-                    System.out.print("Syntax Error ");
-                    System.out.println(e.jstr());
-                    System.out.println(input.substring(e.jsonIndex));
+                    if (e.jsonIndex > -1) {
+                        System.out.println(input.substring(0, e.jsonIndex));
+                        System.out.print("Invalid JSON string ");
+                        System.out.println(e.jstr());
+                        System.out.println(input.substring(e.jsonIndex));
+                    } else {
+                        System.out.print("Invalid JSON string ");
+                        System.out.println(e.jstr());
+                    }
                 }
             }
         }
