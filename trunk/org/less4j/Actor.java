@@ -16,10 +16,12 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
+// import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import java.net.URLEncoder;
@@ -50,6 +52,8 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
+
+import org.less4j.JSONR.Type;
 
 /**
  * <p>A "full-stack" API to develop XML and JSON interfaces for J2EE 
@@ -147,14 +151,9 @@ import javax.servlet.http.Cookie;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.20
+ * @version 0.30
  */
 public class Actor {
-    
-//    public static interface Action {
-//        public void play (Actor $);
-//        public static final Action singleton = null;
-//    } 
     
     protected static final String less4j = "less4j";
     
@@ -170,7 +169,7 @@ public class Actor {
      * options listed in the servlet's XML configuration file and whose 
      * name start with <code>"less4j"</code>. 
      */
-    public JSON.O configuration;
+    public JSON.Object configuration;
 
     /**
      * A boolean that indicates wether the Actor runtime environment is
@@ -247,14 +246,9 @@ public class Actor {
     public String context;
     
     /**
-     * An HashMap of the validated HTTP request's query string.
-     */
-    public HashMap actions = null;
-    
-    /**
      * The JSON object associated with the Actor's request and response.
      */
-    public JSON.O json = null;
+    public JSON.Object json = null;
     
     /**
      * An open JDBC connection or <code>null</code>.
@@ -272,9 +266,9 @@ public class Actor {
      * 
      * @param conf the controller's configuration HashMap
      */
-    public Actor (JSON.O conf) {
+    public Actor (JSON.Object conf) {
         configuration = conf;
-        test = configuration.bool("test", false);
+        test = configuration.B("test", false);
     }
     
     /**
@@ -286,16 +280,16 @@ public class Actor {
      * @param res the HTTP response to complete
      */
     public Actor (
-        JSON.O conf, HttpServletRequest req, HttpServletResponse res
+        JSON.Object conf, HttpServletRequest req, HttpServletResponse res
         ) {
         configuration = conf;
         request = req;
         response = res;
         url = request.getRequestURL().toString();
         context = request.getServletPath(); // request.getContextPath() ?
-        test = configuration.bool("test", false);
-        salt = configuration.stri("irtd2Salt", "").getBytes();
-        salted = configuration.stri("irtd2Salted", "").getBytes();
+        test = configuration.B("test", false);
+        salt = configuration.S("irtd2Salt", "").getBytes();
+        salted = configuration.S("irtd2Salted", "").getBytes();
     }
 
     /**
@@ -630,17 +624,6 @@ public class Actor {
     protected static final Pattern httpPreferences = 
         Pattern.compile("^(.*?)(;.+?=.+?)?((,.*?)(/s*?;.+?=.+?)?)*$");
     
-    /**
-     * Validate the request's actions Map against a JSONR type.
-     * 
-     * @param type a compiled JSONR regular object
-     * @return true if there is at least one valid action
-     */
-    public boolean urlActions(JSONR.Type type) {
-        // actions = type.filter(request.getParameterMap());
-        return !actions.isEmpty();
-    }
-
     protected static final String urlHTTP = "http";
     protected static final String urlHTTPS = "https";
     protected static final String urlHTTPHost = "://";
@@ -773,7 +756,7 @@ public class Actor {
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "ASCII")
      */
-    public void rest200Ok (byte[] body, String type, String charset) {
+    public void http200Ok (byte[] body, String type, String charset) {
         response.setStatus(HttpServletResponse.SC_OK);
         if (charset != null) type += ";charset=" + charset;
         // if (charset != null) response.setCharacterEncoding(charset);
@@ -799,7 +782,7 @@ public class Actor {
      * <p>Usage:
      * 
      * <blockquote>
-     * <pre>$.res200Ok("&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
+     * <pre>$.http200Ok("&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
      * </blockquote>
      * 
      * where <code>$</code> is an <code>Actor</code> instance.</p>
@@ -808,8 +791,8 @@ public class Actor {
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "UTF-8")
      */
-    public void rest200Ok (String body, String type, String charset) {
-        rest200Ok(Simple.encode(body, charset), type, charset);
+    public void http200Ok (String body, String type, String charset) {
+        http200Ok(Simple.encode(body, charset), type, charset);
     }
     
     /**
@@ -834,8 +817,8 @@ public class Actor {
      *
      * @param body a string
      */
-    public void rest200Ok (String body) {
-        rest200Ok(
+    public void http200Ok (String body) {
+        http200Ok(
             Simple.encode(body, less4jCharacterSet), 
             xmlContentType, 
             less4jCharacterSet
@@ -858,7 +841,7 @@ public class Actor {
      * @param type the Content-Type of the response 
      *
      */
-    protected void rest302Redirect (String location, byte[] body, String type) {
+    protected void http302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
         response.addHeader(httpLocation, urlAbsolute(location));
         response.setContentType(type);
@@ -874,7 +857,7 @@ public class Actor {
         }
     }
     
-    protected static final String rest302RedirectXML = (
+    protected static final String http302RedirectXML = (
             "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
             "<rest302Redirect/>"
             );
@@ -903,90 +886,81 @@ public class Actor {
      * 
      * @param location to redirect to
      */
-    public void rest302Redirect(String location) {
-        rest302Redirect(
-            location, rest302RedirectXML.getBytes(), xmlContentType
+    public void http302Redirect(String location) {
+        http302Redirect(
+            location, http302RedirectXML.getBytes(), xmlContentType
             );
     }
     
-    public void rest302Redirect() {
-        rest302Redirect(context);
-    }
-    
-    /**
-     * <p>Bounce to this request's resource if the redirected location 
-     * can redirect the user agent in response to the query string
-     * completed with this request URL as larst argument.</p>
-     * 
-     * <p>Usage:
-     * 
-     * <blockquote>
-     * <pre>$.rest302Bounce("https://authority/login", "?url=");</pre>
-     * </blockquote>
-     * 
-     * redirects the user agent to
-     * 
-     * <blockquote>
-     * <pre>GET https://authority/login?url=...</pre>
-     * </blockquote>
-     * 
-     * which may or may not bounce it back to this Actor's request
-     * resource.</p>
-     * 
-     * <p>Note that this function assumes that location is idempotent.</p>
-     * 
-     * @param location an idempotent location to redirect to
-     * @param query the query string before completion 
-     */
-    protected void rest302Bounce(byte[] body, String location, String query) {
-        StringBuffer sb = new StringBuffer();
-        sb.append(urlAbsolute(location));
-        sb.append(query);
-        try {
-            sb.append(URLEncoder.encode(url, less4jCharacterSet));
-        } catch (UnsupportedEncodingException e) {
-            sb.append(URLEncoder.encode(url));
-        }
-        response.setStatus(HttpServletResponse.SC_FOUND);
-        response.addHeader(httpLocation, urlAbsolute(location));
-        response.setContentType(xmlContentType);
-        response.setContentLength(body.length);
-        try {
-            ServletOutputStream os = response.getOutputStream(); 
-            os.write(body);
-            os.flush();
-            irtd2Audit(302);
-        } catch (IOException e) {
-            logError(e);
-            irtd2Audit(500); // TODO: ? work out "own" error code ? 
-        }
-    }
-
-    protected static final byte[] rest302BounceXML = Simple.encode (
-            "<?xml version=\"1.0\" encoding=\"ASCII\" ?>" +
-            "<rest302Bounce/>", "UTF-8"
-            );
-            
-    public void rest302Bounce(String location, String query) {
-        rest302Bounce(rest302BounceXML, location, query);
-    }
-
     protected static final String jsonXJSON = "X-JSON";
     
     public boolean jsonGET(int containers, int iterations) {
+        json = new JSON.Object();
+        Map query = request.getParameterMap();
+        String name;
+        String[] strings;
+        Iterator iter = query.keySet().iterator();
+        containers--;
+        while (containers > 0 && iterations > 0 && iter.hasNext()) {
+            name = (String) iter.next();
+            strings = (String[]) query.get(name);
+            if (strings != null)
+                if (strings.length > 1) { 
+                    containers--;
+                    JSON.Array list = new JSON.Array();
+                    for (int i=0; i < strings.length; i++) { 
+                        list.add(strings[i]); iterations--;
+                    }
+                    json.put(name, list);
+                } else if (strings.length > 0)
+                    json.put(name, strings[0]);
+                else
+                    json.put(name, null);
+            iterations--;
+        }
         String xjson = request.getHeader(jsonXJSON);
-        if (xjson != null) try {
-            json = (new JSON(containers, iterations)).object(xjson);
-        } catch (JSON.Error e) {;}
-        return (json != null);
+        if (xjson != null) {
+            JSON parse = new JSON(containers, iterations);
+            JSON.Error e = parse.update(json, xjson); 
+            if (e != null) {logError(e); return false;}
+        }
+        return true;
     }
     
     public boolean jsonGET(int containers, int iterations, JSONR.Type type) {
+        json = new JSON.Object();
+        Map query = request.getParameterMap();
+        HashMap namespace = ((JSONR.TypeNamespace) type).namespace;
+        Type pattern;
+        String name;
+        String[] strings;
+        Iterator iter = query.keySet().iterator();
+        containers--;
+        while (containers > 0 && iterations > 0 && iter.hasNext()) try {
+            name = (String) iter.next();
+            pattern = (Type) namespace.get(name);
+            strings = (String[]) query.get(name);
+            if (pattern != null && strings != null) 
+                if (strings.length > 1) { 
+                    containers--;
+                    JSON.Array list = new JSON.Array();
+                    for (int i=0; i < strings.length; i++) { 
+                        list.add(pattern.eval(strings[i])); iterations--;
+                    }
+                    json.put(name, list);
+                } else if (strings.length > 0)
+                    json.put(name, pattern.eval(strings[0]));
+                else
+                    json.put(name, null);
+            iterations--;
+        } catch (JSON.Error e) {logError(e); return false;}
         String xjson = request.getHeader(jsonXJSON);
-        if (xjson != null) try {
-            json = (new JSONR(type, containers, iterations)).object(xjson);
-        } catch (JSON.Error e) {;}
-        return (json != null);
+        if (xjson != null) {
+            JSONR validate = new JSONR(type, containers, iterations);  
+            JSON.Error e = validate.update(json, xjson); 
+            if (e != null) {logError(e); return false;}
+        }
+        return true;
     }
     
     /**
@@ -1041,7 +1015,7 @@ public class Actor {
     }
     
     public void jsonDigest(String digestedName, String digestName) {
-        byte[] buff = JSON.str(json.get(digestedName)).getBytes();
+        byte[] buff = JSON.encode(json.get(digestedName)).getBytes();
         SHA1 md = new SHA1();
         md.update(buff);
         md.update(salt);
@@ -1049,8 +1023,8 @@ public class Actor {
     }
     
     public boolean jsonDigested(String digestedName, String digestName) {
-        String sign = json.stri(digestName, "");
-        byte[] buff = JSON.str(json.get(digestedName)).getBytes();
+        String sign = json.S(digestName, "");
+        byte[] buff = JSON.encode(json.get(digestedName)).getBytes();
         SHA1 md = new SHA1();
         md.update(buff);
         md.update(salt);
@@ -1105,7 +1079,7 @@ public class Actor {
      * encoded in UTF-8 as body and audit the response, or log an error.</p>
      */
     public void json200Ok (Object value) {
-        json200Ok(Simple.encode(JSON.str(value), less4jCharacterSet));
+        json200Ok(Simple.encode(JSON.encode(value), less4jCharacterSet));
     }
     
     /**
@@ -1114,110 +1088,8 @@ public class Actor {
      * an error.</p>
      */
     public void json200Ok () {
-        json200Ok(Simple.encode(JSON.str(json), less4jCharacterSet));
+        json200Ok(Simple.encode(JSON.encode(json), less4jCharacterSet));
     }
-    /**
-     * <p>Load a simplistic template to wrap JSON with anything else as
-     * long as it supports UTF-8 (usually HTML, XHTML or XML).</p>
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <p>...
-     * 
-     * <blockquote>
-     * <pre>&lt;html&gt;
-     *    &lt;header&gt;
-     *        &lt;script ... &gt;&lt;/script&gt;
-     *    &lt;/header&gt;
-     *    &lt;body&gt;
-     *        &lt;!-- &lt;script&gt;&lt;less4json/&gt;&lt;/script&gt; --&gt;
-     *    &lt;/body&gt;
-     *&lt;/html&gt;</pre>
-     * </blockquote>
-     * 
-     * Note that the JSON embedded <strong>must</strong> be included in
-     * the body, preferrably at its bottom, allowing the page to be laid
-     * out before the <code>paint</code> method can do its work.</p>
-     * 
-     * <p>...
-     * 
-     * <blockquote>
-     * <pre>this.template = $.ajaxTemplate("index.html", "&lt;less4json/&gt;");</pre>
-     * </blockquote>
-     * 
-     * ...</p>
-     * 
-     * @param filename the template file to load
-     * @param pattern the regular expression to split the template
-     * @return an array of two byte arrays or null if an I/O error occured
-     */
-    static public byte[][] ajaxTemplate(String filename, String pattern) {
-        String s = Simple.fileRead(filename);
-        if (s == null) 
-            return null;
-        
-        byte[][] template = new byte[2][];
-        String[] t = s.split(pattern, 1);
-        template[0] = Simple.encode(t[0], less4jCharacterSet);
-        template[1] = Simple.encode(t[1], less4jCharacterSet);
-        return template;
-    }
-    
-    /**
-     * <p>Try to complete a 200 Ok HTTP/1.X response with the actor's JSON 
-     * object inside an XHTML body encoded in UTF-8 and audit the response, 
-     * or log an error.</p>
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <p>I don't want write and you don't want to learn or even use yet 
-     * another templating language for Java. This is the minimalistic 
-     * web 2.0 way to bundle a HTML view and JSON object in the response:
-     * 
-     * <blockquote>
-     * <pre>$.ajax200Ok(this.template, "text/html")</pre>
-     * </blockquote>
-     * 
-     * ...</p>
-     * 
-     * <p>There is no less4j support to alter the header and footers, because 
-     * the purpose of moving as much state as possible to JSON is to decouple
-     * the resource view from the resource controller as much as possible.</p>
-     * 
-     * <p>What else do you really need? I mean, you can mix and match
-     * the appropriate prefix and suffix to match the user and agent 
-     * requesting the resource. And it is much more easier to generate 
-     * interactive web pages from within the browser, in JavaScript.</p>
-     * 
-     * <p>Finally, remember that less4j is an UTF-8 only web framework,
-     * if you want to support a myriad of exotic character sets, have
-     * your way but it's a quite a dead-end. This is a 16bit wide world
-     * and the web user agent without support for UNICODE represent in
-     * 2006 only the 4% of IE5.5 users.</p>
-     * 
-     * @param template
-     */
-    public void ajax200Ok (byte[][] template, String type) {
-        byte[] body = Simple.encode(JSON.str(json), less4jCharacterSet);
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType(type);
-        response.setContentLength(
-            template[0].length + body.length + template[1].length
-            );
-        try {
-            // response.setBufferSize(16384);
-            ServletOutputStream os = response.getOutputStream();
-            os.write(template[0], 0, template[0].length);
-            os.write(body, 0, body.length);
-            os.write(template[1], 0, template[1].length);
-            os.flush();
-            // response.flushBuffer();
-            irtd2Audit(200);
-        } catch (IOException e) {
-            logError(e);
-        }
-    }
-    
     /**
      * Try to open a J2EE datasource and disable AutoCommit, return 
      * <code>true</code> and if in "test" mode, log information, or
@@ -1303,10 +1175,10 @@ public class Actor {
      * @return an array of Object or null
      * @throws SQLException
      */
-    public JSON.O sqlQuery (String statement) 
+    public JSON.Object sqlQuery (String statement) 
     throws SQLException {
         if (test) logInfo(statement, less4j);
-        JSON.O relation = null;
+        JSON.Object relation = null;
         Statement st = null;
         try {
             st = sql.createStatement();
@@ -1315,7 +1187,7 @@ public class Actor {
             if (rs.next()) {
                 ResultSetMetaData mt = rs.getMetaData();
                 int L = mt.getColumnCount();
-                relation = new JSON.O();
+                relation = new JSON.Object();
                 for (int i = 0; i < L; i++) relation.put(
                     mt.getColumnName(i), rs.getObject(i)
                     );
@@ -1342,10 +1214,10 @@ public class Actor {
      * @return a JSON object mapping the relation or null
      * @throws SQLException
      */
-    public JSON.O sqlQuery (String statement, Iterator args) 
+    public JSON.Object sqlQuery (String statement, Iterator args) 
     throws SQLException {
         if (test) logInfo(statement, less4j);
-        JSON.O relation = null;
+        JSON.Object relation = null;
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
@@ -1356,7 +1228,7 @@ public class Actor {
             if (rs.next()) {
                 ResultSetMetaData mt = rs.getMetaData();
                 int L = mt.getColumnCount();
-                relation = new JSON.O();
+                relation = new JSON.Object();
                 for (i = 0; i < L; i++) relation.put(
                     mt.getColumnName(i), rs.getObject(i)
                     );
@@ -1383,13 +1255,13 @@ public class Actor {
      * @return
      * @throws SQLException
      */
-    protected static JSON.A jdbc2array (ResultSet rs)
+    protected static JSON.Array jdbc2array (ResultSet rs)
     throws SQLException {
-        JSON.A rows = null;
+        JSON.Array rows = null;
         if (rs.next()) {
             int i;
             Object[] row;
-            rows = new JSON.A();
+            rows = new JSON.Array();
             ResultSetMetaData mt = rs.getMetaData();
             int l = mt.getColumnCount();
             do {
@@ -1402,20 +1274,20 @@ public class Actor {
         return rows;
     }
 
-    protected static JSON.O jdbc2object (ResultSet rs)
+    protected static JSON.Object jdbc2object (ResultSet rs)
     throws SQLException {
         int i;
         ArrayList rows, row;
         ResultSetMetaData mt = rs.getMetaData();
         int l = mt.getColumnCount();
-        JSON.O model = new JSON.O();
+        JSON.Object model = new JSON.Object();
         row = new ArrayList();
         for (i = 0; i < l; i++) row.add(mt.getColumnName(i));
         model.put("columns", row);
         if (rs.next()) {
-            rows = new JSON.A();
+            rows = new JSON.Array();
             do {
-                row = new JSON.A();
+                row = new JSON.Array();
                 for (i = 0; i < l; i++) row.add(rs.getObject(i));
                 rows.add(row);
             } while (rs.next());
@@ -1441,10 +1313,10 @@ public class Actor {
      * @return a JSONObject with a simple relational model
      * @throws SQLException
      */
-    public JSON.O sqlQuery (String statement, Iterator args, int fetch) 
+    public JSON.Object sqlQuery (String statement, Iterator args, int fetch) 
     throws SQLException {
         if (test) logInfo(statement, less4j);
-        JSON.O relations = null;
+        JSON.Object relations = null;
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
@@ -1505,8 +1377,7 @@ public class Actor {
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
-            int i = 0;
-            while(args.hasNext()) {st.setObject(i, args.next()); i++;}
+            int i=0; while (args.hasNext()) st.setObject(i++, args.next());
             result = st.executeUpdate();
             st.close();
             st = null;
@@ -1527,18 +1398,19 @@ public class Actor {
      * @return a JSON array of integers
      * @throws SQLException, JSON.Error
      */
-    public JSON.A sqlUpdate (String statement, JSON.A params) 
+    public JSON.Array sqlUpdateMany (String statement, Iterator params) 
     throws SQLException, JSON.Error {
-        int j; int L = params.size();
-        Iterator args;
-        JSON.A result = null;
+        int i, L;
+        JSON.Array args;
+        JSON.Array result = null;
         if (test) logInfo (statement, less4j);
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
-            for (int i=0; i<L; ) {
-                args = params.arry(i).iterator(); j = 0;
-                while(args.hasNext()) {st.setObject(j, args.next()); j++;}
+            while (params.hasNext()) {
+                args = (JSON.Array) params.next();
+                for (i=0, L=args.size(); i < L; i++)
+                    st.setObject(i, args.get(i));
                 result.add(new Integer(st.executeUpdate()));
             }
             st.close();
@@ -1552,6 +1424,30 @@ public class Actor {
     protected static final 
     String ldapCtxFactory = "com.sun.jndi.ldap.LdapCtxFactory"; 
     protected static final String ldapSecurity = "simple"; 
+
+    /**
+     * Try to open a new anonymous connection to the LDAP server configured,
+     * given principal and credentials. Catch any JNDI exception, return 
+     * true on success and false otherwise, log an information message
+     * in test mode.
+     * 
+     * @return true if the connection was successfull, false otherwise
+     */
+    public boolean 
+    ldapOpen (String url) {
+        Hashtable env = new Hashtable();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, ldapCtxFactory);
+        env.put(Context.PROVIDER_URL, url);
+        env.put(Context.SECURITY_AUTHENTICATION, ldapSecurity);
+        try {
+            ldap = new InitialDirContext(env);
+        } catch (NamingException e) {
+            logError(e);
+            return false;
+        }
+        if (test) logInfo("connected to LDAP", less4j);
+        return true;
+    }
 
     /**
      * Try to open a new connection (establish a new "initial directory 
@@ -1603,7 +1499,7 @@ public class Actor {
      * @return true if the name was resolved, false otherwise
      */
     public boolean ldapResolve (
-        String dn, JSON.O object, Iterator names
+        String dn, JSON.Object object, Iterator names
         ) {
         if (test) logInfo ("resolve LDAP dn=" + dn, less4j);
         Attributes attributes;
@@ -1632,7 +1528,7 @@ public class Actor {
      * @param object the JSONObject to update
      * @return true if the name was resolve, false otherwise
      */
-    public boolean ldapResolve (String dn, JSON.O object) {
+    public boolean ldapResolve (String dn, JSON.Object object) {
         return ldapResolve(dn, object, object.keySet().iterator());
     }
     
@@ -1647,7 +1543,7 @@ public class Actor {
      * @return true, false
      */
     public boolean ldapCreate (
-        String dn, JSON.O object, Iterator names
+        String dn, JSON.Object object, Iterator names
         ) {
         if (test) logInfo ("create LDAP dn=" + dn, less4j);
         Iterator iter;
@@ -1659,8 +1555,8 @@ public class Actor {
             key = (String) names.next();
             attribute = new BasicAttribute (key);
             value = object.get(key);
-            if (value instanceof JSON.A) {
-                iter = ((JSON.A) object.get(key)).iterator();
+            if (value instanceof JSON.Array) {
+                iter = ((JSON.Array) object.get(key)).iterator();
                 while (iter.hasNext()) attribute.add(iter.next());
             } else 
                 attribute.add(value);
@@ -1685,19 +1581,19 @@ public class Actor {
      * @param object the JSON object from which to set the attribute values
      * @return true, false
      */
-    public boolean ldapCreate (String dn, JSON.O object) {
+    public boolean ldapCreate (String dn, JSON.Object object) {
         return ldapCreate (dn, object, object.keySet().iterator());
     }
     
     public boolean ldapUpdate (
-        String dn, JSON.O object, Iterator names
+        String dn, JSON.Object object, Iterator names
         ) {
         if (test) logInfo("update LDAP dn=" + dn, less4j);
         // TODO: ldapUpdate ...
         return true;
     }
     
-    public boolean ldapUpdate (String dn, JSON.O object) {
+    public boolean ldapUpdate (String dn, JSON.Object object) {
         return ldapUpdate(dn, object, object.keySet().iterator());
     }
     

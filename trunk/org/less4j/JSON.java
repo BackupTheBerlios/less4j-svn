@@ -27,6 +27,8 @@ import java.math.BigInteger;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
+import org.less4j.JSONR.Type;
+
 /**
  * <p>A relatively strict JSON intepreter to evaluate a UNICODE string 
  * as a tree of basic Java instances with maximum limits on the number
@@ -117,8 +119,8 @@ import java.text.StringCharacterIterator;
  * <pre>JSON json = new JSON() 
  *try {
  *    Object value = json.eval("null");
- *    JSON.O map = json.object("{\"pass\": true}");
- *    JSON.A list = json.array("[1,2,3]");
+ *    JSON.Object map = json.object("{\"pass\": true}");
+ *    JSON.Array list = json.array("[1,2,3]");
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
@@ -138,9 +140,9 @@ import java.text.StringCharacterIterator;
  * and serialize java instances as JSON strings
  * 
  * <blockquote>
- * <pre>System.out.println(JSON.str(value));
- *System.out.println(JSON.str(map));
- *System.out.println(JSON.str(list));</pre>
+ * <pre>System.out.println(JSON.encode(value));
+ *System.out.println(JSON.encode(map));
+ *System.out.println(JSON.encode(list));</pre>
  * </blockquote>
  * 
  * Note that you can serialize not just the types instanciated by JSON
@@ -160,7 +162,7 @@ import java.text.StringCharacterIterator;
  * 
  * <blockquote>
  * <pre>try {
- *    JSON.A list = (new JSON(1, 4)).array("[1,2,3,4,5]");
+ *    JSON.Array list = (new JSON(1, 4)).array("[1,2,3,4,5]");
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
@@ -194,7 +196,7 @@ import java.text.StringCharacterIterator;
  * <blockquote>
  * <pre>JSON json = new JSON();
  *try {
- *    JSON.O map = json.object("{}");
+ *    JSON.Object map = json.object("{}");
  *    map.put("list", json.array("[1,2,3]");
  *    json = new JSON();
  *    json.string = "{\"constant\": null"}";
@@ -221,7 +223,7 @@ import java.text.StringCharacterIterator;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.20
+ * @version 0.30
  */
 public class JSON {
     
@@ -358,32 +360,32 @@ public class JSON {
     
     protected static final char _done = CharacterIterator.DONE;
     
-    protected static final BigInteger intg (Object value) throws Error {
+    protected static final BigInteger intg (java.lang.Object value) throws Error {
         if (value instanceof BigInteger) {return (BigInteger) value;} 
         else throw new Error(BIGINTEGER_TYPE_ERROR);
     }   
-    protected static final BigDecimal deci(Object value) throws Error {
+    protected static final BigDecimal deci(java.lang.Object value) throws Error {
         if (value instanceof BigDecimal) {return (BigDecimal) value;}
         else throw new Error(BIGDECIMAL_TYPE_ERROR);
     }
-    protected static final Double dble(Object value) throws Error {
+    protected static final Double dble(java.lang.Object value) throws Error {
         if (value instanceof Double) {return (Double) value;}
         else throw new Error(DOUBLE_TYPE_ERROR);
     }
-    protected static final Boolean bool(Object value) throws Error {
+    protected static final Boolean bool(java.lang.Object value) throws Error {
         if (value instanceof Boolean) {return (Boolean) value;}
         else throw new Error(BOOLEAN_TYPE_ERROR);
     }
-    protected static final String stri(Object value) throws Error {
+    protected static final String stri(java.lang.Object value) throws Error {
         if (value instanceof String) {return (String) value;}
         else throw new Error(STRING_TYPE_ERROR);
     }
-    protected static final A arry(Object value) throws Error {
-        if (value instanceof A) {return (A) value;} 
+    protected static final Array arry(java.lang.Object value) throws Error {
+        if (value instanceof Array) {return (Array) value;} 
         else throw new Error(ARRAY_TYPE_ERROR);
     }
-    protected static final O objc(Object value) throws Error {
-        if (value instanceof O) {return (O) value;} 
+    protected static final Object objc(java.lang.Object value) throws Error {
+        if (value instanceof Object) {return (Object) value;} 
         else throw new Error(OBJECT_TYPE_ERROR);
     }
     
@@ -402,18 +404,18 @@ public class JSON {
      *        "\"a boolean\": true," +
      *        "\"a big integer\": 2," +
      *        "\"a big decimal\": +1234567.89," +
-     *        "\"a double\": -123456789e-4," +
-     *        "\"unicode"\: \"hello world!\", "+
+     *        "\"a double float\": -123456789e-4," +
+     *        "\"unicode string"\: \"hello world!\", "+
      *        "\"a list\": [null,true,1,2.0,3e+3]" +
      *        "\"another map\": {}" +
      *        "}");
-     *    Boolean b = map.bool("test");
-     *    BigInteger i = map.intg("a big integer");
-     *    BigDecimal d = map.deci("a big decimal");
-     *    Double r = map.dble("a double");
-     *    String s = map.stri("unicode");
-     *    JSON.A a = map.arry("a list");
-     *    JSON.O o = map.objc("another map");
+     *    Boolean b = map.B("test");
+     *    BigInteger i = map.I("a big integer");
+     *    BigDecimal d = map.D("a big decimal");
+     *    Double r = map.F("a double float");
+     *    String s = map.S("unicode string");
+     *    JSON.Array a = map.A("a list");
+     *    JSON.Object o = map.O("another map");
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
@@ -433,9 +435,9 @@ public class JSON {
      * 
      * @version 0.20
      */
-    public static final class O extends HashMap {
+    public static final class Object extends HashMap {
         static final long serialVersionUID = 0L; // TODO: regenerate
-        public final BigInteger intg(String name) throws Error {
+        public final BigInteger I(String name) throws Error {
             return JSON.intg(get(name));
         }
         public final int intValue(String name, int def) {
@@ -443,15 +445,15 @@ public class JSON {
             try {return JSON.intg(get(name)).intValue();} 
             catch (Error e) {return def;}
         }
-        public final BigDecimal deci(String name) throws Error {
+        public final BigDecimal D(String name) throws Error {
             return JSON.deci(get(name));
         }
-        public final BigDecimal deci(String name, BigDecimal def) {
+        public final BigDecimal D(String name, BigDecimal def) {
             if (!containsKey(name)) return def;
             try {return JSON.deci(get(name));} 
             catch (Error e) {return def;}
         }
-        public final Double dble(String name) throws Error {
+        public final Double F(String name) throws Error {
             return (JSON.dble(get(name)));
         }
         public final double doubleValue(String name, double def) {
@@ -459,34 +461,34 @@ public class JSON {
             try {return JSON.dble(get(name)).doubleValue();} 
             catch (Error e) {return def;}
         }
-        public final Boolean bool(String name) throws Error {
+        public final Boolean B(String name) throws Error {
             return (JSON.bool(get(name)));
         }
-        public final boolean bool(String name, boolean def) {
+        public final boolean B(String name, boolean def) {
             if (!containsKey(name)) return def;
             try {return JSON.bool(get(name)).booleanValue();} 
             catch (Error e) {return def;}
         }
-        public final String stri(String name) throws Error {
+        public final String S(String name) throws Error {
             return (JSON.stri(get(name)));
         }
-        public final String stri(String name, String def) {
+        public final String S(String name, String def) {
             if (!containsKey(name)) return def;
             try {return JSON.stri(get(name));} 
             catch (Error e) {return def;}
         }
-        public final A arry(String name) throws Error {
+        public final Array A(String name) throws Error {
             return (JSON.arry(get(name)));
         }
-        public final A arry(String name, JSON.A def) {
+        public final Array A(String name, JSON.Array def) {
             if (!containsKey(name)) return def;
             try {return (JSON.arry(get(name)));} 
             catch (Error e) {return def;}
         }
-        public final O objc(String name) throws Error {
+        public final Object O(String name) throws Error {
             return (JSON.objc(get(name)));
         }
-        public final O objc(String name, JSON.O def) {
+        public final Object O(String name, JSON.Object def) {
             if (!containsKey(name)) return def;
             try {return (JSON.objc(get(name)));} 
             catch (Error e) {return def;}
@@ -507,13 +509,13 @@ public class JSON {
      *        "[true, 1, 3.0, 1234e-2, \"test\", [], {}]"
      *    );
      *    Object o = list.get(0); 
-     *    Boolean b = list.objc(1);
-     *    BigInteger i = list.intg(2);
-     *    BigDecimal d = list.deci(3);
-     *    Double r = list.dble(4);
-     *    JSON.A a = list.arry(5);
-     *    JSON.O o = list.objc(6);
-     *    Boolean b = list.objc(5).bool(2);
+     *    Boolean b = list.B(1);
+     *    BigInteger i = list.I(2);
+     *    BigDecimal d = list.D(3);
+     *    Double r = list.F(4);
+     *    JSON.Array a = list.A(5);
+     *    JSON.Object o = list.O(6);
+     *    Boolean b = list.A(5).B(2);
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
@@ -525,9 +527,9 @@ public class JSON {
      * 
      * @version 0.20
      */
-    public static final class A extends ArrayList {
+    public static final class Array extends ArrayList {
         static final long serialVersionUID = 0L; // TODO: regenerate
-        public final BigInteger intg(int index) throws Error {
+        public final BigInteger I(int index) throws Error {
             return (JSON.intg(get(index)));
         }
         public final int intValue(int index, int def) {
@@ -535,15 +537,15 @@ public class JSON {
             try {return JSON.intg(get(index)).intValue();} 
             catch (Error e) {return def;}
         }
-        public final BigDecimal deci(int index) throws Error {
+        public final BigDecimal D(int index) throws Error {
             return JSON.deci(get(index));
         }
-        public final BigDecimal deci(int index, BigDecimal def) {
+        public final BigDecimal D(int index, BigDecimal def) {
             if (index >= size()) return def;
             try {return JSON.deci(get(index));} 
             catch (Error e) {return def;}
         }
-        public final Double dble(int index) throws Error {
+        public final Double F(int index) throws Error {
             return (JSON.dble(get(index)));
         }
         public final double doubleValue(int index, double def) {
@@ -551,34 +553,34 @@ public class JSON {
             try {return JSON.dble(get(index)).doubleValue();} 
             catch (Error e) {return def;}
         }
-        public final Boolean bool(int index) throws Error {
+        public final Boolean B(int index) throws Error {
             return (JSON.bool(get(index)));
         }
-        public final boolean bool(int index, boolean def) {
+        public final boolean B(int index, boolean def) {
             if (index >= size()) return def;
             try {return JSON.bool(get(index)).booleanValue();} 
             catch (Error e) {return def;}
         }
-        public final String stri(int index) throws Error {
+        public final String S(int index) throws Error {
             return (JSON.stri(get(index)));
         }
-        public final String stri(int index, String def) {
+        public final String S(int index, String def) {
             if (index >= size()) return def;
             try {return JSON.stri(get(index));} 
             catch (Error e) {return def;}
         }
-        public final A arry(int index) throws Error {
+        public final Array A(int index) throws Error {
             return (JSON.arry(get(index)));
         }
-        public final A arry(int index, JSON.A def) {
+        public final Array A(int index, JSON.Array def) {
             if (index >= size()) return def;
             try {return (JSON.arry(get(index)));} 
             catch (Error e) {return def;}
         }
-        public final O objc(int index) throws Error {
+        public final JSON.Object O(int index) throws Error {
             return (JSON.objc(get(index)));
         }
-        public final O objc(int index, JSON.O def) {
+        public final JSON.Object O(int index, JSON.Object def) {
             if (index >= size()) return def;
             try {return (JSON.objc(get(index)));} 
             catch (Error e) {return def;}
@@ -589,7 +591,7 @@ public class JSON {
 
         protected String string = null;
         
-        public Partial(Object value) {string = str(value);}
+        public Partial(java.lang.Object value) {string = encode(value);}
         
         public StringBuffer jstrb(StringBuffer sb) {
             sb.append(string);
@@ -656,7 +658,7 @@ public class JSON {
     
     public static final 
     StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
-        Object key; 
+        java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
             return sb;
@@ -678,8 +680,8 @@ public class JSON {
     }
     
     public static final 
-    StringBuffer strb(StringBuffer sb, Map map, Object[] names) {
-        Object key; 
+    StringBuffer strb(StringBuffer sb, Map map, java.lang.Object[] names) {
+        java.lang.Object key; 
         if (names.length == 0)
             sb.append(_object);
         else {
@@ -717,7 +719,7 @@ public class JSON {
     }
     
     public static final 
-    StringBuffer strb(StringBuffer sb, Object value) {
+    StringBuffer strb(StringBuffer sb, java.lang.Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -730,14 +732,14 @@ public class JSON {
             strb(sb, ((Character) value).toString());
         else if (value instanceof Map) {
             Map object = (Map) value;
-            Object[] names = object.keySet().toArray();
+            java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
             strb(sb, object, names);
             // strb(sb, object, Simple.iterator(names));
         } else if (value instanceof List) 
             strb(sb, ((List) value).iterator());
-        else if (value instanceof Object[])
-            strb(sb, Simple.iterator((Object[]) value));
+        else if (value instanceof java.lang.Object[])
+            strb(sb, Simple.iterator((java.lang.Object[]) value));
         else if (value instanceof Partial) 
             ((Partial) value).jstrb(sb);
         else if (value instanceof Error) 
@@ -747,7 +749,14 @@ public class JSON {
         return sb;
     }
     
-    public static final String str(Object value) {
+    /**
+     * Encode an untyped value as a JSON string, return a <code>String</code>
+     * that can safely be encoded in UTF-8.
+     * 
+     * @param value to encode
+     * @return a JSON <code>String</code>
+     */
+    public static final String encode(java.lang.Object value) {
         return strb(new StringBuffer(), value).toString();
     }
     
@@ -777,7 +786,7 @@ public class JSON {
     
     protected static final 
     StringBuffer xjson(StringBuffer sb, Map map, Iterator it) {
-        Object key; 
+        java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
             return sb;
@@ -815,7 +824,7 @@ public class JSON {
     }
     
     protected static final 
-    StringBuffer xjson(StringBuffer sb, Object value) {
+    StringBuffer xjson(StringBuffer sb, java.lang.Object value) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -833,8 +842,8 @@ public class JSON {
             strb(sb, object, object.keySet().iterator());
         } else if (value instanceof List) 
             xjson(sb, ((List) value).iterator());
-        else if (value instanceof Object[]) 
-            xjson(sb, Simple.iterator((Object[]) value));
+        else if (value instanceof java.lang.Object[]) 
+            xjson(sb, Simple.iterator((java.lang.Object[]) value));
         else if (value instanceof Partial) 
             ((Partial) value).jstrb(sb);
         else if (value instanceof Error) 
@@ -844,7 +853,14 @@ public class JSON {
         return sb;
     }
     
-    public static final String xjson(Object value) {
+    /**
+     * Encode an untyped value as a JSON string, return a <code>String</code>
+     * that can safely be encoded in 7bit ASCII.
+     * 
+     * @param value to encode
+     * @return an X-JSON <code>String</code>
+     */
+    public static final String xjson(java.lang.Object value) {
         return xjson(new StringBuffer(), value).toString();
     }
     
@@ -853,7 +869,7 @@ public class JSON {
     
     protected static final 
     StringBuffer repr(StringBuffer sb, Map map, Iterator it, String indent) {
-        Object key; 
+        java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append("{}");
             return sb;
@@ -899,7 +915,7 @@ public class JSON {
     }
     
     protected static final 
-    StringBuffer repr(StringBuffer sb, Object value, String indent) {
+    StringBuffer repr(StringBuffer sb, java.lang.Object value, String indent) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -914,7 +930,7 @@ public class JSON {
             strb(sb, ((Character) value).toString());
         else if (value instanceof Map) {
             Map object = (Map) value;
-            Object[] names = object.keySet().toArray();
+            java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
             repr(sb, object, Simple.iterator(names), indent);
         } else if (value instanceof List) 
@@ -932,7 +948,15 @@ public class JSON {
         return sb;
     }
     
-    public static final String repr(Object value) {
+    /**
+     * Encode an untyped value as a pretty-printed JSON string with
+     * CRLF line delimiters and a two space wide indentation, return 
+     * a <code>String</code> that can safely be encoded in UTF-8.
+     * 
+     * @param value to represent
+     * @return an X-JSON <code>String</code>
+     */
+    public static final String repr(java.lang.Object value) {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
     
@@ -1004,7 +1028,7 @@ public class JSON {
      * @return an untyped Object
      * @throws Error
      */
-    public Object eval(String json) throws Error {
+    public java.lang.Object eval(String json) throws Error {
         buf = new StringBuffer();
         it = new StringCharacterIterator(json);
         try {
@@ -1029,8 +1053,8 @@ public class JSON {
      * @return a new <code>JSON.O</code>
      * @throws Error
      */
-    public O object(String json) throws Error {
-        O o = new O();
+    public Object object(String json) throws Error {
+        Object o = new Object();
         Error e = update(o, json);
         if (e == null)
             return o;
@@ -1047,8 +1071,8 @@ public class JSON {
      * @return a new <code>JSON.A</code> array
      * @throws Error
      */
-    public A array(String json) throws Error {
-        A a = new A();
+    public Array array(String json) throws Error {
+        Array a = new Array();
         Error e = extend(a, json);
         if (e == null)
             return a;
@@ -1072,9 +1096,7 @@ public class JSON {
             c = it.first();
             while (Character.isWhitespace(c)) c = it.next();
             if (c == '{') {
-                c = it.next();
-                object(map);
-                return null;
+                c = it.next(); object(map); return null;
             } else
                 return error(OBJECT_TYPE_ERROR);
         } catch (Error e) {
@@ -1101,9 +1123,7 @@ public class JSON {
             c = it.first();
             while (Character.isWhitespace(c)) c = it.next();
             if (c == '[') {
-                c = it.next();
-                array(list);
-                return null;
+                c = it.next(); array(list); return null;
             } else
                 return error(ARRAY_TYPE_ERROR);
         } catch (Error e) {
@@ -1123,16 +1143,16 @@ public class JSON {
         return c == test;
     }
     
-    protected static final Object OBJECT = new Object();
-    protected static final Object ARRAY = new Object();
-    protected static final Object COLON = new Object();
-    protected static final Object COMMA = new Object();
+    protected static final java.lang.Object OBJECT = new java.lang.Object();
+    protected static final java.lang.Object ARRAY = new java.lang.Object();
+    protected static final java.lang.Object COLON = new java.lang.Object();
+    protected static final java.lang.Object COMMA = new java.lang.Object();
     
-    protected final Object value() throws Error {
+    protected final java.lang.Object value() throws Error {
         while (Character.isWhitespace(c)) c = it.next();
         switch(c){
-        case '{': {c = it.next(); return object(new O());}
-        case '[': {c = it.next(); return array(new A());}
+        case '{': {c = it.next(); return object(new JSON.Object());}
+        case '[': {c = it.next(); return array(new JSON.Array());}
         case '"': {c = it.next(); return string();}
         case '0': case '1': case '2': case '3': case '4':  
         case '5': case '6': case '7': case '8': case '9': 
@@ -1168,7 +1188,7 @@ public class JSON {
         }
     }
     
-    protected final Object value(String name) throws Error {
+    protected final java.lang.Object value(String name) throws Error {
         try {
             return value();
         } catch (Error e) {
@@ -1177,7 +1197,7 @@ public class JSON {
         }
     }
     
-    protected final Object value(int index) throws Error {
+    protected final java.lang.Object value(int index) throws Error {
         try {
             return value();
         } catch (Error e) {
@@ -1186,13 +1206,13 @@ public class JSON {
         }
     }
     
-    protected final Object object(Map o) throws Error {
+    protected final java.lang.Object object(Map o) throws Error {
         if (--containers < 0) 
             throw error(CONTAINERS_OVERFLOW);
         
         String name; 
-        Object val;
-        Object token = value();
+        java.lang.Object val;
+        java.lang.Object token = value();
         while (token != OBJECT) {
             if (!(token instanceof String))
                 throw error(STRING_EXPECTED);
@@ -1217,12 +1237,12 @@ public class JSON {
         return o;
     }
     
-    protected final Object array(List a) throws Error {
+    protected final java.lang.Object array(List a) throws Error {
         if (--containers < 0) 
             throw error(CONTAINERS_OVERFLOW);
         
         int i = 0;
-        Object token = value(i++);
+        java.lang.Object token = value(i++);
         while (token != ARRAY) {
             if (token==COLON || token==COMMA || token==OBJECT)
                 throw error(VALUE_EXPECTED);
@@ -1238,7 +1258,7 @@ public class JSON {
         return a;
     }
     
-    protected final Object number() {
+    protected final java.lang.Object number() {
         buf.setLength(0);
         if (c == '-') {
             buf.append(c); c = it.next();
@@ -1269,7 +1289,7 @@ public class JSON {
         }
     }
     
-    protected final Object string() throws Error {
+    protected final java.lang.Object string() throws Error {
         buf.setLength(0);
         while (c != '"') {
             if (c == '\\') {

@@ -45,7 +45,7 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * <blockquote>
  *<pre>less4jConfigure (Actor $)
- *irtd2Authorize (Actor $)
+ *irtd2Identify (Actor $)
  *httpResource (Actor $)
  *jsonApplication (Actor $)</pre>
  * </blockquote>
@@ -70,7 +70,7 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.20
+ * @version 0.30
  *
  */
 public class Controller extends HttpServlet {
@@ -79,26 +79,35 @@ public class Controller extends HttpServlet {
     
     protected static final String less4j = "less4j";
     
-    private JSON.O configuration = new JSON.O ();
+    private JSON.Object configuration = new JSON.Object ();
     
-    /**
-     * Get the controller's configuration HashMap, synchronously.
-     * 
-     * @return a new Actor, a thread-safe place for instance variables
-     */
-    protected JSON.O getConfiguration() {
+    protected JSON.Object getConfiguration() {
         synchronized (configuration) {return configuration;}
     }
     
-    /**
-     * Set the controller's configuration HashMap, synchronously.
-     * 
-     * @return a new Actor, a thread-safe place for instance variables
-     */
-    protected void setConfiguration(JSON.O o) {
-        synchronized (configuration) {configuration = o;}
+    protected void setConfiguration(JSON.Object object) {
+        synchronized (configuration) {configuration = object;}
     }
     
+    public static String configurationPattern = ("{" +
+        "\"test\": false," + // optional boolean
+        "\"irtd2Salt\": \"^...........*$\"," + // mandatory, 10 chars minimum
+        "\"irtd2Salted\": null," +
+        "\"irtd2Service\": null," +
+        "\"irtd2Timeout\": null," +
+        "\"jsonBytes\": null," +
+        "\"jsonContainers\": null," +
+        "\"jsonIterations\": null," +
+        "\"jsonrModel\": null," +
+        "\"jdbcDriver\": null," +
+        "\"jdbcUsername\": null," +
+        "\"jdbcPassword\": null," +
+        "\"j2eeDataSource\": null," +
+        "\"ldapURL\": null," +
+        "\"ldapUsername\": null," +
+        "\"ldapPassword\": null," +
+        "}");
+                
     /**
      * Initialize a servlet controller: extract the less4j properties,
      * test the resource configured with a new Actor and call the
@@ -110,64 +119,52 @@ public class Controller extends HttpServlet {
      */
     public void init (ServletConfig config) throws ServletException {
         super.init(config);
-        JSON.O o = new JSON.O();
-        String conf = config.getInitParameter("less4j");
-        String model = config.getInitParameter("less4jModel");
-        if (model == null) model = less4jModel; 
+        JSON.Object object = new JSON.Object();
+        String conf = config.getInitParameter(less4j);
         if (conf != null) {
-            JSONR.Type type = null;
-            try {
-                type = JSONR.compile(model);
-            } catch (JSON.Error e) {
+            JSONR.Type type;
+            try {type = JSONR.compile(configurationPattern);} 
+            catch (JSON.Error ec) {
                 throw new ServletException(
-                    "Invalid less4j configuration model."
+                    "Invalid less4j configuration JSONR pattern.", ec
                     );
             }
             JSON.Error e;
             if (type == null) {
-                e = (new JSON()).update(o, conf);
+                e = (new JSON()).update(object, conf);
                 if (e != null) throw new ServletException(
                     "Invalid less4j configuration JSON string.", e
                     );
             } else {
-                e = (new JSONR(type)).update(o, conf);
+                e = (new JSONR(type)).update(object, conf);
                 if (e != null) throw new ServletException(
                     "Irregular less4j configuration.", e
                     );
             }
         }
-        o.put("j2eeRealPath", getServletContext().getRealPath(""));
-        Actor $ = new Actor (o);
-        if (!this.less4jConfigure ($)) throw new ServletException(
+        object.put("j2eeRealPath", getServletContext().getRealPath(""));
+        Actor $ = new Actor (object);
+        if (!less4jConfigure ($)) throw new ServletException(
             "Failed less4j configuration, check your SQL or LDAP parameters."
             );
-        
-        setConfiguration(o);
+        setConfiguration(object);
     }
  
-    /**
-     * The default JSONR model for less4j controller's configuration.
-     */
-    public static final String less4jModel = ("{" +
-        "\".*\": {" +
-            "\"irtd2Salt\": \".{20}\"," + // mandatory, 20 chars minimum
-            "\"irtd2Salted\": null," +
-            "\"irtd2Service\": null," +
-            "\"irtd2Timeout\": null," +
-            "\"jsonBytes\": null," +
-            "\"jsonContainers\": null," +
-            "\"jsonIterations\": null," +
-            "\"jsonrModel\": null," +
-            "\"jdbcDriver\": null," +
-            "\"jdbcUsername\": null," +
-            "\"jdbcPassword\": null," +
-            "\"j2eeDataSource\": null," +
-            "\"ldapURL\": null," +
-            "\"ldapUsername\": null," +
-            "\"ldapPassword\": null," +
-            "}" + 
-        "}");
-                
+    // I'm wary of subclassing doService, some HttpServlet implementation
+    // may or may not support it, this is the safe bet.
+    
+    public void doGet (HttpServletRequest req, HttpServletResponse res) {
+        Actor $ = new Actor (getConfiguration(), req, res);
+        if (irtd2Identified($)||irtd2Identify($))
+            less4jControl ($);
+    }
+    
+    public void doPost (HttpServletRequest req, HttpServletResponse res) {
+        Actor $ = new Actor (getConfiguration(), req, res);
+        if (irtd2Identified($)||irtd2Identify($))
+            less4jControl ($);
+    }
+    
     // private static final int jdbcTimeout = 15;
     
     /**
@@ -193,35 +190,53 @@ public class Controller extends HttpServlet {
      * 
      * @return true if the test was successfull, false otherwise
      */
-    public boolean less4jConfigure (Actor $) {
+    public static boolean less4jConfigure (Actor $) {
         if (!$.configuration.containsKey("irtd2Salt")) {
             $.logInfo("add salt to digest cookies!", less4j);
             return false;
         }
         try {
             if ($.configuration.containsKey("jdbcDriver")) {
-                Class.forName($.configuration.stri("jdbcDriver"));
+                Class.forName($.configuration.S("jdbcDriver"));
                 //if (DriverManager.getLogWriter() != null)
                 //    DriverManager.setLogWriter(null);
                 //if (DriverManager.getLoginTimeout() < jdbcTimeout)
                 //    DriverManager.setLoginTimeout(jdbcTimeout);
                 if (sqlOpen($)) $.sqlClose(); else return false;
-                
             } else if ($.configuration.containsKey("j2eeDataSource"))
                 if (sqlOpen($)) $.sqlClose(); else return false;
-            
         } catch (Exception e) {
             $.logError(e); return false;
         }
         if ($.configuration.containsKey("jsonrModel")) try {
             $.configuration.put("jsonrModel", JSONR.compile(
-                $.configuration.objc("jsonModel"), JSONR.TYPES
+                $.configuration.O("jsonModel"), JSONR.TYPES
             ));
-        } catch (JSON.Error e) {
-            $.logError(e); return false;
-        }
+        } catch (JSON.Error e) {$.logError(e); return false;}
         if ($.test) $.logInfo("configuration ok", less4j);
         return true;
+    }
+
+    private static final String _GET = "GET";
+    private static final String _POST = "POST";
+
+    public static void less4jControl (Actor $) {
+        String method = $.request.getMethod();
+        if (method.equals(_GET))
+            if ($.httpIdempotent())
+                httpResource($); // subject/predicate
+            else if (jsonGET($))
+                jsonApplication($); // subject/predicate?query
+            else
+                $.http302Redirect($.context); // ?
+        else if (method.equals(_POST))
+            if ($.request.getHeader("Accept").indexOf("application/json")>-1)
+                if (jsonPOST($))
+                    jsonApplication($); // valid JSON request
+                else 
+                    $.http302Redirect($.context); // invalid JSON object
+            else
+                ; // httpContinue() 
     }
 
     /**
@@ -233,7 +248,7 @@ public class Controller extends HttpServlet {
      * @param $ the Actor state
      * @return true if the HTTP request came with a digestable IRTD2 cookie
      */
-    public boolean irtd2Digested (Actor $) {
+    public static boolean irtd2Identified (Actor $) {
         return $.irtd2Digested(
             $.configuration.intValue("irtd2Timeout", 3600)
             );
@@ -257,7 +272,7 @@ public class Controller extends HttpServlet {
      * @param $ the Actor state
      * @return true if a valid JSON expression was found in a GET request
      */
-    public boolean jsonGET (Actor $) {
+    public static boolean jsonGET (Actor $) {
         if ($.configuration.containsKey("jsonrModel"))
             return $.jsonGET(
                 $.configuration.intValue("jsonContainers", 65355),
@@ -294,7 +309,7 @@ public class Controller extends HttpServlet {
      * @param $ the Actor state
      * @return true if a valid JSON expression was found in a POST request
      */
-    public boolean jsonPOST (Actor $) {
+    public static boolean jsonPOST (Actor $) {
         if ($.configuration.containsKey("jsonrModel")) 
             return $.jsonPOST(
                 $.configuration.intValue("jsonBytes", 16384), 
@@ -348,18 +363,18 @@ public class Controller extends HttpServlet {
      * 
      * @return true if the connection was successfull, false otherwise
      */
-    public boolean sqlOpen (Actor $) {
+    public static boolean sqlOpen (Actor $) {
         if ($.configuration.containsKey("jdbcDriver"))
             return $.sqlOpenJDBC(
-                $.configuration.stri(
+                $.configuration.S(
                     "jdbcURL", "jdbc:mysql://127.0.0.1:3306/"
                     ),
-                $.configuration.stri("jdbcUsername", less4j),
-                $.configuration.stri("jdbcPassword", "")
+                $.configuration.S("jdbcUsername", less4j),
+                $.configuration.S("jdbcPassword", "")
                 );
         else 
             return $.sqlOpenJ2EE(
-                $.configuration.stri("j2eeDataSource", less4j)
+                $.configuration.S("j2eeDataSource", less4j)
                 );
     }
 
@@ -371,7 +386,7 @@ public class Controller extends HttpServlet {
      * 
      * @return true if no exception was raised
      */ 
-    public boolean sqlNative (Actor $, String statement) {
+    public static boolean sqlNative (Actor $, String statement) {
         boolean success = false;
         if (sqlOpen($)) try {
             $.sql.nativeSQL(statement); success = true;
@@ -379,7 +394,7 @@ public class Controller extends HttpServlet {
         return success;
     }
     
-    public boolean sqlQuery (
+    public static boolean sqlQuery (
         Actor $, String statement, String[] parameters
         ) {
         boolean success = false;
@@ -390,7 +405,7 @@ public class Controller extends HttpServlet {
         return success;
     }
     
-    public boolean sqlQuery (
+    public static boolean sqlQuery (
         Actor $, String statement, String[] parameters, int fetch
         ) {
         boolean success = false;
@@ -414,16 +429,15 @@ public class Controller extends HttpServlet {
      * 
      * <pre>if (slqQuery(
      *    $, "result", "select * from TABLE where COLUMN=?", 
-     *    String[]{"argument"}, 10
+     *    new String[]{"argument"}
      *    ) && $.json.get("result") != null)
      *    ; // non-null result set fetched, do something with it ...
      *else
-     *    ; // exception or null result set, handle the error ...
-     *$.json200Ok();
+     *    ; // exception or null result set, handle the error ...</pre>
      * 
      * @return true if no exception was raised
      */ 
-    public boolean sqlQuery (
+    public static boolean sqlQuery (
         Actor $, String name, String statement, String[] names
         ) {
         boolean success = false;
@@ -452,12 +466,11 @@ public class Controller extends HttpServlet {
      *    ) && $.json.get("result") != null)
      *    ; // non-null result set fetched, do something with it ...
      *else
-     *    ; // exception or null result set, handle the error ...
-     *$.json200Ok();
+     *    ; // exception or null result set, handle the error ...</pre>
      * 
      * @return true if no exception was raised
      */ 
-    public boolean sqlQuery (
+    public static boolean sqlQuery (
         Actor $, String name, String statement, String[] names, int fetch
         ) {
         boolean success = false;
@@ -470,7 +483,7 @@ public class Controller extends HttpServlet {
         return success;
     }
         
-    public boolean sqlUpdate (
+    public static boolean sqlUpdate (
         Actor $, String name, String statement, String[] names
         ) {
         boolean success = false;
@@ -483,12 +496,12 @@ public class Controller extends HttpServlet {
         return success;
     }
             
-    public boolean sqlUpdate (
-        Actor $, String name, String statement, JSON.A many
+    public static boolean sqlUpdate (
+        Actor $, String name, String statement, JSON.Array relations
         ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(name, $.sqlUpdate(statement, many));
+            $.json.put(name, $.sqlUpdateMany(statement, relations.iterator()));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
@@ -533,66 +546,39 @@ public class Controller extends HttpServlet {
      * 
      * @return true if the connection was successfull, false otherwise
      */
-    public boolean ldapOpen (Actor $) {
+    public static boolean ldapOpen (Actor $) {
         return $.ldapOpen(
-            $.configuration.stri("ldapURL", "ldap://127.0.0.1:389/"),
-            $.configuration.stri("ldapUsername", less4j), 
-            $.configuration.stri("ldapPassword", "")
+            $.configuration.S("ldapURL", "ldap://127.0.0.1:389/"),
+            $.configuration.S("ldapUsername", less4j), 
+            $.configuration.S("ldapPassword", "")
             );
     }
     
-    public void doGet (HttpServletRequest req, HttpServletResponse res) {
-        Actor $ = new Actor (getConfiguration(), req, res);
-        if (irtd2Digested($))
-            if ($.httpIdempotent())
-                httpResource($);
-            else if (jsonGET($))
-                jsonApplication($);
-            else
-                $.rest302Redirect();
-        else 
-            irtd2Authorize($);
-    }
-    
-    public void doPost (HttpServletRequest req, HttpServletResponse res) {
-        Actor $ = new Actor (getConfiguration(), req, res);
-        if (irtd2Digested($))
-            if ($.request.getHeader("Accept").indexOf("application/json")>-1)
-                if (jsonPOST($))
-                    jsonApplication($);
-                else 
-                    $.rest302Redirect();
-            else
-                ; // httpPost ();
-        else
-            irtd2Authorize($);
-    }
-    
-    // To Subclass ...
-    
-    // a standard HTTP handler for most Web 2.0 applications of J2EE 
+    // standard handlers for most Web 2.0 applications of J2EE 
     //
-    // irdt2Authorize     
-    // httpResource       
-    // jsonApplication    
+    // irdt2Identify -> Cookie
+    // httpResource -> HTML, XML, CSS, JavaScript, ...       
+    // jsonApplication -> JSON
     //
     // "Everythin is going to be allright"
     
     /**
-     * Identify and grant rights in a URI context, redirect by default to
-     * the root context in this controller's domain.
+     * Identify the requester and return true to continue the request or
+     * complete the response and return false.
      * 
      * <h4>Synopsis</h4>
      * 
      * <p>This is a method to overload in an application controller that
-     * identify and grant rights. The default is to delegate that service
-     * to another controller and redirect the user agent to the configured
-     * URI or this controller's root.</p>
+     * identify and grant rights. The default implemented by this
+     * <code>Controller</code> is to identify an anonymous user with
+     * a random SHA1 key and grant him no rights.</p>
      *  
      * @param $ the Actor's state
      */
-    public void irtd2Authorize (Actor $) {
-        $.rest302Redirect($.configuration.stri("irtd2Service", "/"));
+    public static boolean irtd2Identify (Actor $) {
+        $.identity = ""; // TODO: digest an SHA1 key as identity.
+        $.irtd2Digest($.context);
+        return true;
     }
     
     /**
@@ -611,11 +597,11 @@ public class Controller extends HttpServlet {
      * namespace mapping for resources. Subclassing this method makes
      * it possible, but most controller will only need a static page
      * to act as a bootstrap for a JSON application.</p>
-     *  
+     * 
      * @param $ the Actor's state
      */
-    public void httpResource (Actor $) {
-        $.rest302Redirect("index.html");
+    public static void httpResource (Actor $) {
+        $.http302Redirect("index.html");
     }
 
     /**
@@ -628,7 +614,7 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public void jsonApplication (Actor $) {
+    public static void jsonApplication (Actor $) {
         $.json200Ok();
     }
     
