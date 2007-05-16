@@ -253,6 +253,11 @@ public class Simple {
         return new MapIterator(map, iterator(keys));
         }
     
+    public static void associate (Object[] namespace, Map object) {
+        for (int i=0; i<namespace.length; i =+ 2)
+            object.put(namespace[i], namespace[i+1]);
+    }
+    
     /**
      * Encode a <code>unicode</code> string in the given characterset 
      * <code>encoding</code> or use the default if a 
