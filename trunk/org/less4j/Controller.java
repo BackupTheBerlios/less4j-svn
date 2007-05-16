@@ -18,8 +18,12 @@ package org.less4j; // less java for more applications
 
 // import java.sql.DriverManager;
 
+import java.util.HashMap;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException; 
+import javax.servlet.ServletRequest; 
+import javax.servlet.ServletResponse; 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -29,31 +33,56 @@ import javax.servlet.http.HttpServletResponse;
  * programming intefaces, the base class from which to derive RESTfull
  * application resource controllers for Web 2.0 applications.</p>
  * 
- * <h3>Synopsis</h3>
+ * <p>This class implements <code>HttpServlet.service</code> providing: 
+ * a request/response state configuration, test and instanciation, user 
+ * identification, requests authorization, input validation and application 
+ * audit trail.</p>
  * 
- * <p>This class implements the <code>doGet</code> and <code>doPost</code>
- * methods of <code>HttpServlet</code>, solving common issues for RESTful 
- * AJAX applications: a request/response state configuration, test and 
- * instanciation, user identification, requests authorization, input
- * validation and application audit trail.</p>
- * 
- * <p>Protocol Interfaces</p>
- * 
- * <p>It does The Right Thing for its applications, leaving to developpers
- * the profitable and creative part of the job as the implementation of one
- * to four simple methods:</p>
+ * <p>By default, each implementation of its interfaces does The Right Thing 
+ * for its applications, leaving to developpers the profitable and creative 
+ * part of the job as the implementation of a single static property:</p>
  * 
  * <blockquote>
- *<pre>less4jConfigure (Actor $)
- *irtd2Identify (Actor $)
- *httpResource (Actor $)
- *jsonApplication (Actor $)</pre>
+ * <pre>configurationPattern</pre>
  * </blockquote>
  * 
- * <p>...</p>
+ * <p>and one of more of the five methods:</p>
  * 
- * <h4>Configurable Conveniences</h4>
+ * <blockquote>
+ *<pre>less4jConfigure(Actor)
+ *irtd2Identify(Actor)
+ *jsonApplication(Actor)
+ *httpResource(Actor)
+ *httpContinue(Actor)</pre>
+ * </blockquote>
  * 
+ * <p>In many use case, <code>jsonApplication</code> may be the only method
+ * to override. And they may be deceptively simple because this 
+ * <code>Controller</code> also provides a full stack of configurable 
+ * conveniences for entreprise web 2.0 applications (ie: for HTTP, JSON, SQL 
+ * and LDAP).</p>
+ * 
+ * <h3>Synopsis</h3>
+ * 
+ * <blockquote><pre>...</pre></blockquote>
+ * 
+ * <h4>less4jConfigure(Actor)</h4>
+ * 
+ * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
+ * method is called with a new <code>Actor</code> instance (represented
+ * throughout less4j by the <code>$</code> symbol).</p>
+ * 
+ * <p>The <code>Actor</code> passed has a <code>configuration</code> 
+ * property decoded from the <code>less4j</code> parameter found in the 
+ * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
+ * deployement configuration medium with a J2EE interface).</p>
+ * 
+ * <p>If a valid JSONR <code>configurationPattern</code> string has 
+ * been set for the controller class as a static member, it will be 
+ * compiled and used to test the actor's <code>configuration</code>.</p>
+ * 
+ * <p></p>
+ *
  * <blockquote>
  * <pre>{
  *  "": { 
@@ -65,6 +94,9 @@ import javax.servlet.http.HttpServletResponse;
  *  }
  *}</pre>
  * </blockquote>
+ * 
+ * <p>By convention, this method is expected to test the servlet's named
+ * parameters found in the <code>$.configuration</code> JSON object.</p>
  * 
  * <p>...</p>
  * 
@@ -150,17 +182,12 @@ public class Controller extends HttpServlet {
         setConfiguration(object);
     }
  
-    // I'm wary of subclassing doService, some HttpServlet implementation
-    // may or may not support it, this is the safe bet.
-    
-    public void doGet (HttpServletRequest req, HttpServletResponse res) {
-        Actor $ = new Actor (getConfiguration(), req, res);
-        if (irtd2Identified($)||irtd2Identify($))
-            less4jControl ($);
-    }
-    
-    public void doPost (HttpServletRequest req, HttpServletResponse res) {
-        Actor $ = new Actor (getConfiguration(), req, res);
+    public void service (ServletRequest req, ServletResponse res) {
+        Actor $ = new Actor (
+            getConfiguration(), 
+            (HttpServletRequest) req, 
+            (HttpServletResponse) res
+            );
         if (irtd2Identified($)||irtd2Identify($))
             less4jControl ($);
     }
@@ -170,6 +197,8 @@ public class Controller extends HttpServlet {
     /**
      * <p>Test wether this controller's configuration actually supports 
      * this Actor class at runtime.</p>
+     * 
+     * <h4>Synopsis</h4>
      * 
      * <p>For this class, test wether:</p> 
      * 
@@ -220,23 +249,50 @@ public class Controller extends HttpServlet {
     private static final String _GET = "GET";
     private static final String _POST = "POST";
 
-    public static void less4jControl (Actor $) {
+    /**
+     * <p>...</p>
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>...</p>
+     * 
+     * <blockquote>
+     * <pre>GET /subject/predicate
+     *Host: context
+     *...</pre>
+     *</blockquote>
+     *
+     * <blockquote>
+     * <pre>GET /subject/predicate?query
+     *Host: context
+     *...</pre>
+     * </blockquote>
+     *
+     * <blockquote>
+     * <pre>POST /subject/predicate
+     *Host: context
+     *Content-type: application/javascript; charset=UTF-8
+     *...</pre>
+     * </blockquote>
+     *
+     * @param $
+     * @return
+     */
+    public static boolean less4jControl (Actor $) {
         String method = $.request.getMethod();
         if (method.equals(_GET))
-            if ($.httpIdempotent())
-                httpResource($); // subject/predicate
+            if ($.request.getQueryString() == null)
+                return httpResource($);
             else if (jsonGET($))
-                jsonApplication($); // subject/predicate?query
-            else
-                $.http302Redirect($.context); // ?
-        else if (method.equals(_POST))
-            if ($.request.getHeader("Accept").indexOf("application/json")>-1)
-                if (jsonPOST($))
-                    jsonApplication($); // valid JSON request
-                else 
-                    $.http302Redirect($.context); // invalid JSON object
-            else
-                ; // httpContinue() 
+                return jsonApplication($); 
+        else if (
+            method.equals(_POST) && 
+            $.request.getContentType().equals("application/json") &&
+            $.request.getCharacterEncoding().equals(Actor.less4jCharacterSet)
+            )
+            if (jsonPOST($))
+                return jsonApplication($); // valid JSON request
+        return httpContinue($);
     }
 
     /**
@@ -554,43 +610,84 @@ public class Controller extends HttpServlet {
             );
     }
     
-    // standard handlers for most Web 2.0 applications of J2EE 
-    //
-    // irdt2Identify -> Cookie
-    // httpResource -> HTML, XML, CSS, JavaScript, ...       
-    // jsonApplication -> JSON
-    //
-    // "Everythin is going to be allright"
-    
     /**
      * Identify the requester and return true to continue the request or
-     * complete the response and return false.
+     * complete the response and return false, by default grant no rights
+     * to a random user ID made of ten alphanumeric characters.
      * 
      * <h4>Synopsis</h4>
      * 
-     * <p>This is a method to overload in an application controller that
-     * identify and grant rights. The default implemented by this
-     * <code>Controller</code> is to identify an anonymous user with
-     * a random SHA1 key and grant him no rights.</p>
+     * <p>A simple implementation is to reply unidentified requests
+     * with a <code>404 Not Authorized</code> response:
+     * 
+     * <blockquote>
+     *<pre>public static boolean irtd2Identify (Actor $) {
+     *   $.httpError(404); // send the HTTP 404 Not Authorized response ...
+     *   return false; // do not continue the request. 
+     *}</pre>
+     * </blockquote>
+     * 
+     * <p>or redirect the user agent to another controller:</p>
+     * 
+     * <blockquote>
+     *<pre>public static boolean irtd2Identify (Actor $) {
+     *   $.http302Redirect("/login"); return false; 
+     *}</pre>
+     * </blockquote>
+     * 
+     * <p>The simplest implementation is to pass unidentified requests 
+     * through, here to handle JSON login with a configurable password
+     * for a <code>root</code> access in the root context "/":</p>
+     * 
+     * <blockquote>
+     *<pre>public static boolean irtd2Identify (Actor $) {
+     *   return true;
+     *}
+     *
+     *public static boolean jsonApplication (Actor $) {
+     *   if ( // there is an URL query string or a JSON body with a password
+     *       $.json.S("password", "").equals(
+     *           $.configuration.S("password", "less4j")
+     *           )
+     *       )
+     *       // digest a new IRTD2 cookie for user "root" with "root" role
+     *       $.identity = "root";
+     *       $.rights = "root";
+     *       $.irtd2Digest("/");
+     *       return true; 
+     *       // is identified, continue ...
+     *   else
+     *       $.httpError(404); // send the HTTP 404 Not Authorized response ...
+     *       return false; // do not continue the request. 
+     *       // not identified, stop. 
+     *}</pre>
+     * </blockquote>
+     * 
+     * <p>...</p>
      *  
      * @param $ the Actor's state
      */
     public static boolean irtd2Identify (Actor $) {
-        $.identity = ""; // TODO: digest an SHA1 key as identity.
+        $.identity = Simple.password(10);
         $.irtd2Digest($.context);
         return true;
     }
     
+    public static boolean httpContinue (Actor $) {
+        if ($.request.getProtocol().endsWith("1.1"))
+            return $.httpError(405); // HTTP/1.1 405 Method Not Allowed
+        else
+            return $.httpError(400); // HTTP/1.0 400 Bad Request
+    }
+    
     /**
-     * <p>Transfert a resource to identified users, by default redirect to
-     * the <code>index.html</code> page in this controller's context.</p>
+     * <p>Transfert a resource to identified users, by default send
+     * a <code>404 Not Found</code> error.</p>
      * 
      * <h4>Synopsis</h4>
      * 
      * <p>This is a method to overload in an application controller that
-     * serve resources in this servlet context to identified users. The 
-     * default is to delegate that service to another controller and redirect 
-     * the user agent to a static page <code>index.html</code>.</p>
+     * serve resources in this servlet context to identified users.</p>
      * 
      * <p>Practically, for database and directory controllers there is
      * little else to do short of implementing your own database to URI 
@@ -600,8 +697,8 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public static void httpResource (Actor $) {
-        $.http302Redirect("index.html");
+    public static boolean httpResource (Actor $) {
+        return $.httpError(404); 
     }
 
     /**
@@ -614,8 +711,8 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public static void jsonApplication (Actor $) {
-        $.json200Ok();
+    public static boolean jsonApplication (Actor $) {
+        return $.json200Ok();
     }
     
 } // Three little birds on my doorstep, Singing: "this is a message to you"

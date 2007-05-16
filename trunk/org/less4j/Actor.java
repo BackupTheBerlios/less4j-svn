@@ -22,6 +22,7 @@ import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.regex.Pattern;
 
 import java.net.URLEncoder;
@@ -422,6 +423,54 @@ public class Actor {
         System.err.println(sb.toString());
     }
     
+    public static String logLESS4J = "LESS4J: ";
+    
+    /** 
+     * Log an audit of this HTTP request and response in one line. 
+     * 
+     * <p>For instance:
+     * 
+     * <blockquote>
+     * <pre>LESS4J: identity roles time digested digest GET url HTTP/1.1 200</pre>
+     * </blockquote>
+     * 
+     * using by convention strings without whitespace for the identity
+     * and the enumeration of the rights granted. Practically, that fits
+     * email addresses or names that users allready use as principals.</p>
+     * 
+     * <p>Role names don't *need* whitespaces, they are pretty much
+     * constants defined at the network level (for instance products of an 
+     * ASP or rigths over contents in a CMS, etc ...).</p>
+     * 
+     * <p>Note that digested is the digest of the previous request, the
+     * backlink to chain a session step by step ... and detect fraud.</p>
+     * 
+     */
+    public void logAudit (int status) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(logLESS4J);
+        sb.append(identity);
+        sb.append(' ');
+        sb.append(rights);
+        sb.append(' ');
+        sb.append(Long.toString(time));
+        sb.append(' ');
+        sb.append(digested);
+        sb.append(' ');
+        sb.append(digest);
+        sb.append(' ');
+        sb.append(request.getMethod());
+        sb.append(' ');
+        sb.append(request.getRequestURI());
+        String query = request.getQueryString();
+        if (query != null) sb.append(query);
+        sb.append(' ');
+        sb.append(request.getProtocol());
+        sb.append(' ');
+        sb.append(status);
+        logOut(sb.toString());
+    }
+    
     protected static final String irtd2Name = "IRTD2";
     protected static final char irtd2SplitChar = ' '; 
     
@@ -573,54 +622,6 @@ public class Actor {
         "$[\\x21-\\x7E]+^" // ASCII 7-bit string
         );
     
-    private static final String less4jAudit = "AUDIT: ";
-    
-    /** 
-     * Log an audit of this HTTP request and response in one line. 
-     * 
-     * <p>For instance:
-     * 
-     * <blockquote>
-     * <pre>identity roles time digested digest GET url HTTP/1.1 200</pre>
-     * </blockquote>
-     * 
-     * using by convention strings without whitespace for the identity
-     * and the enumeration of the rights granted. Practically, that fits
-     * email addresses or names that users allready use as principals.</p>
-     * 
-     * <p>Role names don't *need* whitespaces, they are pretty much
-     * constants defined at the network level (for instance products of an 
-     * ASP or rigths over contents in a CMS, etc ...).</p>
-     * 
-     * <p>Note that digested is the digest of the previous request, the
-     * backlink to chain a session step by step ... and detect fraud.</p>
-     * 
-     */
-    public void irtd2Audit (int status) {
-        StringBuffer sb = new StringBuffer();
-        sb.append(less4jAudit);
-        sb.append(identity);
-        sb.append(' ');
-        sb.append(rights);
-        sb.append(' ');
-        sb.append(Long.toString(time));
-        sb.append(' ');
-        sb.append(digested);
-        sb.append(' ');
-        sb.append(digest);
-        sb.append(' ');
-        sb.append(request.getMethod());
-        sb.append(' ');
-        sb.append(request.getRequestURI());
-        String query = request.getQueryString();
-        if (query != null) sb.append(query);
-        sb.append(' ');
-        sb.append(request.getProtocol());
-        sb.append(' ');
-        sb.append(status);
-        logOut(sb.toString());
-    }
-    
     protected static final Pattern httpPreferences = 
         Pattern.compile("^(.*?)(;.+?=.+?)?((,.*?)(/s*?;.+?=.+?)?)*$");
     
@@ -723,7 +724,6 @@ public class Actor {
         int contentLength = request.getContentLength(); 
         if (contentLength < 1 || contentLength > limit)
             return null; // don't do null or excess data
-        
         byte[] body = new byte[contentLength];
         try { // fill that buffer ASAP
             ServletInputStream is = request.getInputStream();
@@ -735,16 +735,29 @@ public class Actor {
                     off += len; 
                 else if (len == 0)
                     Thread.yield(); // ... wait for input ...
-                else
-                    break;
+                else break;
             }
             return body;
-            
         } catch (IOException ioe) {
-            logError(ioe);
-            return null;
-            
+            logError(ioe); return null;
         }
+    }
+    
+    /**
+     * <p>Try to send an HTTP error response, rely on the J2EE implementation
+     * to produce headers and body. Audit a successfull response or log an 
+     * error.</p>
+     * 
+     * @param code HTTP error to send
+     * @return true
+     */
+    public boolean httpError (int code) {
+        try {
+            response.sendError(code); logAudit(code);
+        } catch (IOException e) {
+            logError(e);
+        }
+        return true;
     }
     
     /**
@@ -755,8 +768,9 @@ public class Actor {
      * @param body a byte string
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "ASCII")
+     * @return true
      */
-    public void http200Ok (byte[] body, String type, String charset) {
+    public boolean http200Ok (byte[] body, String type, String charset) {
         response.setStatus(HttpServletResponse.SC_OK);
         if (charset != null) type += ";charset=" + charset;
         // if (charset != null) response.setCharacterEncoding(charset);
@@ -766,10 +780,11 @@ public class Actor {
             ServletOutputStream os = response.getOutputStream(); 
             os.write(body);
             os.flush();
-            irtd2Audit(200);
+            logAudit(200);
         } catch (IOException e) {
             logError(e);
         }
+        return true;
     }
     
     /**
@@ -790,9 +805,10 @@ public class Actor {
      * @param body a string
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "UTF-8")
+     * @return true
      */
-    public void http200Ok (String body, String type, String charset) {
-        http200Ok(Simple.encode(body, charset), type, charset);
+    public boolean http200Ok (String body, String type, String charset) {
+        return http200Ok(Simple.encode(body, charset), type, charset);
     }
     
     /**
@@ -817,8 +833,8 @@ public class Actor {
      *
      * @param body a string
      */
-    public void http200Ok (String body) {
-        http200Ok(
+    public boolean http200Ok (String body) {
+        return http200Ok(
             Simple.encode(body, less4jCharacterSet), 
             xmlContentType, 
             less4jCharacterSet
@@ -839,9 +855,9 @@ public class Actor {
      * @param location to redirect to
      * @param body an of bytes with the response body 
      * @param type the Content-Type of the response 
-     *
+     * @return true
      */
-    protected void http302Redirect (String location, byte[] body, String type) {
+    protected boolean http302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
         response.addHeader(httpLocation, urlAbsolute(location));
         response.setContentType(type);
@@ -850,11 +866,12 @@ public class Actor {
             ServletOutputStream os = response.getOutputStream(); 
             os.write(body);
             os.flush();
-            irtd2Audit(302);
+            logAudit(302);
         } catch (IOException e) {
             logError(e);
-            irtd2Audit(500); // TODO: ? work out "own" error code ? 
+            logAudit(500); // TODO: ? work out "own" error code ? 
         }
+        return true;
     }
     
     protected static final String http302RedirectXML = (
@@ -885,9 +902,10 @@ public class Actor {
      * absolute URL.</p>
      * 
      * @param location to redirect to
+     * @return true
      */
-    public void http302Redirect(String location) {
-        http302Redirect(
+    public boolean http302Redirect(String location) {
+        return http302Redirect(
             location, http302RedirectXML.getBytes(), xmlContentType
             );
     }
@@ -1043,13 +1061,15 @@ public class Actor {
      * its applications may apply only one character set.
      */
     protected static final String jsonContentType = 
-        "application/json;charset=UTF-8";
+        "text/javascript;charset=UTF-8";
     
     /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON byte
      * string as body and audit the response, or log an error.</p>
+     * 
+     * @return true
      */
-    public void json200Ok (byte[] body) {
+    public boolean json200Ok (byte[] body) {
         /* the response body must be short enough to be buffered fully */
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(jsonContentType);
@@ -1060,35 +1080,42 @@ public class Actor {
             os.write(body);
             os.flush();
             // response.flushBuffer();
-            irtd2Audit(200);
+            logAudit(200);
         } catch (IOException e) {
             logError(e);
         }
+        return true;
     }
     
     /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON string 
      * encoded in UTF-8 as body and audit the response, or log an error.</p>
+     * 
+     * @return true
      */
-    public void json200Ok (String string) {
-        json200Ok(Simple.encode(string, less4jCharacterSet));
+    public boolean json200Ok (String string) {
+        return json200Ok(Simple.encode(string, less4jCharacterSet));
     }
     
     /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON value 
      * encoded in UTF-8 as body and audit the response, or log an error.</p>
+     * 
+     * @return true
      */
-    public void json200Ok (Object value) {
-        json200Ok(Simple.encode(JSON.encode(value), less4jCharacterSet));
+    public boolean json200Ok (Object value) {
+        return json200Ok(Simple.encode(JSON.encode(value), less4jCharacterSet));
     }
     
     /**
      * <p>Try to complete a 200 Ok HTTP/1.X response with the actor's JSON 
      * object encoded in UTF-8 as body and audit the response, or log
      * an error.</p>
+     * 
+     * @return true
      */
-    public void json200Ok () {
-        json200Ok(Simple.encode(JSON.encode(json), less4jCharacterSet));
+    public boolean json200Ok () {
+        return json200Ok(Simple.encode(JSON.encode(json), less4jCharacterSet));
     }
     /**
      * Try to open a J2EE datasource and disable AutoCommit, return 
