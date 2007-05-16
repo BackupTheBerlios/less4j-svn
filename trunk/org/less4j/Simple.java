@@ -24,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * A few utilities too simple for language experts, but damn usefull for 
@@ -40,7 +41,7 @@ public class Simple {
     /**
      * The maximum block size for many file system.
      */
-	public static final int fioBufferSize = 4096;
+	public static int fioBufferSize = 4096;
 	
     /**
      * Try to read a complete file into a String.
@@ -157,7 +158,7 @@ public class Simple {
      * wants the fastest possible network and the smallest possible
      * imbalance between input and output.</p>
      */
-    public static final int netBufferSize = 16384;
+    public static int netBufferSize = 16384;
     
     /**
      * Try to read a complete file into a buffer of 16K bytes, then
@@ -321,4 +322,32 @@ public class Simple {
         return join(separator, iter, new StringBuffer()).toString();
     }
     
+    /**
+     * The strictly alphanumeric set of ASCII characters, usefull for
+     * ubiquitous identifiers on any devices and in any languages, including
+     * American English and all phone slangs.
+     */
+    public static char[] ALPHANUMERIC = new char[]{
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+        'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'        
+    };
+    
+    /**
+     * <p>Generate a random password of a given <code>length</code>, using
+     * only US ASCII characters.</p>
+     * 
+     * @param length of the password to generate
+     * @return a string of <code>length</code> characters
+     */
+    public static String password (int length) {
+        Random random = new Random();
+        char[] characters = new char[length];
+        for (int i=0; i<length; i++) 
+            characters[i] = ALPHANUMERIC[random.nextInt(62)];
+        return String.copyValueOf(characters);
+    }
+
 }
