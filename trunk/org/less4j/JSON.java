@@ -572,6 +572,7 @@ public class JSON {
     
     public static final 
     StringBuffer strb(StringBuffer sb, String s) {
+        if (s==null) {sb.append(_null); return sb;}
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
         for (char c = it.first(); c != _done; c = it.next()) {
