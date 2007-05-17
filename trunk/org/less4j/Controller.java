@@ -18,8 +18,6 @@ package org.less4j; // less java for more applications
 
 // import java.sql.DriverManager;
 
-import java.util.HashMap;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException; 
 import javax.servlet.ServletRequest; 
@@ -29,9 +27,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * <p>A stateless servlet to configure, test and apply the <code>Actor</code>
- * programming intefaces, the base class from which to derive RESTfull
- * application resource controllers for Web 2.0 applications.</p>
+ * <p>The one - and preferrably only - obvious way to do REST right
+ * with J2EE as it is since version 1.4.2: stateless, bended like PHP with a
+ * healthy dose of JSON dynamism, more SQL and LDAP, less Java and no XML.</p>
+ * 
+ * <h3>Synopsis</h3>
+ * 
+ * <blockquote><pre>...</pre></blockquote>
  * 
  * <p>This class implements <code>HttpServlet.service</code> providing: 
  * a request/response state configuration, test and instanciation, user 
@@ -62,10 +64,6 @@ import javax.servlet.http.HttpServletResponse;
  * conveniences for entreprise web 2.0 applications (ie: for HTTP, JSON, SQL 
  * and LDAP).</p>
  * 
- * <h3>Synopsis</h3>
- * 
- * <blockquote><pre>...</pre></blockquote>
- * 
  * <h4>less4jConfigure(Actor)</h4>
  * 
  * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
@@ -76,24 +74,6 @@ import javax.servlet.http.HttpServletResponse;
  * property decoded from the <code>less4j</code> parameter found in the 
  * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
  * deployement configuration medium with a J2EE interface).</p>
- * 
- * <p>If a valid JSONR <code>configurationPattern</code> string has 
- * been set for the controller class as a static member, it will be 
- * compiled and used to test the actor's <code>configuration</code>.</p>
- * 
- * <p></p>
- *
- * <blockquote>
- * <pre>{
- *  "": { 
- *     "irtd2Timeout": 3600,
- *     "jsonBytes": 4096,
- *     "jsonContainers": 128,
- *     "jsonIterations": 4096,
- *     "jsonModel": {"irdt2": {"username": ".+", "password": null}}
- *  }
- *}</pre>
- * </blockquote>
  * 
  * <p>By convention, this method is expected to test the servlet's named
  * parameters found in the <code>$.configuration</code> JSON object.</p>
@@ -121,6 +101,40 @@ public class Controller extends HttpServlet {
         synchronized (configuration) {configuration = object;}
     }
     
+    /**
+     * <p>If a valid JSONR <code>configurationPattern</code> string has 
+     * been set for the controller class as a static member, it will be 
+     * compiled and used to test the actor's <code>configuration</code>.
+     * </p>
+     * 
+     * <h4>Synospis</h4>
+     * 
+     * <p>...</p>
+     * 
+     * <blockquote>
+     * <pre>{"test": true}</pre>
+     * </blockquote>
+     * 
+     * <p>...</p>
+     * 
+     * <blockquote>
+     * <pre>{
+     *    "test": false, // default to production
+     *    "irtd2Salt": ".........+",
+     *    "irtd2Salted": ".........+",
+     *    "irtd2Timeout": 3600, // one hour maximum
+     *    "jsonBytes": 4096, // relatively small passwords
+     *    "jsonContainers": 1, // one object
+     *    "jsonIterations": 2, // two values
+     *    "jsonRegular": {
+     *        "username": "@", // the universal e-mail sign by now. 
+     *        "password": ".......+"
+     *    }
+     *}</pre>
+     * </blockquote>
+     * 
+     * <p>...</p>
+     */
     public static String configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
         "\"irtd2Salt\": \"^...........*$\"," + // mandatory, 10 chars minimum
@@ -617,13 +631,20 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <p>A simple implementation is to reply unidentified requests
-     * with a <code>404 Not Authorized</code> response:
+     * <blockquote>
+     * <pre>public static boolean irtd2Identify (Actor $) {
+     *    $.identity = Simple.password(10);
+     *    $.irtd2Digest($.context);
+     *    return true;
+     *}</pre>
+     * </blockquote>
+     * 
+     * <p>A simpler implementation is to reply unidentified requests
+     * with a <code>401 Not Authorized</code> response:
      * 
      * <blockquote>
      *<pre>public static boolean irtd2Identify (Actor $) {
-     *   $.httpError(404); // send the HTTP 404 Not Authorized response ...
-     *   return false; // do not continue the request. 
+     *   $.httpError(401)); return false; // Not Authorized
      *}</pre>
      * </blockquote>
      * 
@@ -655,17 +676,18 @@ public class Controller extends HttpServlet {
      *       $.rights = "root";
      *       $.irtd2Digest("/");
      *       return true; 
-     *       // is identified, continue ...
+     *       // is identified, continue the request...
      *   else
-     *       $.httpError(404); // send the HTTP 404 Not Authorized response ...
-     *       return false; // do not continue the request. 
-     *       // not identified, stop. 
+     *       $.httpError(401); // Not Authorized
+     *       return false; 
+     *       // not identified, response completed. 
      *}</pre>
      * </blockquote>
      * 
      * <p>...</p>
      *  
      * @param $ the Actor's state
+     * @return true
      */
     public static boolean irtd2Identify (Actor $) {
         $.identity = Simple.password(10);
@@ -673,11 +695,24 @@ public class Controller extends HttpServlet {
         return true;
     }
     
+    /**
+     * ...
+     *
+     * <h4>Synopsis</h4>
+     *
+     * <blockquote>
+     *<pre>public static boolean httpContinue (Actor $) {
+     *    return $.httpError(400); // Bad Request
+     *}</pre>
+     *</blockquote>
+     *
+     * <p>...</p>
+     *
+     * @param $
+     * @return true
+     */
     public static boolean httpContinue (Actor $) {
-        if ($.request.getProtocol().endsWith("1.1"))
-            return $.httpError(405); // HTTP/1.1 405 Method Not Allowed
-        else
-            return $.httpError(400); // HTTP/1.0 400 Bad Request
+        return $.httpError(400); // Bad Request
     }
     
     /**
@@ -686,6 +721,12 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
+     * <blockquote>
+     *<pre>public static boolean httpResource (Actor $) {
+     *    return $.httpError(404); // Not Found
+     *}</pre>
+     *</blockquote>
+     *
      * <p>This is a method to overload in an application controller that
      * serve resources in this servlet context to identified users.</p>
      * 
@@ -698,7 +739,7 @@ public class Controller extends HttpServlet {
      * @param $ the Actor's state
      */
     public static boolean httpResource (Actor $) {
-        return $.httpError(404); 
+        return $.httpError(404); // Not Found
     }
 
     /**
@@ -707,12 +748,18 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
+     * <blockquote>
+     *<pre>public static boolean jsonApplication (Actor $) {
+     *    return $.json200Ok();
+     *}</pre>
+     *</blockquote>
+    
      * <p>...</p>
      * 
      * @param $ the Actor's state
      */
     public static boolean jsonApplication (Actor $) {
-        return $.json200Ok();
+        return $.json200Ok($.toString());
     }
     
 } // Three little birds on my doorstep, Singing: "this is a message to you"

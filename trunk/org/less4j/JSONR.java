@@ -171,7 +171,7 @@ public class JSONR extends JSON {
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
-     * @version 0.20
+     * @version 0.30
      */
     public static class Error extends JSON.Error {
         
@@ -189,8 +189,8 @@ public class JSONR extends JSON {
          */
         public String toString() {
             StringBuffer sb = new StringBuffer();
-            sb.append("JSON error ");
-            jstrb(sb);
+            sb.append("JSONR error ");
+            strb(sb);
             return sb.toString(); 
         }
         
@@ -256,7 +256,7 @@ public class JSONR extends JSON {
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
      * 
-     * @version 0.20
+     * @version 0.30
      */
     public static interface Type {
         /**

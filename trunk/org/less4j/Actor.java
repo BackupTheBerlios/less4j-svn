@@ -22,13 +22,11 @@ import java.util.Hashtable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 import java.util.regex.Pattern;
 
-import java.net.URLEncoder;
+//import java.net.URLEncoder;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 import java.sql.DriverManager;
 import java.sql.Connection;
@@ -57,11 +55,9 @@ import javax.servlet.http.Cookie;
 import org.less4j.JSONR.Type;
 
 /**
- * <p>A "full-stack" API to develop XML and JSON interfaces for J2EE 
- * controllers of entreprise SQL and LDAP resources, starting with 
- * no-nonsense logging and a cross-plateform protocol of identification 
- * and authorization in time, ending with a general audit that can track 
- * any paths of user interaction.</p>
+ * <p>The <code>Actor</code> provides a rich state and a flat "full-stack" 
+ * API to develop complex entreprise Web 2.0 controllers of SQL databases 
+ * and LDAP directories.</p>
  * 
  * <h3>Table of Content</h3>
  * 
@@ -69,69 +65,63 @@ import org.less4j.JSONR.Type;
  * applications as follow:</p>
  * 
  * <dl>
- * <di><dt>Runtime Environment:
- * <code>time</code>,
+ * <di><dt>Environment:
  * <code>test</code>, 
+ * <code>configuration</code>, 
  * <code>logOut</code>, 
  * <code>logInfo</code>, 
  * <code>logError</code>.
+ * <code>logAudit</code>, 
  * </dt><dd>
- * Time, runtime environment, standard output and error. The basics, and
- * just that. No fancy logging formats and long stack traces, the bare
- * minimum for all actor: STDOUT and STDERR, a compact exception trace
- * and unconstrained logging categories for information.
+ * Test or production environment, standard output and error. No fancy 
+ * logging formats and long stack traces, the bare minimum for all actor: 
+ * STDOUT and STDERR, a compact exception trace and unconstrained logging 
+ * categories for information.
  * <dd></di>
- * <di><dt>Configuration:
- * <code>configuration</code>, 
- * <code>testConfiguration</code>, 
- * <code>request</code>,
- * <code>response</code>.
- * </dt><dd>
- * Because "everything you don't test does not work", there are two
- * Actor constructors. One for instances that test a controller's 
- * configuration and one for instances that will be apply it on an 
- * HTTP transaction.
- * </dd></di>
  * <di><dt>IRTD2:
+ * <code>salt</code>,
+ * <code>salted</code>,
  * <code>identity</code>,
- * <code>roles</code>,
+ * <code>rights</code>,
+ * <code>time</code>,
  * <code>digest</code>,
  * <code>digested</code>,
  * <code>irtd2Digest</code>, 
  * <code>irtd2Digested</code>, 
- * <code>irtd2Audit</code>.
  * </dt><dd>
  * Identification, authorization and audit of the user agent, without
  * the woes of <code>HttpServletSession</code>. A practical implementation
  * of a simple protocol based on HTTP cookies and SHA1 digest, cross
  * plateform and designed to let the weight of persistent sessions be
- * distributed ... on the clients. Eventually, it also provides an effective
+ * distributed on the clients. Eventually, it also provides an effective
  * audit follow the multiple paths of interactions of a single user and
  * detect fraud attemps.
  * </dd></di>
- * <di><dt>HTTP and URL:
- * <code>query</code>,
- * <code>urlAction</code>,
+ * <di><dt>HTTP:
+ * <code>request</code>,
+ * <code>response</code>,
+ * <code>context</code>,
+ * <code>url</code>,
  * <code>urlAbsolute</code>,
- * <code>rest200Ok</code>, 
- * <code>rest302Redirect</code>,
- * <code>rest302Bounce</code>.
+ * <code>httpError</code>,
+ * <code>http200Ok</code>, 
+ * <code>http302Redirect</code>,
  * </dt><dd>
  * ...
  * </dd></di>
- * <di><dt>XML, JSON and JSONR:
+ * <di><dt>Regular JSON:
  * <code>json</code>,
  * <code>jsonGET</code>,
  * <code>jsonPOST</code>,
+ * <code>jsonDigest</code>,
  * <code>json200Ok</code>,
- * <code>ajaxTemplate</code>,
- * <code>ajax200Ok</code>.
  * </dt><dd>
  * ...
  * </dd></di>
  * <di><dt>SQL:
  * <code>sql</code>,
- * <code>sqlOpen</code>,
+ * <code>sqlOpenJ2EE</code>,
+ * <code>sqlOpenJDBC</code>,
  * <code>sqlClose</code>,
  * <code>sqlQuery</code>, 
  * <code>sqlUpdate</code>.
@@ -260,6 +250,60 @@ public class Actor {
      * An open LDAP connection or <code>null</code>.
      */
     public InitialDirContext ldap = null;
+    
+    /**
+     * Serialize this Actor's public state to a JSON <code>StringBuffer</code>
+     */
+    public StringBuffer strb(StringBuffer sb) {
+        sb.append("{\"time\":");
+        sb.append(time);
+        sb.append(",\"identity\":");
+        JSON.strb(sb, identity);
+        sb.append(",\"rights\":");
+        JSON.strb(sb, rights);
+        sb.append(",\"digest\":");
+        JSON.strb(sb, digest);
+        sb.append(",\"digested\":");
+        JSON.strb(sb, digested);
+        sb.append(",\"url\":");
+        JSON.strb(sb, url);
+        sb.append(",\"context\":");
+        JSON.strb(sb, context);
+        sb.append(",\"json\":");
+        JSON.strb(sb, json);
+        sb.append('}');
+        return sb;
+    }
+    
+    /**
+     * Return a JSON <code>String</code> of this Actor's public state.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <blockquote>
+     * <pre>$.json200Ok ($.toString());</pre>
+     * </blockquote>
+     * 
+     * <p>The string returned matches this JSONR pattern:
+     * 
+     * <blockquote>
+     * <pre>{
+     *    "identity": "$[0-9a-zA-Z]+^", 
+     *    "rights": "$[0-9a-zA-Z]+^",
+     *    "time": 0, 
+     *    "digest": "[0-9a-f]{20}",
+     *    "digested": "[0-9a-f]{20}",
+     *    "about": [""],
+     *    "json": null
+     *}</pre>
+     * </blockquote>
+     * 
+     * <p>Note that it does not include the controller's private part
+     * of its state: configuration, salt, salted, sql or ldap.</p>
+     */
+    public String toString() {
+        return strb(new StringBuffer()).toString();
+    }
     
     /**
      * Initialize a new Actor to test a controller servlet's configuration 
@@ -698,28 +742,6 @@ public class Actor {
         return sb.toString();
     };
     
-    /**
-     * <p>Test wether an HTTP request is idempotent or not, ie: wether it is a 
-     * GET request for a resource (cachable) like
-     * 
-     * <blockquote>
-     * <pre>/resource</pre>
-     * </blockquote>
-     * 
-     * or a GET request for an action as
-     * 
-     * <blockquote>
-     * <pre>/resource?action</pre>
-     * </blockquote>
-     * 
-     * wich is not cacheable.</p>
-     * 
-     * @return true if the request is idempotent, false otherwise
-     */
-    public boolean httpIdempotent () {
-        return (request.getQueryString() == null);
-        }
-    
     public byte[] httpPOST(int limit) {
         int contentLength = request.getContentLength(); 
         if (contentLength < 1 || contentLength > limit)
@@ -1095,16 +1117,6 @@ public class Actor {
      */
     public boolean json200Ok (String string) {
         return json200Ok(Simple.encode(string, less4jCharacterSet));
-    }
-    
-    /**
-     * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON value 
-     * encoded in UTF-8 as body and audit the response, or log an error.</p>
-     * 
-     * @return true
-     */
-    public boolean json200Ok (Object value) {
-        return json200Ok(Simple.encode(JSON.encode(value), less4jCharacterSet));
     }
     
     /**

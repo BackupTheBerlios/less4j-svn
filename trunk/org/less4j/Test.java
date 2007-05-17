@@ -235,7 +235,7 @@ public class Test {
                     jsonBenchmarkEval(input, scale);
                     jsonBenchmarkStr(o, output, scale);
                 } catch (JSON.Error e) {
-                    System.out.println(e.jstr());
+                    System.out.println(e.toJSONString());
                 }
             }
         }
@@ -319,7 +319,7 @@ public class Test {
             testModel = new JSONR(jsonrTest); 
         } catch (JSON.Error e) {
             System.out.println(jsonrTest.substring(0, e.jsonIndex));
-            System.out.println(e.jstr());
+            System.out.println(e.toJSONString());
             e.printStackTrace();
             return;
         }
@@ -337,14 +337,14 @@ public class Test {
         } catch (JSONR.Error e) {
             System.out.println(model.substring(0, e.jsonIndex));
             System.out.print("Type Error ");
-            System.out.println(e.jstr());
+            System.out.println(e.toJSONString());
             System.out.println(model.substring(e.jsonIndex));
             e.printStackTrace();
             return;
         } catch (JSON.Error e) {
             System.out.println(model.substring(0, e.jsonIndex));
             System.out.print("Syntax Error ");
-            System.out.println(e.jstr());
+            System.out.println(e.toJSONString());
             System.out.println(model.substring(e.jsonIndex));
             e.printStackTrace();
             return;
@@ -371,21 +371,21 @@ public class Test {
                     if (e.jsonIndex > -1) {
                         System.out.println(input.substring(0, e.jsonIndex));
                         System.out.print("Irregular JSON value ");
-                        System.out.println(e.jstr());
+                        System.out.println(e.toJSONString());
                         System.out.println(input.substring(e.jsonIndex));
                     } else {
                         System.out.print("Irregular JSON value ");
-                        System.out.println(e.jstr());
+                        System.out.println(e.toJSONString());
                     }
                 } catch (JSON.Error e) {
                     if (e.jsonIndex > -1) {
                         System.out.println(input.substring(0, e.jsonIndex));
                         System.out.print("Invalid JSON string ");
-                        System.out.println(e.jstr());
+                        System.out.println(e.toJSONString());
                         System.out.println(input.substring(e.jsonIndex));
                     } else {
                         System.out.print("Invalid JSON string ");
-                        System.out.println(e.jstr());
+                        System.out.println(e.toJSONString());
                     }
                 }
             }
