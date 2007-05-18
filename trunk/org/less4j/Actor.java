@@ -41,6 +41,7 @@ import javax.sql.DataSource;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
@@ -124,9 +125,15 @@ import org.less4j.JSONR.Type;
  * <code>sqlOpenJDBC</code>,
  * <code>sqlClose</code>,
  * <code>sqlQuery</code>, 
- * <code>sqlUpdate</code>.
+ * <code>sqlTable</code>, 
+ * <code>sqlObject</code>, 
+ * <code>sqlObjects</code>, 
+ * <code>sqlCollection</code>, 
+ * <code>sqlUpdate</code>,
+ * <code>sqlUpdateMany</code>.
  * </dt><dd>
- * ...
+ * Enough SQL conveniences up to all the Object Relational Mapping you
+ * will ever need for JSON applications: table, object(s) and collection. 
  * </dd></di>
  * <di><dt>LDAP:
  * <code>ldap</code>,
@@ -331,7 +338,7 @@ public class Actor {
         request = req;
         response = res;
         url = request.getRequestURL().toString();
-        context = request.getServletPath(); // request.getContextPath() ?
+        context = request.getContextPath();
         test = configuration.B("test", false);
         salt = configuration.S("irtd2Salt", "").getBytes();
         salted = configuration.S("irtd2Salted", "").getBytes();
@@ -467,7 +474,7 @@ public class Actor {
         System.err.println(sb.toString());
     }
     
-    public static String logLESS4J = "LESS4J: ";
+    protected static String logLESS4J = "LESS4J: ";
     
     /** 
      * Log an audit of this HTTP request and response in one line. 
@@ -1204,165 +1211,169 @@ public class Actor {
         if (test) {logInfo("disconnected from SQL", less4j);}
     }
     
-    /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement, fetch the first relation, return a JSON object or 
-     * null if the result set was empty. In any case, close the statement 
-     * JDBC statement to prevent any leak in the connections pool.
-     * 
-     * @param statement
-     * @return an array of Object or null
-     * @throws SQLException
-     */
-    public JSON.Object sqlQuery (String statement) 
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.Object relation = null;
-        Statement st = null;
-        try {
-            st = sql.createStatement();
-            st.setFetchSize(1);
-            ResultSet rs = st.executeQuery(statement);
-            if (rs.next()) {
-                ResultSetMetaData mt = rs.getMetaData();
-                int L = mt.getColumnCount();
-                relation = new JSON.Object();
-                for (int i = 0; i < L; i++) relation.put(
-                    mt.getColumnName(i), rs.getObject(i)
-                    );
-            }
-            rs.close();
-            st.close(); 
-            st = null;
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} 
-                st = null;
-            }
-        }
-        return relation;
+    // missing closures ...
+    
+    protected static interface SQL2 {
+        public Object sql2 (ResultSet rs) throws SQLException;
     }
     
-    /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement, return an ArrayList of Object[] rows or null if the result
-     * set was empty. In any case, close the statement JDBC statement
-     * and result set to prevent any leak in the connections pool.
-     * 
-     * @param statement
-     * @return a JSON object mapping the relation or null
-     * @throws SQLException
-     */
-    public JSON.Object sqlQuery (String statement, Iterator args) 
-    throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.Object relation = null;
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            int i = 0;
-            while(args.hasNext()) {st.setObject(i, args.next()); i++;}
-            st.setFetchSize(1);
-            ResultSet rs = st.executeQuery(statement);
+    protected static class SQL2Table implements SQL2 {
+        public Object sql2 (ResultSet rs) throws SQLException {
+            JSON.Object object = null;
+            JSON.Array rows = null, row;
             if (rs.next()) {
+                int i;
+                object = new JSON.Object();
+                rows = new JSON.Array();
+                object.put("rows", rows);
                 ResultSetMetaData mt = rs.getMetaData();
-                int L = mt.getColumnCount();
-                relation = new JSON.Object();
-                for (i = 0; i < L; i++) relation.put(
-                    mt.getColumnName(i), rs.getObject(i)
-                    );
+                int L = mt.getColumnCount()+1;
+                JSON.Array columns = new JSON.Array();
+                object.put("columns", columns);
+                for (i=1; i<L; i++) columns.add(mt.getColumnName(i));
+                do {
+                    row = new JSON.Array ();
+                    for (i=1; i<L; i++) row.add(rs.getObject(i));
+                    rows.add(row);
+                } while (rs.next());
             }
             rs.close();
-            st.close();
-            st = null; 
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;} st = null;
-            }
+            return object;
         }
-        return relation;
     }
 
     /**
-     * Copy the JDBC result set into ArrayList of primitive Objects,
-     * something to iterate through and index in a closed statement's
-     * result, possibly defering that process to I/O time and yield 
-     * faster JDBC connections pooling between threads, certainly
-     * never taking the risk of leaking DataSource pools.
-     * 
-     * @param rs
-     * @return
-     * @throws SQLException
+     * A collector singleton to map a JDBC ResultSet with metadata into a
+     * single JSON.Object with the obvious "columns" and "rows" members.
      */
-    protected static JSON.Array jdbc2array (ResultSet rs)
-    throws SQLException {
-        JSON.Array rows = null;
-        if (rs.next()) {
-            int i;
-            Object[] row;
-            rows = new JSON.Array();
-            ResultSetMetaData mt = rs.getMetaData();
-            int l = mt.getColumnCount();
-            do {
-                row = new Object[l];
-                for (i = 0; i < l; i++) row[i] = rs.getObject(i);
-                rows.add(row);
-            } while (rs.next());
+    protected static SQL2 sql2Table = new SQL2Table ();
+
+    protected static class SQL2Relations implements SQL2 {
+        public Object sql2 (ResultSet rs) throws SQLException {
+            JSON.Array rows = null, row;
+            if (rs.next()) {
+                int i;
+                rows = new JSON.Array ();
+                ResultSetMetaData mt = rs.getMetaData();
+                int L = mt.getColumnCount()+1;
+                do {
+                    row = new JSON.Array ();
+                    for (i = 1; i < L; i++) row.add(rs.getObject(i));
+                    rows.add(row);
+                } while (rs.next());
+            }
+            rs.close();
+            return rows;
         }
-        rs.close();
-        return rows;
     }
 
-    protected static JSON.Object jdbc2object (ResultSet rs)
-    throws SQLException {
-        int i;
-        ArrayList rows, row;
-        ResultSetMetaData mt = rs.getMetaData();
-        int l = mt.getColumnCount();
-        JSON.Object model = new JSON.Object();
-        row = new ArrayList();
-        for (i = 0; i < l; i++) row.add(mt.getColumnName(i));
-        model.put("columns", row);
-        if (rs.next()) {
-            rows = new JSON.Array();
-            do {
-                row = new JSON.Array();
-                for (i = 0; i < l; i++) row.add(rs.getObject(i));
-                rows.add(row);
-            } while (rs.next());
-        } else 
-            rows = null;
-        model.put("rows", rows);
-        rs.close();
-        return model;
+    /**
+     * A collector singleton to map a JDBC ResultSet into a JSON.Array
+     * of JSON.Array, without metadata.
+     */
+    protected static SQL2 sql2Relations = new SQL2Relations ();
+
+    protected static class SQL2Collection implements SQL2 {
+        public Object sql2 (ResultSet rs) throws SQLException {
+            JSON.Array collection = null;
+            if (rs.next()) {
+                collection = new JSON.Array();
+                do {collection.add(rs.getObject(1));} while (rs.next());
+            }
+            rs.close();
+            return collection;
+        }
     }
-    
+
+    /**
+     * A collector singleton to map the first column of a JDBC ResultSet 
+     * into an JSON.Array.
+     */
+    protected static SQL2 sql2Collection = new SQL2Collection ();
+
+    protected static class SQL2Objects implements SQL2 {
+        public Object sql2 (ResultSet rs) throws SQLException {
+            JSON.Array relations = new JSON.Array();
+            if (rs.next()) {
+                JSON.Object object = new JSON.Object();
+                ResultSetMetaData mt = rs.getMetaData();
+                int i, L = mt.getColumnCount() + 1;
+                do {
+                    object = new JSON.Object();
+                    for (i = 1; i < L; i++) 
+                        object.put(mt.getColumnName(i), rs.getObject(i));
+                    relations.add(object);
+                } while (rs.next());
+            }
+            rs.close();
+            return relations;
+        }
+    }
+
+    /**
+     * A collector singleton to map a JDBC ResultSet into a JSON.Array of
+     * JSON.Object, using column names as keys.
+     */
+    protected static SQL2 sql2Objects = new SQL2Objects ();
+
+    protected static class SQL2Object implements SQL2 {
+        public Object sql2 (ResultSet rs) throws SQLException {
+            JSON.Object object = null;
+            if (rs.next()) {
+                object = new JSON.Object();
+                ResultSetMetaData mt = rs.getMetaData();
+                int L = mt.getColumnCount();
+                for (int i = 0; i < L; i++) 
+                    object.put(mt.getColumnName(i), rs.getObject(i));
+            }
+            rs.close();
+            return object;
+        }
+    }
+
+    /**
+     * A collector singleton to map the first row of a JDBC ResultSet into a
+     * single JSON.Object, using column names as keys.
+     */
+    protected static SQL2 sql2Object = new SQL2Object ();
+
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument iterator, return a JSONObject model or null
-     * if the result set was empty. In any case, close the statement JDBC 
-     * statement and result set to prevent any leak in the connections pool.
+     * statement and an argument iterator, use an RS2 collector to return 
+     * a JSON.Array, a JSON.Object or null if the result set was empty.
      * 
      * <h4>Synopsis</h4>
      * 
-     * <p>...</p>
+     * <pre>try {
+     *    JSON.Array relations = (JSON.Array) $.<strong>sqlQuery(</strong>
+     *        "select * from TABLE wher COLUMN=?", 
+     *        Simple.iterator (new String[]{"criteria"}),
+     *        100, Actor.sql2relations
+     *        <strong>)</strong>;
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param args a primitive array of arguments
-     * @return a JSONObject with a simple relational model
+     * @param args an iterator through arguments
+     * @param fetch the number of rows to fetch
+     * @param collector the RS2 instance used to collect the result set
+     * @return an <code>ArrayList</code>, a <code>HashMap</code> or null
      * @throws SQLException
      */
-    public JSON.Object sqlQuery (String statement, Iterator args, int fetch) 
+    public Object sqlQuery (
+        String statement, Iterator args, int fetch, SQL2 collector
+        ) 
     throws SQLException {
-        if (test) logInfo(statement, less4j);
-        JSON.Object relations = null;
+        if (test) logInfo(statement, "SQL");
+        Object result = null;
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
             st.setFetchSize(fetch);
-            int i = 0;
-            while(args.hasNext()) {st.setObject(i, args.next()); i++;}
-            relations = jdbc2object(st.executeQuery(statement));
+            int i = 1; 
+            while (args.hasNext()) {st.setObject(i, args.next()); i++;}
+            result = collector.sql2(st.executeQuery());
             st.close();
             st = null;
         } finally {
@@ -1371,9 +1382,192 @@ public class Actor {
                 st = null;
             }
         }
-        return relations;
+        return result;
     }
 
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument array, name a <code>JSON.Object</code>
+     * as <code>table</code> in <code>$.json</code> with the obvious 
+     * "columns" and "rows" members then return true, or set 
+     * <code>table</code> to <code>null</code> if the result set was empty 
+     * and return false.
+     * 
+     * @param table the name of the result in <code>$.json</code>
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @param fetch the number of rows to fetch
+     * @return false if no table was returned 
+     * @throws SQLException
+     */
+    public boolean sqlTable (
+        String table, String statement, String[] arguments, int fetch
+        ) 
+    throws SQLException {
+        json.put(table, sqlQuery (
+            statement, Simple.itermap(json, arguments), fetch, sql2Table
+            ));
+        return (json.get(table) == null);
+    }
+    
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument array, name a <code>JSON.Array</code> 
+     * as <code>relations</code> in <code>$.json</code> and return true
+     * or use <code>null</code> if the result set was empty and return false.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <blockquote>
+     * <pre>try {
+     *    if ($.<strong>sqlRelations(</strong>
+     *        "relations",
+     *        "select * from TABLE where KEY=?", 
+     *        new String[]{"key"},
+     *        100
+     *        <strong>)</strong>)
+     *        ...; // process the relations 
+     *    else
+     *        ...; // error, null result
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * </blockquote>
+     * 
+     * @param relations the name of the result in <code>$.json</code>
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @param fetch the number of rows to fetch
+     * @return false if no relations were returned 
+     * @throws an <code>SQLException</code>
+     */
+    public boolean sqlRelations (
+        String relations, String statement, String[] arguments, int fetch
+        ) 
+    throws SQLException {
+        json.put(relations, sqlQuery (
+            statement, Simple.itermap(json, arguments), fetch, sql2Relations
+            ));
+        return (json.get(relations) == null);
+    }
+
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument array, name a <code>JSON.Array</code> 
+     * as <code>collection</code> in <code>$.json</code> and return true
+     * or set <code>collection</code> to <code>null</code> if the result 
+     * set was empty and return false.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    if ($.<strong>sqlCollection(</strong>
+     *        "collection", 
+     *        "select COLUMN from TABLE wher KEY=?", 
+     *        new String[]{"key"},
+     *        100
+     *        <strong>)</strong>);
+     *        ...; // process collection 
+     *    else
+     *        ...; // error, null result
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
+     * @param collection the name of the result in <code>$.json</code>
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @param fetch the number of rows to fetch
+     * @return false if no collection was returned 
+     * @throws an <code>SQLException</code>
+     */
+    public boolean sqlCollection (
+        String collection, String statement, String[] arguments, int fetch
+        ) 
+    throws SQLException {
+        json.put(collection, sqlQuery (
+            statement, Simple.itermap(json, arguments), fetch, sql2Collection
+            ));
+        return (json.get(collection) == null);
+    }
+    
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument array, name a <code>JSON.Object</code> 
+     * as <code>object</code> in <code>$.json</code> and return true or set 
+     * <code>object</code> to <code>null</code> if the result set was 
+     * empty and return false.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    if ($.<strong>sqlObjects(</strong>
+     *        "objects",
+     *        "select * from TABLE where KEY=?",
+     *        new String[]{"key"},
+     *        10
+     *        <strong>)</strong>);
+     *        ... // process objects
+     *    else
+     *        ... // error, null result
+     *} catch (Exception e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
+     * @param objects the name of the result in <code>$.json</code>
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @return false if no objects were returned 
+     * @throws an <code>SQLException</code>
+     */
+    public boolean sqlObjects ( 
+        String object, String statement, String[] arguments, int fetch
+    ) 
+    throws SQLException {
+        json.put(object, sqlQuery (
+            statement, Simple.itermap(json, arguments), fetch, sql2Objects
+            ));
+        return (json.get(object) == null);
+    }
+    
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument array, name a <code>JSON.Object</code> 
+     * as <code>object</code> in <code>$.json</code> and return true or set 
+     * <code>object</code> to <code>null</code> if the result set was 
+     * empty and return false.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    if ($.<strong>sqlObject(</strong>
+     *        "object",
+     *        "select * from TABLE where PRIMARY=?",
+     *        new String[]{"key"}
+     *        <strong>)</strong>);
+     *        ... // process object
+     *    else
+     *        ... // error, null result
+     *} catch (Exception e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
+     * @param object the name of the result in <code>$.json</code>
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @return false if no collection was returned 
+     * @throws an <code>SQLException</code>
+     */
+    public boolean sqlObject ( 
+        String object, String statement, String[] arguments, int fetch
+    ) 
+    throws SQLException {
+        json.put(object, sqlQuery (
+            statement, Simple.itermap(json, arguments), fetch, sql2Object
+            ));
+        return (json.get(object) == null);
+    }
+    
     /**
      * Try to execute and UPDATE, INSERT, DELETE or DDL statement, close
      * the JDBC/DataSource statement, return the number of rows updated.
@@ -1528,34 +1722,72 @@ public class Actor {
     }
     
     /**
-     * Try to update a JSON.O object with the attributes of an LDAP context, 
+     * Try to resolve an LDAP context and update a <code>Map</code> 
+     * with the attributes named by the <code>names</code> iterator either as 
+     * <code>null</code>, strings or <code>JSON.Array</code> of strings, then 
      * return true if the context's name was resolved, false otherwise.
-     * Attributes not named in the names iterator are filtered out.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>if ($.ldapOpen("ldap://host:port", "user", "pass")) try {
+     *    JSON.Object attributes = new JSON.Object();
+     *    if ($.<strong>ldapResolve(</strong>
+     *        "uid=lszyster,ou=People,...", attributes, Simple.iterator(
+     *            new String[]{"cn", "mail", "homeDirectory"}
+     *            ) 
+     *        <strong>)</strong>)
+     *        ...
+     *} catch (Exception e) {
+     *    $.logError(e);
+     *} finally {
+     *    $.ldapClose();
+     *}</pre>
+     *
+     * <p>The purpose of this method is to allow applications not to worry 
+     * about the specialized types and the API details of JNDI. Instead they 
+     * can use <code>Map</code>, <code>List</code> and <code>String</code>.</p>
+     * 
+     * <p>Note that if the <code>Base</code> instance's <code>test</code> is 
+     * true, then values of the attributes resolved will be logged as one 
+     * information message.</p>
      * 
      * @param dn the distinguished name to resolve
-     * @param object the JSON.O object to update
+     * @param map the Map to update
      * @param names of the attribute values to get
      * @return true if the name was resolved, false otherwise
      */
     public boolean ldapResolve (
-        String dn, JSON.Object object, Iterator names
+        String dn, Map map, Iterator names
         ) {
-        if (test) logInfo ("resolve LDAP dn=" + dn, less4j);
+        if (test) logInfo ("request dn=" + dn, "LDAP");
         Attributes attributes;
         try {
             attributes = ldap.getAttributes(dn);
-        } catch (NamingException e) {
+            String key;
+            Attribute attrs;
+            while (names.hasNext()) {
+                key = (String) names.next();
+                attrs = attributes.get(key);
+                if (attrs == null)
+                    map.put(key, null);
+                else {
+                    int L = attrs.size();
+                    if (L == 1)
+                        map.put(key, attrs.get(0).toString());
+                    else {
+                        ArrayList list = new ArrayList();
+                        for (int i=0; i<L; i++) 
+                            list.add(attrs.get(i).toString());
+                        map.put(key, list);
+                    }
+                }
+            }
+        } catch (Exception e) {
             logError(e);
             return false;
-
         }
-        String key;
-        while (names.hasNext()) {
-            key = (String) names.next();
-            object.put(key, attributes.get(key));
-        }
+        if (test) logInfo(JSON.encode(map), "LDAP");
         return true;
-        
     }
     
     /**
@@ -1584,7 +1816,7 @@ public class Actor {
     public boolean ldapCreate (
         String dn, JSON.Object object, Iterator names
         ) {
-        if (test) logInfo ("create LDAP dn=" + dn, less4j);
+        if (test) logInfo("create dn=" + dn, "LDAP");
         Iterator iter;
         String key;
         Object value;
@@ -1592,7 +1824,7 @@ public class Actor {
         BasicAttributes attributes = new BasicAttributes (false); 
         while (names.hasNext()) {
             key = (String) names.next();
-            attribute = new BasicAttribute (key);
+            attribute = new BasicAttribute(key);
             value = object.get(key);
             if (value instanceof JSON.Array) {
                 iter = ((JSON.Array) object.get(key)).iterator();
@@ -1604,11 +1836,9 @@ public class Actor {
         try {
             ldap.createSubcontext(dn, attributes);
             return true;
-            
         } catch (NamingException e) {
             logError(e);
             return false;
-            
         }
     }
     

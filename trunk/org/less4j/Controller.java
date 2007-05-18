@@ -456,7 +456,7 @@ public class Controller extends HttpServlet {
      * 
      * @return true if no exception was raised
      */ 
-    public static boolean sqlNative (Actor $, String statement) {
+    public static boolean sqlExecute (Actor $, String statement) {
         boolean success = false;
         if (sqlOpen($)) try {
             $.sql.nativeSQL(statement); success = true;
@@ -464,27 +464,70 @@ public class Controller extends HttpServlet {
         return success;
     }
     
+    /**
+     * 
+     * @param $
+     * @param result
+     * @param statement
+     * @param arguments
+     * @param fetch
+     * @param sql2json
+     * @return
+     */
     public static boolean sqlQuery (
-        Actor $, String statement, String[] parameters
+        Actor $, String result, String statement, String[] arguments, 
+        int fetch, Actor.SQL2 sql2json
         ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.putAll($.sqlQuery(statement, Simple.iterator(parameters)));
-            success = true;
-        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
+            $.json.put(result, $.sqlQuery(
+                statement, Simple.itermap($.json, arguments), 
+                fetch, sql2json
+                ));
+            success = ($.json.get(result) != null);
+        } catch (Exception e) {
+            $.json.put("exception", e.getMessage());
+            $.logError(e);
+        } finally {
+            $.sqlClose();
+        }
         return success;
     }
     
-    public static boolean sqlQuery (
-        Actor $, String statement, String[] parameters, int fetch
+    /**
+     * 
+     * @param $
+     * @param result
+     * @param statement
+     * @param arguments
+     * @param fetch
+     * @return
+     */
+    public static boolean sqlTable (
+            Actor $, String result, String statement, String[] arguments, 
+            int fetch
+            ) {
+            return sqlQuery(
+                $, result, statement, arguments, fetch, Actor.sql2Table
+                );
+        }
+       
+    /**
+     * 
+     * @param $
+     * @param result
+     * @param statement
+     * @param arguments
+     * @param fetch
+     * @return
+     */
+    public static boolean sqlRelations (
+        Actor $, String result, String statement, String[] arguments, 
+        int fetch
         ) {
-        boolean success = false;
-        if (sqlOpen($)) try {
-            $.json.putAll($.sqlQuery(
-                statement, Simple.iterator(parameters), fetch
-                ));
-        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
-        return success;
+        return sqlQuery(
+            $, result, statement, arguments, fetch, Actor.sql2Relations
+            );
     }
         
     /**
@@ -497,29 +540,43 @@ public class Controller extends HttpServlet {
      * 
      * <p>...</p>
      * 
-     * <pre>if (slqQuery(
-     *    $, "result", "select * from TABLE where COLUMN=?", 
-     *    new String[]{"argument"}
-     *    ) && $.json.get("result") != null)
-     *    ; // non-null result set fetched, do something with it ...
+     * <pre>if (slqCollection(
+     *    $, "result", "select COLUMN from TABLE where KEY=?", 
+     *    new String[]{"key"}
+     *    ))
+     *    ; // non-null result set fetched, maybe do something with it ...
      *else
      *    ; // exception or null result set, handle the error ...</pre>
      * 
      * @return true if no exception was raised
      */ 
-    public static boolean sqlQuery (
-        Actor $, String name, String statement, String[] names
+    public static boolean sqlCollection (
+        Actor $, String result, String statement, String[] arguments, 
+        int fetch
         ) {
-        boolean success = false;
-        if (sqlOpen($)) try {
-            $.json.put(name, $.sqlQuery(
-                statement, Simple.itermap($.json, names)
-                ));
-            success = true;
-        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
-        return success;
+        return sqlQuery(
+            $, result, statement, arguments, fetch, Actor.sql2Collection
+            );
     }
-        
+       
+    /**
+     * 
+     * @param $
+     * @param result
+     * @param statement
+     * @param arguments
+     * @param fetch
+     * @return
+     */
+    public static boolean sqlObjects (
+            Actor $, String result, String statement, String[] arguments,
+            int fetch
+            ) {
+            return sqlQuery(
+                $, result, statement, arguments, fetch, Actor.sql2Objects
+                );
+        }
+           
     /**
      * Try to open an SQL connection using the configuration properties -
      * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code> - then
@@ -530,42 +587,53 @@ public class Controller extends HttpServlet {
      * 
      * <p>...</p>
      * 
-     * <pre>if (slqQuery(
+     * <pre>if (slqObject(
      *    $, "result", "select * from TABLE where COLUMN=?", 
-     *    String[]{"argument"}, 10
-     *    ) && $.json.get("result") != null)
+     *    String[]{"argument"}
+     *    ))
      *    ; // non-null result set fetched, do something with it ...
      *else
      *    ; // exception or null result set, handle the error ...</pre>
      * 
      * @return true if no exception was raised
      */ 
-    public static boolean sqlQuery (
-        Actor $, String name, String statement, String[] names, int fetch
+    public static boolean sqlObject (
+        Actor $, String result, String statement, String[] arguments
         ) {
-        boolean success = false;
-        if (sqlOpen($)) try {
-            $.json.put(name, $.sqlQuery(
-                statement, Simple.itermap($.json, names), fetch
-                ));
-            success = true;
-        } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
-        return success;
+        return sqlQuery(
+            $, result, statement, arguments, 1, Actor.sql2Object
+            );
     }
-        
+       
+    /**
+     * 
+     * @param $
+     * @param result
+     * @param statement
+     * @param arguments
+     * @return
+     */
     public static boolean sqlUpdate (
-        Actor $, String name, String statement, String[] names
+        Actor $, String result, String statement, String[] arguments
         ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(name, new Integer($.sqlUpdate(
-                statement, Simple.itermap($.json, names)
+            $.json.put(result, new Integer($.sqlUpdate(
+                statement, Simple.itermap($.json, arguments)
                 )));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
     }
-            
+    
+    /**
+     * 
+     * @param $
+     * @param name
+     * @param statement
+     * @param relations
+     * @return
+     */
     public static boolean sqlUpdate (
         Actor $, String name, String statement, JSON.Array relations
         ) {
@@ -753,7 +821,7 @@ public class Controller extends HttpServlet {
      *    return $.json200Ok();
      *}</pre>
      *</blockquote>
-    
+     *
      * <p>...</p>
      * 
      * @param $ the Actor's state
@@ -762,4 +830,4 @@ public class Controller extends HttpServlet {
         return $.json200Ok($.toString());
     }
     
-} // Three little birds on my doorstep, Singing: "this is a message to you"
+} // That's all folks.
