@@ -32,7 +32,7 @@ import java.util.Random;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.10
+ * @version 0.30
  */
 public class Simple {
 	
@@ -273,6 +273,47 @@ public class Simple {
         } catch (UnsupportedEncodingException e) {
             return unicode.getBytes();
         }
+    }
+    
+    protected static class SplitIterator implements Iterator {
+        private String _splitted;
+        private char _splitter;
+        private int _current = 0;
+        private int _next;
+        public SplitIterator (String splitted, char splitter) {
+            _splitted = splitted;
+            _splitter = splitter;
+            _next = splitted.indexOf(splitter, 0);
+            }
+        public boolean hasNext () {
+            return !(_next == -1 && _current == -1);
+        }
+        public Object next () {
+            String token;
+            if (_next == -1) {
+                token = _splitted.substring(_current);
+                _current = -1;
+            } else {
+                token = _splitted.substring(_current, _next - 1);
+                _current = _next + 1;
+                _next = _splitted.indexOf(_splitter, _current);
+            }
+            return token;
+        }
+        public void remove () {/* optional interface? what else now ...*/}
+    }
+
+    /**
+     * Returns an <code>Iterator</code> that splits a string with a single
+     * character as fast an lean as possible in Java (without a PCRE and
+     * for a maybe too simple use case).
+     * 
+     * @param splitted the <code>String</code> to split
+     * @param splitter the <code>char</char> used to split input
+     * @return an <code>Iterator</code> of <code>String</code>
+     */
+    public static Iterator split (String splitted, char splitter) {
+        return new SplitIterator (splitted, splitter);
     }
 	
     /**
