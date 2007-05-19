@@ -209,6 +209,11 @@ public class Actor {
     public String url;
     
     /**
+     * The IRDT2 state for this actor's actions as an US ASCII string.
+     */
+    public String irtd2 = "";
+    
+    /**
      * The authenticated identity of this Actor's web user, as set from
      * the HTTP request's <code>IRTD2</code> cookie by a call to the 
      * <code>notAuthorized</code> or <code>Authorize</code> method. 
@@ -338,7 +343,7 @@ public class Actor {
         request = req;
         response = res;
         url = request.getRequestURL().toString();
-        context = request.getContextPath();
+        context = request.getContextPath() + '/';
         test = configuration.B("test", false);
         salt = configuration.S("irtd2Salt", "").getBytes();
         salted = configuration.S("irtd2Salted", "").getBytes();
@@ -504,16 +509,6 @@ public class Actor {
     public void logAudit (int status) {
         StringBuffer sb = new StringBuffer();
         sb.append(logLESS4J);
-        sb.append(identity);
-        sb.append(' ');
-        sb.append(rights);
-        sb.append(' ');
-        sb.append(Long.toString(time));
-        sb.append(' ');
-        sb.append(digested);
-        sb.append(' ');
-        sb.append(digest);
-        sb.append(' ');
         sb.append(request.getMethod());
         sb.append(' ');
         sb.append(request.getRequestURI());
@@ -523,6 +518,8 @@ public class Actor {
         sb.append(request.getProtocol());
         sb.append(' ');
         sb.append(status);
+        sb.append(' ');
+        sb.append(irtd2);
         logOut(sb.toString());
     }
     
@@ -571,8 +568,8 @@ public class Actor {
                 return false;  
             }
             /* unpack the IRTD2 Cookie */
-            String irtd2 = irtd2Cookie.getValue();
-            Iterator tokens = Simple.split(irtd2, '_');
+            irtd2 = irtd2Cookie.getValue();
+            Iterator tokens = Simple.split(irtd2, ' ');
             identity = (String) tokens.next();
             rights = (String) tokens.next();
             String lastTime = (String) tokens.next();
@@ -641,11 +638,11 @@ public class Actor {
         StringBuffer sb = new StringBuffer();
         SHA1 md = new SHA1();
         sb.append(identity);
-        sb.append('_');
+        sb.append(' ');
         sb.append(rights);
-        sb.append('_');
+        sb.append(' ');
         sb.append(Long.toString(time));
-        sb.append('_');
+        sb.append(' ');
         if (digested != null) sb.append(digested);
         String irtd = sb.toString();
         md.update(irtd.getBytes());
@@ -653,13 +650,15 @@ public class Actor {
         digest = md.hexdigest();
         sb = new StringBuffer();
         sb.append(irtd);
-        sb.append('_');
+        sb.append(' ');
         sb.append(digest);
-        Cookie irtd2 = new Cookie(irtd2Name, sb.toString());
-        irtd2.setDomain(request.getServerName());
-        irtd2.setPath(context);
-        irtd2.setMaxAge(Integer.MAX_VALUE);
-        response.addCookie(irtd2);
+        irtd2 = sb.toString();
+        // This sucks because of ... 
+        Cookie ck = new Cookie(irtd2Name, irtd2);
+        ck.setDomain(request.getServerName());
+        ck.setPath(context);
+        ck.setMaxAge(Integer.MAX_VALUE); // ... devilish details.  
+        response.addCookie(ck);
     }
     
     protected static final Pattern ascii7bit = Pattern.compile(

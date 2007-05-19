@@ -247,7 +247,7 @@ public class Controller extends HttpServlet {
      * 
      * @return true if the test was successfull, false otherwise
      */
-    public static boolean less4jConfigure (Actor $) {
+    public boolean less4jConfigure (Actor $) {
         if (!$.configuration.containsKey("irtd2Salt")) {
             $.logInfo("add salt to digest cookies!", less4j);
             return false;
@@ -306,7 +306,7 @@ public class Controller extends HttpServlet {
      * @param $
      * @return
      */
-    public static boolean less4jControl (Actor $) {
+    public boolean less4jControl (Actor $) {
         String method = $.request.getMethod();
         if (method.equals(_GET))
             if ($.request.getQueryString() == null)
@@ -799,7 +799,7 @@ public class Controller extends HttpServlet {
      * @param $ the Actor's state
      * @return true
      */
-    public static boolean irtd2Identify (Actor $) {
+    public boolean irtd2Identify (Actor $) {
         $.identity = Simple.password(10);
         return true;
     }
@@ -820,7 +820,7 @@ public class Controller extends HttpServlet {
      * @param $
      * @return true
      */
-    public static boolean httpContinue (Actor $) {
+    public boolean httpContinue (Actor $) {
         return $.httpError(400); // Bad Request
     }
     
@@ -847,7 +847,7 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public static boolean httpResource (Actor $) {
+    public boolean httpResource (Actor $) {
         return $.httpError(404); // Not Found
     }
 
@@ -867,7 +867,7 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public static boolean jsonApplication (Actor $) {
+    public boolean jsonApplication (Actor $) {
         return $.json200Ok($.toString());
     }
     
