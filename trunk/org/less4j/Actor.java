@@ -99,11 +99,10 @@ import org.less4j.JSONR.Type;
  * detect fraud attemps.
  * </dd></di>
  * <di><dt>HTTP:
+ * <code>url</code>,
+ * <code>context</code>,
  * <code>request</code>,
  * <code>response</code>,
- * <code>context</code>,
- * <code>url</code>,
- * <code>urlAbsolute</code>,
  * <code>httpError</code>,
  * <code>http200Ok</code>, 
  * <code>http302Redirect</code>,
@@ -133,7 +132,8 @@ import org.less4j.JSONR.Type;
  * <code>sqlUpdateMany</code>.
  * </dt><dd>
  * Enough SQL conveniences up to all the Object Relational Mapping you
- * will ever need for JSON applications: table, object(s) and collection. 
+ * will ever need for JSON applications: table, relations, collection and
+ * object(s). 
  * </dd></di>
  * <di><dt>LDAP:
  * <code>ldap</code>,
@@ -177,6 +177,12 @@ public class Actor {
     public boolean test = false;
     
     /**
+     * A usefull copy of <code>request.getContextPath()</code> to build
+     * dispatch the URL or redirect relatively to this servlet's context.
+     */
+    public String context;
+    
+    /**
      * The <code>HttpServletRequest</code> handled by this Actor instance.
      */
     public HttpServletRequest request;
@@ -195,6 +201,12 @@ public class Actor {
      * The previous IRTD2 salt, encoded as 8-bit bytes
      */
     public byte[] salted = null;
+    
+    /**
+     * A usefull copy of <code>request.getRequestURL().toString()</code>
+     * to quickly dispatch the request's URL through simple String tests.
+     */
+    public String url;
     
     /**
      * The authenticated identity of this Actor's web user, as set from
@@ -230,18 +242,6 @@ public class Actor {
      * <code>notAuthorized</code> or <code>Authorize</code> method.
      */
     public String digest = null; // this digest
-    
-    /**
-     * A usefull copy of <code>request.getRequestURL().toString()</code>
-     * to quickly dispatch the request's URL through simple String tests.
-     */
-    public String url;
-    
-    /**
-     * A usefull copy of <code>request.getServletPath()</code> to build
-     * dispatch the URL or redirect relatively to this servlet's context.
-     */
-    public String context;
     
     /**
      * The JSON object associated with the Actor's request and response.
@@ -450,8 +450,12 @@ public class Actor {
      */
     public void logError (Throwable error) {
         StackTraceElement[] stacktrace = error.getStackTrace();
-        StackTraceElement catcher = stacktrace[0];
-        StackTraceElement thrower = stacktrace[stacktrace.length-1];
+        StackTraceElement catcher, thrower;
+        int i = 0;
+        do {
+            thrower = stacktrace[i++];
+        } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
+        catcher = stacktrace[i];
         StringBuffer sb = new StringBuffer();
         sb.append(stackTraceCategory);
         sb.append(error.getMessage());
@@ -523,54 +527,6 @@ public class Actor {
     }
     
     protected static final String irtd2Name = "IRTD2";
-    protected static final char irtd2SplitChar = ' '; 
-    
-    /**
-     * Literally "digest a cookie", transform the IRTD2 cookie sent with
-     * the request into a new cookie bearing the Actor's time, to be sent
-     * with the response.
-     * 
-     * <p>The cookie value is a formatted string made as follow:</p>
-     * 
-     * <blockquote>
-     * <pre>Cookie: IRTD2=<strong>identity roles time digested digest</strong>; </pre>
-     * </blockquote>
-     * 
-     * <p>where <code>identity</code> and <code>roles</code> are respectively
-     * Public Names and netstrings of 7-bit ASCII characters only, followed
-     * by the controller's <code>time</code> representation and two SHA1 hex
-     * digests: the client's last digest for this cookie and the one computed 
-     * from the byte string that precedes it.</p>
-     * 
-     * <p>This method is usefull in authorization controllers, like user
-     * identification or roles attribution services.</p>
-     *
-     * @param path in which the IRTD2 Cookie's is applied
-     */
-    public void irtd2Digest(String path) {
-        StringBuffer sb = new StringBuffer();
-        String timeString = Long.toString(time);
-        SHA1 md = new SHA1();
-        sb.append(identity);
-        sb.append(irtd2SplitChar);
-        sb.append(rights);
-        sb.append(irtd2SplitChar);
-        sb.append(timeString);
-        sb.append(irtd2SplitChar);
-        if (digested != null) sb.append(digested);
-        md.update(sb.toString().getBytes());
-        md.update(salt);
-        digest = md.hexdigest();
-        sb.append(irtd2SplitChar);
-        sb.append(digest);
-        Cookie irtd2 = new Cookie(irtd2Name, sb.toString());
-        irtd2.setDomain(request.getServerName());
-        irtd2.setPath(path);
-        irtd2.setMaxAge(Integer.MAX_VALUE);
-        response.addCookie(irtd2);
-    }
-    
-    public void irtd2Digest() {irtd2Digest(context);}
     
     protected static Pattern irtd2Split = Pattern.compile(":");
     
@@ -610,63 +566,100 @@ public class Actor {
                     break;
                 }
             }
-            if (irtd2Cookie == null)
+            if (irtd2Cookie == null) {
+                if (test) logInfo("Not Found", "IRTD2");
+                return false;  
+            }
+            /* unpack the IRTD2 Cookie */
+            String irtd2 = irtd2Cookie.getValue();
+            Iterator tokens = Simple.split(irtd2, '_');
+            identity = (String) tokens.next();
+            rights = (String) tokens.next();
+            String lastTime = (String) tokens.next();
+            digest = (String) tokens.next();
+            digested = (String) tokens.next();
+            if (time - Integer.parseInt(lastTime) > timeout) {
+                if (test) logInfo("Timeout", "IRTD2");
                 return false; 
-                /* ... do not digest if no IRTD2 cookie found. */
-            
-            String[] irtd2 = irtd2Split.split(irtd2Cookie.getValue());
-            if (irtd2.length != 5)
-                return false; 
-
-            StringBuffer sb = new StringBuffer();
-            identity = irtd2[0];
-            sb.append(identity);
-            sb.append(irtd2SplitChar);
-            rights = irtd2[1];
-            sb.append(rights);
-            sb.append(irtd2SplitChar);
-            int lastTime = Integer.parseInt(irtd2[2]);
-            sb.append(irtd2[2]);
-            sb.append(irtd2SplitChar);
-            sb.append(irtd2[3]);
-            byte[] irtd = sb.toString().getBytes();
-            digested = irtd2[4];
-            if (time - lastTime > timeout) {
-                return false;
-                /* ... do not authorize after timeout. */
-                }
-            /* */
+            } 
+            /* get the IRTD 8-bit bytes from the IRTD2 UNICODE string */
+            byte[] irtd = irtd2.substring(
+                0, identity.length() + 1 + rights.length() + 1 + 
+                lastTime.length() + 1 + digested.length()
+                ).getBytes();
+            /* digest an SHA1 hexadecimal with the current salt and test */
             SHA1 md = new SHA1();
             md.update(irtd);
             md.update(salt);
             String d = md.hexdigest();
             if (!d.equals(digested)) {
-                // try the previously digested salt instead
-                if (salted.length == 0) 
+                /* try the previously digested salt if any */
+                if (salted.length == 0) {
+                    if (test) logInfo("Forged", "IRTD2");
                     return false;
-                
+                }
                 md = new SHA1();
                 md.update(irtd);
                 md.update(salted);
                 d = md.hexdigest();
                 if (!d.equals(digested)) {
-                    return false; // TODO: audit a possible fraud attempt!
+                    if (test) logInfo("Forged", "IRTD2");
+                    return false;
                 }
             }
-            irtd2Digest(irtd2Cookie.getPath());
-            return true; 
+            return true; // digested in time, with salt or salted! 
         } 
-        catch (Exception e) {
+        catch (Exception e) { // just in case ... still beta
             logError(e);
-            return false;       
+            return false;
         }
     }
     
-    public boolean irtd2Has(String right) {
-        if (digested != null)
-            return rights.indexOf(right) > -1; 
-        else
-            return false;
+    /**
+     * Literally "digest a cookie", transform the IRTD2 cookie sent with
+     * the request into a new cookie bearing the Actor's time, to be sent
+     * with the response.
+     * 
+     * <p>The cookie value is a formatted string made as follow:</p>
+     * 
+     * <blockquote>
+     * <pre>Cookie: IRTD2=<strong>identity roles time digested digest</strong>; </pre>
+     * </blockquote>
+     * 
+     * <p>where <code>identity</code> and <code>roles</code> are respectively
+     * Public Names and netstrings of 7-bit ASCII characters only, followed
+     * by the controller's <code>time</code> representation and two SHA1 hex
+     * digests: the client's last digest for this cookie and the one computed 
+     * from the byte string that precedes it.</p>
+     * 
+     * <p>This method is usefull in authorization controllers, like user
+     * identification or roles attribution services.</p>
+     *
+     * @param path in which the IRTD2 Cookie's is applied
+     */
+    public void irtd2Digest() {
+        StringBuffer sb = new StringBuffer();
+        SHA1 md = new SHA1();
+        sb.append(identity);
+        sb.append('_');
+        sb.append(rights);
+        sb.append('_');
+        sb.append(Long.toString(time));
+        sb.append('_');
+        if (digested != null) sb.append(digested);
+        String irtd = sb.toString();
+        md.update(irtd.getBytes());
+        md.update(salt);
+        digest = md.hexdigest();
+        sb = new StringBuffer();
+        sb.append(irtd);
+        sb.append('_');
+        sb.append(digest);
+        Cookie irtd2 = new Cookie(irtd2Name, sb.toString());
+        irtd2.setDomain(request.getServerName());
+        irtd2.setPath(context);
+        irtd2.setMaxAge(Integer.MAX_VALUE);
+        response.addCookie(irtd2);
     }
     
     protected static final Pattern ascii7bit = Pattern.compile(
@@ -726,7 +719,7 @@ public class Actor {
      * @return an absolute web URL
      * 
      */
-    public String urlAbsolute(String location) {
+    public String httpLocation(String location) {
         if (location.length() == 0)
             return url;
         
@@ -742,7 +735,7 @@ public class Actor {
         else {
             sb = new StringBuffer();
             urlDomain(sb);
-            sb.append(request.getContextPath());
+            sb.append(context);
             sb.append('/');
             sb.append(location);
         }
@@ -845,30 +838,7 @@ public class Actor {
      * standard supported by XSL, CSS and JavaScript in web 2.0
      * browsers.
      */
-    protected static final String xmlContentType = "text/xml";
-    
-    /**
-     * Send a 200 Ok HTTP response with the appropriate headers for
-     * an XML string using the UTF-8 character set encoding. Audit a
-     * successfull response or log an error.
-     *
-     * <p>Usage:
-     * 
-     * <blockquote>
-     * <pre>$.res200Ok("&lt;hello-world/&gt;")</pre>
-     * </blockquote>
-     * 
-     * where <code>$</code> is an <code>Actor</code> instance.</p>
-     *
-     * @param body a string
-     */
-    public boolean http200Ok (String body) {
-        return http200Ok(
-            Simple.encode(body, less4jCharacterSet), 
-            xmlContentType, 
-            less4jCharacterSet
-            );
-    }
+    protected static final String htmlContentType = "text/html";
     
     protected static final String httpLocation = "Location";
     
@@ -888,7 +858,7 @@ public class Actor {
      */
     protected boolean http302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
-        response.addHeader(httpLocation, urlAbsolute(location));
+        response.addHeader(httpLocation, httpLocation(location));
         response.setContentType(type);
         response.setContentLength(body.length);
         try {
@@ -935,7 +905,30 @@ public class Actor {
      */
     public boolean http302Redirect(String location) {
         return http302Redirect(
-            location, http302RedirectXML.getBytes(), xmlContentType
+            location, http302RedirectXML.getBytes(), htmlContentType
+            );
+    }
+    
+    /**
+     * Send a 200 Ok HTTP response with the appropriate headers for
+     * an XML string using the UTF-8 character set encoding. Audit a
+     * successfull response or log an error.
+     *
+     * <p>Usage:
+     * 
+     * <blockquote>
+     * <pre>$.html200Ok("&lt;hello-world/&gt;")</pre>
+     * </blockquote>
+     * 
+     * where <code>$</code> is an <code>Actor</code> instance.</p>
+     *
+     * @param body a string
+     */
+    public boolean html200Ok (String body) {
+        return http200Ok(
+            Simple.encode(body, less4jCharacterSet), 
+            htmlContentType, 
+            less4jCharacterSet
             );
     }
     
@@ -1387,68 +1380,57 @@ public class Actor {
 
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, name a <code>JSON.Object</code>
-     * as <code>table</code> in <code>$.json</code> with the obvious 
-     * "columns" and "rows" members then return true, or set 
-     * <code>table</code> to <code>null</code> if the result set was empty 
-     * and return false.
+     * statement and an argument array, return a <code>JSON.Object</code>
+     * with the obvious "columns" and "rows" members, or <code>null</code> 
+     * if the result set was empty.
      * 
-     * @param table the name of the result in <code>$.json</code>
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @param fetch the number of rows to fetch
-     * @return false if no table was returned 
+     * @return a <code>JSON.Object</code> or null 
      * @throws SQLException
      */
-    public boolean sqlTable (
-        String table, String statement, String[] arguments, int fetch
+    public JSON.Object sqlTable (
+        String statement, String[] arguments, int fetch
         ) 
     throws SQLException {
-        json.put(table, sqlQuery (
+        return (JSON.Object) sqlQuery (
             statement, Simple.itermap(json, arguments), fetch, sql2Table
-            ));
-        return (json.get(table) == null);
+            );
     }
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, name a <code>JSON.Array</code> 
-     * as <code>relations</code> in <code>$.json</code> and return true
-     * or use <code>null</code> if the result set was empty and return false.
+     * statement and an argument array, return a <code>JSON.Array</code> 
+     * or use <code>null</code> if the result set was empty.
      * 
      * <h4>Synopsis</h4>
      * 
      * <blockquote>
      * <pre>try {
-     *    if ($.<strong>sqlRelations(</strong>
-     *        "relations",
+     *    $.json.put("relations", $.<strong>sqlRelations(</strong>
      *        "select * from TABLE where KEY=?", 
      *        new String[]{"key"},
      *        100
      *        <strong>)</strong>)
-     *        ...; // process the relations 
-     *    else
-     *        ...; // error, null result
      *} catch (SQLException e) {
      *    $.logError(e);
      *}</pre>
      * </blockquote>
      * 
-     * @param relations the name of the result in <code>$.json</code>
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @param fetch the number of rows to fetch
-     * @return false if no relations were returned 
+     * @return a <code>JSON.Array</code> or null 
      * @throws an <code>SQLException</code>
      */
-    public boolean sqlRelations (
+    public JSON.Array sqlRelations (
         String relations, String statement, String[] arguments, int fetch
         ) 
     throws SQLException {
-        json.put(relations, sqlQuery (
+        return (JSON.Array) sqlQuery (
             statement, Simple.itermap(json, arguments), fetch, sql2Relations
-            ));
-        return (json.get(relations) == null);
+            );
     }
 
     /**
@@ -1461,34 +1443,28 @@ public class Actor {
      * <h4>Synopsis</h4>
      * 
      * <pre>try {
-     *    if ($.<strong>sqlCollection(</strong>
-     *        "collection", 
+     *    $.json.put("collection", ($.<strong>sqlCollection(</strong>
      *        "select COLUMN from TABLE wher KEY=?", 
      *        new String[]{"key"},
      *        100
      *        <strong>)</strong>);
-     *        ...; // process collection 
-     *    else
-     *        ...; // error, null result
      *} catch (SQLException e) {
      *    $.logError(e);
      *}</pre>
      * 
-     * @param collection the name of the result in <code>$.json</code>
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @param fetch the number of rows to fetch
-     * @return false if no collection was returned 
+     * @return a <code>JSON.Array</code> or null 
      * @throws an <code>SQLException</code>
      */
-    public boolean sqlCollection (
-        String collection, String statement, String[] arguments, int fetch
+    public JSON.Array sqlCollection (
+        String statement, String[] arguments, int fetch
         ) 
     throws SQLException {
-        json.put(collection, sqlQuery (
+        return (JSON.Array) sqlQuery (
             statement, Simple.itermap(json, arguments), fetch, sql2Collection
-            ));
-        return (json.get(collection) == null);
+            );
     }
     
     /**
@@ -1501,33 +1477,28 @@ public class Actor {
      * <h4>Synopsis</h4>
      * 
      * <pre>try {
-     *    if ($.<strong>sqlObjects(</strong>
-     *        "objects",
+     *    $.json.put("objects", $.<strong>sqlObjects(</strong>
      *        "select * from TABLE where KEY=?",
      *        new String[]{"key"},
      *        10
      *        <strong>)</strong>);
-     *        ... // process objects
-     *    else
-     *        ... // error, null result
-     *} catch (Exception e) {
+     *} catch (SQLException e) {
      *    $.logError(e);
      *}</pre>
      * 
      * @param objects the name of the result in <code>$.json</code>
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
-     * @return false if no objects were returned 
+     * @return a  
      * @throws an <code>SQLException</code>
      */
-    public boolean sqlObjects ( 
+    public JSON.Array sqlObjects ( 
         String object, String statement, String[] arguments, int fetch
     ) 
     throws SQLException {
-        json.put(object, sqlQuery (
+        return (JSON.Array) sqlQuery (
             statement, Simple.itermap(json, arguments), fetch, sql2Objects
-            ));
-        return (json.get(object) == null);
+            );
     }
     
     /**
@@ -1558,14 +1529,13 @@ public class Actor {
      * @return false if no collection was returned 
      * @throws an <code>SQLException</code>
      */
-    public boolean sqlObject ( 
+    public JSON.Object sqlObject ( 
         String object, String statement, String[] arguments, int fetch
     ) 
     throws SQLException {
-        json.put(object, sqlQuery (
+        return (JSON.Object) sqlQuery (
             statement, Simple.itermap(json, arguments), fetch, sql2Object
-            ));
-        return (json.get(object) == null);
+            );
     }
     
     /**
@@ -1788,19 +1758,6 @@ public class Actor {
         }
         if (test) logInfo(JSON.encode(map), "LDAP");
         return true;
-    }
-    
-    /**
-     * Try to update a JSON object with the attributes of an LDAP context, 
-     * return true if the context's name was resolved, false otherwise.
-     * Attributes not named in the original JSON object are filtered out.
-     * 
-     * @param dn the distinguished name to resolve
-     * @param object the JSONObject to update
-     * @return true if the name was resolve, false otherwise
-     */
-    public boolean ldapResolve (String dn, JSON.Object object) {
-        return ldapResolve(dn, object, object.keySet().iterator());
     }
     
     /**

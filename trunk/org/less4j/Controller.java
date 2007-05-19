@@ -33,7 +33,17 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * <h3>Synopsis</h3>
  * 
- * <blockquote><pre>...</pre></blockquote>
+ * <p>In most case, developping a new Web 2.0 service with less4j translates
+ * into a simple subclass of <code>Controller</code>, with only one overriden
+ * method for a single JSON application state.</p>
+ * 
+ * <blockquote>
+ * <pre>class HelloWorld extends Controller {
+ *     public boolean jsonApplication(Actor $) {
+ *         json200Ok ()
+ *         return true;
+ *     }
+ *}</pre></blockquote>
  * 
  * <p>This class implements <code>HttpServlet.service</code> providing: 
  * a request/response state configuration, test and instanciation, user 
@@ -128,8 +138,11 @@ public class Controller extends HttpServlet {
      *    "jsonIterations": 2, // two values
      *    "jsonRegular": {
      *        "username": "@", // the universal e-mail sign by now. 
-     *        "password": ".......+"
-     *    }
+     *        "password": "........+"
+     *    },
+     *    "jdbcDriver": "jdbc:.+",
+     *    "jdbcUsername": "(?!root|admin)", // héhé 
+     *    "jdbcPassword": "........+"
      *}</pre>
      * </blockquote>
      * 
@@ -191,7 +204,7 @@ public class Controller extends HttpServlet {
         object.put("j2eeRealPath", getServletContext().getRealPath(""));
         Actor $ = new Actor (object);
         if (!less4jConfigure ($)) throw new ServletException(
-            "Failed less4j configuration, check your SQL or LDAP parameters."
+            "Failed less4j configuration."
             );
         setConfiguration(object);
     }
@@ -203,6 +216,7 @@ public class Controller extends HttpServlet {
             (HttpServletResponse) res
             );
         if (irtd2Identified($)||irtd2Identify($))
+            $.irtd2Digest();
             less4jControl ($);
     }
     
@@ -685,24 +699,52 @@ public class Controller extends HttpServlet {
      * @return true if the connection was successfull, false otherwise
      */
     public static boolean ldapOpen (Actor $) {
-        return $.ldapOpen(
-            $.configuration.S("ldapURL", "ldap://127.0.0.1:389/"),
-            $.configuration.S("ldapUsername", less4j), 
-            $.configuration.S("ldapPassword", "")
-            );
+        if ($.configuration.containsKey("ldapUsername"))
+            return $.ldapOpen(
+                $.configuration.S("ldapURL", "ldap://127.0.0.1:389/"),
+                $.configuration.S("ldapUsername", less4j), 
+                $.configuration.S("ldapPassword", "")
+                );
+        else
+            return $.ldapOpen(
+                $.configuration.S("ldapURL", "ldap://127.0.0.1:389/")
+                );
     }
     
     /**
-     * Identify the requester and return true to continue the request or
-     * complete the response and return false, by default grant no rights
-     * to a random user ID made of ten alphanumeric characters.
+     * Try to update a JSON object with the attributes of an LDAP context, 
+     * return true if the context's name was resolved, false otherwise.
+     * Attributes not named in the original JSON object are filtered out.
+     * 
+     * @param dn the distinguished name to resolve
+     * @param object the JSONObject to update
+     * @return true if the name was resolve, false otherwise
+     */
+    public static boolean ldapResolve (
+        Actor $, String dn, String attributes
+        ) 
+    throws JSON.Error {
+        if (ldapOpen($)) try {
+            JSON.Object object = $.json.O(attributes);
+            return $.ldapResolve(
+                $.json.S(dn), object, object.keySet().iterator()
+                );
+        } finally {
+            $.ldapClose();
+        } else return false;
+    }
+    
+    /**
+     * Identify the requester and return true to digest a new IRTD2 Cookie 
+     * and continue the request or complete the response and return false, 
+     * by default grant no rights to a random user ID made of ten alphanumeric 
+     * characters.
      * 
      * <h4>Synopsis</h4>
      * 
      * <blockquote>
      * <pre>public static boolean irtd2Identify (Actor $) {
      *    $.identity = Simple.password(10);
-     *    $.irtd2Digest($.context);
      *    return true;
      *}</pre>
      * </blockquote>
@@ -759,7 +801,6 @@ public class Controller extends HttpServlet {
      */
     public static boolean irtd2Identify (Actor $) {
         $.identity = Simple.password(10);
-        $.irtd2Digest($.context);
         return true;
     }
     

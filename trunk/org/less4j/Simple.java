@@ -283,18 +283,24 @@ public class Simple {
         public SplitIterator (String splitted, char splitter) {
             _splitted = splitted;
             _splitter = splitter;
-            _next = splitted.indexOf(splitter, 0);
+            _next = splitted.indexOf(splitter);
             }
         public boolean hasNext () {
             return !(_next == -1 && _current == -1);
         }
         public Object next () {
             String token;
-            if (_next == -1) {
+            if (_current == -1)
+                return null;
+            else if (_next == -1) {
                 token = _splitted.substring(_current);
+                _splitted = null; // free willy-memory!
                 _current = -1;
             } else {
-                token = _splitted.substring(_current, _next - 1);
+                if (_next > _current)
+                    token = _splitted.substring(_current, _next-1);
+                else
+                    token = "";
                 _current = _next + 1;
                 _next = _splitted.indexOf(_splitter, _current);
             }
