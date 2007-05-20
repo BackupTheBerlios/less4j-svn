@@ -32,8 +32,6 @@ import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
@@ -52,8 +50,6 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
-
-import org.less4j.JSONR.Type;
 
 /**
  * <p>The <code>Actor</code> provides a rich state and a flat "full-stack" 
@@ -970,14 +966,14 @@ public class Actor {
         json = new JSON.Object();
         Map query = request.getParameterMap();
         HashMap namespace = ((JSONR.TypeNamespace) type).namespace;
-        Type pattern;
+        JSONR.Type pattern;
         String name;
         String[] strings;
         Iterator iter = query.keySet().iterator();
         containers--;
         while (containers > 0 && iterations > 0 && iter.hasNext()) try {
             name = (String) iter.next();
-            pattern = (Type) namespace.get(name);
+            pattern = (JSONR.Type) namespace.get(name);
             strings = (String[]) query.get(name);
             if (pattern != null && strings != null) 
                 if (strings.length > 1) { 
@@ -1205,130 +1201,6 @@ public class Actor {
     
     // missing closures ...
     
-    protected static interface SQL2 {
-        public Object sql2 (ResultSet rs) throws SQLException;
-    }
-    
-    protected static class SQL2Table implements SQL2 {
-        public Object sql2 (ResultSet rs) throws SQLException {
-            JSON.Object object = null;
-            JSON.Array rows = null, row;
-            if (rs.next()) {
-                int i;
-                object = new JSON.Object();
-                rows = new JSON.Array();
-                object.put("rows", rows);
-                ResultSetMetaData mt = rs.getMetaData();
-                int L = mt.getColumnCount()+1;
-                JSON.Array columns = new JSON.Array();
-                object.put("columns", columns);
-                for (i=1; i<L; i++) columns.add(mt.getColumnName(i));
-                do {
-                    row = new JSON.Array ();
-                    for (i=1; i<L; i++) row.add(rs.getObject(i));
-                    rows.add(row);
-                } while (rs.next());
-            }
-            rs.close();
-            return object;
-        }
-    }
-
-    /**
-     * A collector singleton to map a JDBC ResultSet with metadata into a
-     * single JSON.Object with the obvious "columns" and "rows" members.
-     */
-    protected static SQL2 sql2Table = new SQL2Table ();
-
-    protected static class SQL2Relations implements SQL2 {
-        public Object sql2 (ResultSet rs) throws SQLException {
-            JSON.Array rows = null, row;
-            if (rs.next()) {
-                int i;
-                rows = new JSON.Array ();
-                ResultSetMetaData mt = rs.getMetaData();
-                int L = mt.getColumnCount()+1;
-                do {
-                    row = new JSON.Array ();
-                    for (i = 1; i < L; i++) row.add(rs.getObject(i));
-                    rows.add(row);
-                } while (rs.next());
-            }
-            rs.close();
-            return rows;
-        }
-    }
-
-    /**
-     * A collector singleton to map a JDBC ResultSet into a JSON.Array
-     * of JSON.Array, without metadata.
-     */
-    protected static SQL2 sql2Relations = new SQL2Relations ();
-
-    protected static class SQL2Collection implements SQL2 {
-        public Object sql2 (ResultSet rs) throws SQLException {
-            JSON.Array collection = null;
-            if (rs.next()) {
-                collection = new JSON.Array();
-                do {collection.add(rs.getObject(1));} while (rs.next());
-            }
-            rs.close();
-            return collection;
-        }
-    }
-
-    /**
-     * A collector singleton to map the first column of a JDBC ResultSet 
-     * into an JSON.Array.
-     */
-    protected static SQL2 sql2Collection = new SQL2Collection ();
-
-    protected static class SQL2Objects implements SQL2 {
-        public Object sql2 (ResultSet rs) throws SQLException {
-            JSON.Array relations = new JSON.Array();
-            if (rs.next()) {
-                JSON.Object object = new JSON.Object();
-                ResultSetMetaData mt = rs.getMetaData();
-                int i, L = mt.getColumnCount() + 1;
-                do {
-                    object = new JSON.Object();
-                    for (i = 1; i < L; i++) 
-                        object.put(mt.getColumnName(i), rs.getObject(i));
-                    relations.add(object);
-                } while (rs.next());
-            }
-            rs.close();
-            return relations;
-        }
-    }
-
-    /**
-     * A collector singleton to map a JDBC ResultSet into a JSON.Array of
-     * JSON.Object, using column names as keys.
-     */
-    protected static SQL2 sql2Objects = new SQL2Objects ();
-
-    protected static class SQL2Object implements SQL2 {
-        public Object sql2 (ResultSet rs) throws SQLException {
-            JSON.Object object = null;
-            if (rs.next()) {
-                object = new JSON.Object();
-                ResultSetMetaData mt = rs.getMetaData();
-                int L = mt.getColumnCount();
-                for (int i = 0; i < L; i++) 
-                    object.put(mt.getColumnName(i), rs.getObject(i));
-            }
-            rs.close();
-            return object;
-        }
-    }
-
-    /**
-     * A collector singleton to map the first row of a JDBC ResultSet into a
-     * single JSON.Object, using column names as keys.
-     */
-    protected static SQL2 sql2Object = new SQL2Object ();
-
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
      * statement and an argument iterator, use an RS2 collector to return 
@@ -1354,7 +1226,7 @@ public class Actor {
      * @throws SQLException
      */
     public Object sqlQuery (
-        String statement, Iterator args, int fetch, SQL2 collector
+        String statement, Iterator args, int fetch, SQL.ORM collector
         ) 
     throws SQLException {
         if (test) logInfo(statement, "SQL");
@@ -1365,7 +1237,7 @@ public class Actor {
             st.setFetchSize(fetch);
             int i = 1; 
             while (args.hasNext()) {st.setObject(i, args.next()); i++;}
-            result = collector.sql2(st.executeQuery());
+            result = collector.jdbc2json(st.executeQuery());
             st.close();
             st = null;
         } finally {
@@ -1394,7 +1266,7 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, sql2Table
+            statement, Simple.itermap(json, arguments), fetch, SQL.table
             );
     }
     
@@ -1428,7 +1300,7 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, sql2Relations
+            statement, Simple.itermap(json, arguments), fetch, SQL.relations
             );
     }
 
@@ -1462,10 +1334,27 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, sql2Collection
+            statement, Simple.itermap(json, arguments), fetch, SQL.collection
             );
     }
     
+    /**
+     * 
+     * @param statement
+     * @param arguments
+     * @param fetch
+     * @return
+     * @throws SQLException
+     */
+    public JSON.Object sqlDictionary (
+        String statement, String[] arguments, int fetch
+        ) 
+    throws SQLException {
+        return (JSON.Object) sqlQuery (
+            statement, Simple.itermap(json, arguments), fetch, SQL.dictionary
+            );
+    }
+        
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
      * statement and an argument array, name a <code>JSON.Object</code> 
@@ -1496,7 +1385,7 @@ public class Actor {
     ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, sql2Objects
+            statement, Simple.itermap(json, arguments), fetch, SQL.objects
             );
     }
     
@@ -1533,7 +1422,7 @@ public class Actor {
     ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, sql2Object
+            statement, Simple.itermap(json, arguments), fetch, SQL.object
             );
     }
     

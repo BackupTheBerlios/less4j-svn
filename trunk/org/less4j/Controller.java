@@ -490,22 +490,22 @@ public class Controller extends HttpServlet {
      */
     public static boolean sqlQuery (
         Actor $, String result, String statement, String[] arguments, 
-        int fetch, Actor.SQL2 sql2json
+        int fetch, SQL.ORM sql2json
         ) {
-        boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(result, $.sqlQuery(
+            Object object = $.sqlQuery(
                 statement, Simple.itermap($.json, arguments), 
                 fetch, sql2json
-                ));
-            success = ($.json.get(result) != null);
+                );
+            $.json.put(result, object);
+            return (object == null);
         } catch (Exception e) {
             $.json.put("exception", e.getMessage());
             $.logError(e);
         } finally {
             $.sqlClose();
         }
-        return success;
+        return false;
     }
     
     /**
@@ -522,7 +522,7 @@ public class Controller extends HttpServlet {
             int fetch
             ) {
             return sqlQuery(
-                $, result, statement, arguments, fetch, Actor.sql2Table
+                $, result, statement, arguments, fetch, SQL.table
                 );
         }
        
@@ -540,7 +540,7 @@ public class Controller extends HttpServlet {
         int fetch
         ) {
         return sqlQuery(
-            $, result, statement, arguments, fetch, Actor.sql2Relations
+            $, result, statement, arguments, fetch, SQL.relations
             );
     }
         
@@ -569,10 +569,28 @@ public class Controller extends HttpServlet {
         int fetch
         ) {
         return sqlQuery(
-            $, result, statement, arguments, fetch, Actor.sql2Collection
+            $, result, statement, arguments, fetch, SQL.collection
             );
     }
        
+    /**
+     * 
+     * @param $
+     * @param result
+     * @param statement
+     * @param arguments
+     * @param fetch
+     * @return
+     */
+    public static boolean sqlDictionary (
+            Actor $, String result, String statement, String[] arguments,
+            int fetch
+            ) {
+            return sqlQuery(
+                $, result, statement, arguments, fetch, SQL.dictionary
+                );
+        }
+           
     /**
      * 
      * @param $
@@ -587,7 +605,7 @@ public class Controller extends HttpServlet {
             int fetch
             ) {
             return sqlQuery(
-                $, result, statement, arguments, fetch, Actor.sql2Objects
+                $, result, statement, arguments, fetch, SQL.objects
                 );
         }
            
@@ -615,7 +633,7 @@ public class Controller extends HttpServlet {
         Actor $, String result, String statement, String[] arguments
         ) {
         return sqlQuery(
-            $, result, statement, arguments, 1, Actor.sql2Object
+            $, result, statement, arguments, 1, SQL.object
             );
     }
        
@@ -871,4 +889,31 @@ public class Controller extends HttpServlet {
         return $.json200Ok($.toString());
     }
     
+    /**
+     * An <code>Action</code> is the simplest closure possible to 
+     * dynamically dispatch functions of an <code>Actor</code> controller.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <blockquote>
+     *<pre>public class HelloWorld implements Controller.Action {
+     *    public boolean function (Actor $) {
+     *        $.json.put("hello", "World!");
+     *    }
+     *}</pre>
+     * </blockquote>
+     * 
+     * @author Laurent Szyster
+     * @version 0.30
+     */
+    public interface Action {
+        /**
+         * Any application of the Actor.
+         * 
+         * @param $
+         * @return
+         */
+        public boolean function (Actor $);
+    }
+
 } // That's all folks.
