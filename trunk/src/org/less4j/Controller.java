@@ -117,12 +117,22 @@ public class Controller extends HttpServlet {
      * compiled and used to test the actor's <code>configuration</code>.
      * </p>
      * 
+     * <p>The default pattern essentially restricts configuration to a
+     * namespace, typing only the values named <code>test</code> and 
+     * <code>irtd2Salts</code>.</p>
+     * 
      * <h4>Synospis</h4>
      * 
-     * <p>...</p>
+     * <p>To restrict or extend the valid configuration options, override
+     * this property in your class with the appropriate pattern. For instance,
+     * to enforce a minimal configuration without constraints on the JSON 
+     * objects handled and no SQL or LDAP connections:</p>
      * 
      * <blockquote>
-     * <pre>{"test": true}</pre>
+     * <pre>public static String configurationPattern = ("{" +
+     *    "\"test\": true," +
+     *    "\"irtd2Salts\": [\".........+\"]" +
+     *    "}");</pre>
      * </blockquote>
      * 
      * <p>...</p>
@@ -130,8 +140,7 @@ public class Controller extends HttpServlet {
      * <blockquote>
      * <pre>{
      *    "test": false, // default to production
-     *    "irtd2Salt": ".........+",
-     *    "irtd2Salted": ".........+",
+     *    "irtd2Salts": [".........+"],
      *    "irtd2Timeout": 3600, // one hour maximum
      *    "jsonBytes": 4096, // relatively small passwords
      *    "jsonContainers": 1, // one object
@@ -141,7 +150,7 @@ public class Controller extends HttpServlet {
      *        "password": "........+"
      *    },
      *    "jdbcDriver": "jdbc:.+",
-     *    "jdbcUsername": "(?!root|admin)", // héhé 
+     *    "jdbcUsername": "(?!root|admin)", // no priviledged users 
      *    "jdbcPassword": "........+"
      *}</pre>
      * </blockquote>
@@ -150,8 +159,7 @@ public class Controller extends HttpServlet {
      */
     public static String configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
-        "\"irtd2Salt\": \"^...........*$\"," + // mandatory, 10 chars minimum
-        "\"irtd2Salted\": null," +
+        "\"irtd2Salts\": [\"^...........*$\"]," + 
         "\"irtd2Service\": null," +
         "\"irtd2Timeout\": null," +
         "\"jsonBytes\": null," +
@@ -165,7 +173,7 @@ public class Controller extends HttpServlet {
         "\"ldapURL\": null," +
         "\"ldapUsername\": null," +
         "\"ldapPassword\": null," +
-        "}");
+        "}"); 
                 
     /**
      * Initialize a servlet controller: extract the less4j properties,
@@ -248,8 +256,11 @@ public class Controller extends HttpServlet {
      * @return true if the test was successfull, false otherwise
      */
     public boolean less4jConfigure (Actor $) {
-        if (!$.configuration.containsKey("irtd2Salt")) {
-            $.logInfo("add salt to digest cookies!", less4j);
+        try {
+            if ($.configuration.A("irtd2Salts").size() < 1)
+                throw new Exception ();
+        } catch (Exception e) {
+            $.logInfo("add salt(s) to digest cookies!", less4j);
             return false;
         }
         try {
@@ -304,23 +315,27 @@ public class Controller extends HttpServlet {
      * </blockquote>
      *
      * @param $
-     * @return
      */
-    public boolean less4jControl (Actor $) {
+    public void less4jControl (Actor $) {
         String method = $.request.getMethod();
         if (method.equals(_GET))
             if ($.request.getQueryString() == null)
-                return httpResource($);
+                httpResource($);
             else if (jsonGET($))
-                return jsonApplication($); 
+                jsonApplication($);
+            else
+                httpContinue($);
         else if (
             method.equals(_POST) && 
             $.request.getContentType().equals("application/json") &&
             $.request.getCharacterEncoding().equals(Actor.less4jCharacterSet)
             )
             if (jsonPOST($))
-                return jsonApplication($); // valid JSON request
-        return httpContinue($);
+                jsonApplication($); // valid JSON request
+            else
+                httpContinue($);
+        else
+            httpContinue($);
     }
 
     /**
@@ -480,22 +495,20 @@ public class Controller extends HttpServlet {
     
     /**
      * 
-     * @param $
-     * @param result
-     * @param statement
-     * @param arguments
-     * @param fetch
-     * @param sql2json
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlQuery (
         Actor $, String result, String statement, String[] arguments, 
-        int fetch, SQL.ORM sql2json
+        int fetch, SQL.ORM model
         ) {
         if (sqlOpen($)) try {
             Object object = $.sqlQuery(
-                statement, Simple.itermap($.json, arguments), 
-                fetch, sql2json
+                statement, Simple.itermap($.json, arguments), fetch, model
                 );
             $.json.put(result, object);
             return (object == null);
@@ -510,30 +523,30 @@ public class Controller extends HttpServlet {
     
     /**
      * 
-     * @param $
-     * @param result
-     * @param statement
-     * @param arguments
-     * @param fetch
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlTable (
-            Actor $, String result, String statement, String[] arguments, 
-            int fetch
-            ) {
-            return sqlQuery(
-                $, result, statement, arguments, fetch, SQL.table
-                );
-        }
+        Actor $, String result, String statement, String[] arguments, 
+        int fetch
+        ) {
+        return sqlQuery(
+            $, result, statement, arguments, fetch, SQL.table
+            );
+    }
        
     /**
      * 
-     * @param $
-     * @param result
-     * @param statement
-     * @param arguments
-     * @param fetch
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlRelations (
         Actor $, String result, String statement, String[] arguments, 
@@ -562,7 +575,12 @@ public class Controller extends HttpServlet {
      *else
      *    ; // exception or null result set, handle the error ...</pre>
      * 
-     * @return true if no exception was raised
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */ 
     public static boolean sqlCollection (
         Actor $, String result, String statement, String[] arguments, 
@@ -575,39 +593,37 @@ public class Controller extends HttpServlet {
        
     /**
      * 
-     * @param $
-     * @param result
-     * @param statement
-     * @param arguments
-     * @param fetch
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlDictionary (
-            Actor $, String result, String statement, String[] arguments,
-            int fetch
-            ) {
-            return sqlQuery(
-                $, result, statement, arguments, fetch, SQL.dictionary
-                );
-        }
+        Actor $, String result, String statement, String[] arguments,
+        int fetch
+        ) {
+        return sqlQuery(
+            $, result, statement, arguments, fetch, SQL.dictionary
+            );
+    }
            
     /**
      * 
-     * @param $
-     * @param result
-     * @param statement
-     * @param arguments
-     * @param fetch
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlObjects (
-            Actor $, String result, String statement, String[] arguments,
-            int fetch
-            ) {
-            return sqlQuery(
-                $, result, statement, arguments, fetch, SQL.objects
-                );
-        }
+        Actor $, String result, String statement, String[] arguments,
+        int fetch
+        ) {
+        return sqlQuery($, result, statement, arguments, fetch, SQL.objects);
+    }
            
     /**
      * Try to open an SQL connection using the configuration properties -
@@ -627,23 +643,26 @@ public class Controller extends HttpServlet {
      *else
      *    ; // exception or null result set, handle the error ...</pre>
      * 
-     * @return true if no exception was raised
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
      */ 
     public static boolean sqlObject (
         Actor $, String result, String statement, String[] arguments
         ) {
-        return sqlQuery(
-            $, result, statement, arguments, 1, SQL.object
-            );
+        return sqlQuery($, result, statement, arguments, 1, SQL.object);
     }
        
     /**
      * 
-     * @param $
-     * @param result
-     * @param statement
-     * @param arguments
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL update to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @return true if nothing was throwed
      */
     public static boolean sqlUpdate (
         Actor $, String result, String statement, String[] arguments
@@ -660,11 +679,11 @@ public class Controller extends HttpServlet {
     
     /**
      * 
-     * @param $
-     * @param name
-     * @param statement
-     * @param relations
-     * @return
+     * @param $ the actor at play
+     * @param result the name of the result to put in <code>$.json</code>
+     * @param statement the SQL update to execute 
+     * @param relations a JSON.Array of JSON.Array with the update arguments
+     * @return true if nothing was throwed
      */
     public static boolean sqlUpdate (
         Actor $, String name, String statement, JSON.Array relations
@@ -836,10 +855,9 @@ public class Controller extends HttpServlet {
      * <p>...</p>
      *
      * @param $
-     * @return true
      */
-    public boolean httpContinue (Actor $) {
-        return $.httpError(400); // Bad Request
+    public void httpContinue (Actor $) {
+        $.httpError(400); // Bad Request
     }
     
     /**
@@ -865,8 +883,8 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public boolean httpResource (Actor $) {
-        return $.httpError(404); // Not Found
+    public void httpResource (Actor $) {
+        $.httpError(404); // Not Found
     }
 
     /**
@@ -885,8 +903,8 @@ public class Controller extends HttpServlet {
      * 
      * @param $ the Actor's state
      */
-    public boolean jsonApplication (Actor $) {
-        return $.json200Ok($.toString());
+    public void jsonApplication (Actor $) {
+        $.jsonResponse(200, $.toString());
     }
     
     /**

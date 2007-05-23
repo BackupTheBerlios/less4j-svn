@@ -76,8 +76,7 @@ import javax.servlet.http.Cookie;
  * categories for information.
  * <dd></di>
  * <di><dt>IRTD2:
- * <code>salt</code>,
- * <code>salted</code>,
+ * <code>salts</code>,
  * <code>identity</code>,
  * <code>rights</code>,
  * <code>time</code>,
@@ -110,7 +109,7 @@ import javax.servlet.http.Cookie;
  * <code>jsonGET</code>,
  * <code>jsonPOST</code>,
  * <code>jsonDigest</code>,
- * <code>json200Ok</code>,
+ * <code>jsonResponse</code>,
  * </dt><dd>
  * ...
  * </dd></di>
@@ -189,14 +188,9 @@ public class Actor {
     public HttpServletResponse response;
 
     /**
-     * The IRTD2 salt, encoded as 8-bit bytes
+     * The IRTD2 salts, encoded as 8-bit bytes
      */
-    public byte[] salt = null;
-    
-    /**
-     * The previous IRTD2 salt, encoded as 8-bit bytes
-     */
-    public byte[] salted = null;
+    public byte[][] salts = null;
     
     /**
      * A usefull copy of <code>request.getRequestURL().toString()</code>
@@ -341,8 +335,15 @@ public class Actor {
         url = request.getRequestURL().toString();
         context = request.getContextPath() + '/';
         test = configuration.B("test", false);
-        salt = configuration.S("irtd2Salt", "").getBytes();
-        salted = configuration.S("irtd2Salted", "").getBytes();
+        try {
+            JSON.Array _salts = configuration.A("irtd2Salts");
+            int L=_salts.size();
+            salts = new byte[L][];
+            for (int i=0; i<L; i++)
+                salts[i] = _salts.S(i).getBytes();
+        } catch (JSON.Error e) {
+            logError(e);
+        };
     }
 
     /**
@@ -555,8 +556,7 @@ public class Actor {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) for (i = 0; i < cookies.length; i++) {
                 if (cookies[i].getName().equals(irtd2Name)) {
-                    irtd2Cookie = cookies[i];
-                    break;
+                    irtd2Cookie = cookies[i]; break;
                 }
             }
             if (irtd2Cookie == null) {
@@ -580,32 +580,24 @@ public class Actor {
                 0, identity.length() + 1 + rights.length() + 1 + 
                 lastTime.length() + 1 + digested.length()
                 ).getBytes();
-            /* digest an SHA1 hexadecimal with the current salt and test */
-            SHA1 md = new SHA1();
-            md.update(irtd);
-            md.update(salt);
-            String d = md.hexdigest();
-            if (!d.equals(digested)) {
-                /* try the previously digested salt if any */
-                if (salted.length == 0) {
-                    if (test) logInfo("Forged", "IRTD2");
-                    return false;
-                }
-                md = new SHA1();
+            /* digest an SHA1 hexadecimal with one of the salts or fail */
+            String d = null;
+            for (i=0; i<salts.length; i++) {
+                SHA1 md = new SHA1();
                 md.update(irtd);
-                md.update(salted);
+                md.update(salts[i]);
                 d = md.hexdigest();
-                if (!d.equals(digested)) {
-                    if (test) logInfo("Forged", "IRTD2");
-                    return false;
-                }
+                if (d.equals(digested)) break;
             }
-            return true; // digested in time, with salt or salted! 
+            if (!digested.equals(d)) {
+                if (test) logInfo("Not Digested", "IRTD2");
+            } else
+                return true; // digested in time with salt! 
         } 
         catch (Exception e) { // just in case ... still beta
             logError(e);
-            return false;
         }
+        return false; // exception or invalid.
     }
     
     /**
@@ -642,7 +634,7 @@ public class Actor {
         if (digested != null) sb.append(digested);
         String irtd = sb.toString();
         md.update(irtd.getBytes());
-        md.update(salt);
+        md.update(salts[0]);
         digest = md.hexdigest();
         sb = new StringBuffer();
         sb.append(irtd);
@@ -766,15 +758,13 @@ public class Actor {
      * error.</p>
      * 
      * @param code HTTP error to send
-     * @return true
      */
-    public boolean httpError (int code) {
+    public void httpError (int code) {
         try {
             response.sendError(code); logAudit(code);
         } catch (IOException e) {
             logError(e);
         }
-        return true;
     }
     
     /**
@@ -785,9 +775,8 @@ public class Actor {
      * @param body a byte string
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "ASCII")
-     * @return true
      */
-    public boolean http200Ok (byte[] body, String type, String charset) {
+    public void http200Ok (byte[] body, String type, String charset) {
         response.setStatus(HttpServletResponse.SC_OK);
         if (charset != null) type += ";charset=" + charset;
         // if (charset != null) response.setCharacterEncoding(charset);
@@ -801,7 +790,6 @@ public class Actor {
         } catch (IOException e) {
             logError(e);
         }
-        return true;
     }
     
     /**
@@ -822,10 +810,9 @@ public class Actor {
      * @param body a string
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "UTF-8")
-     * @return true
      */
-    public boolean http200Ok (String body, String type, String charset) {
-        return http200Ok(Simple.encode(body, charset), type, charset);
+    public void http200Ok (String body, String type, String charset) {
+        http200Ok(Simple.encode(body, charset), type, charset);
     }
     
     /**
@@ -849,9 +836,8 @@ public class Actor {
      * @param location to redirect to
      * @param body an of bytes with the response body 
      * @param type the Content-Type of the response 
-     * @return true
      */
-    protected boolean http302Redirect (String location, byte[] body, String type) {
+    protected void http302Redirect (String location, byte[] body, String type) {
         response.setStatus(HttpServletResponse.SC_FOUND);
         response.addHeader(httpLocation, httpLocation(location));
         response.setContentType(type);
@@ -865,7 +851,6 @@ public class Actor {
             logError(e);
             logAudit(500); // TODO: ? work out "own" error code ? 
         }
-        return true;
     }
     
     protected static final String http302RedirectXML = (
@@ -896,10 +881,9 @@ public class Actor {
      * absolute URL.</p>
      * 
      * @param location to redirect to
-     * @return true
      */
-    public boolean http302Redirect(String location) {
-        return http302Redirect(
+    public void http302Redirect(String location) {
+        http302Redirect(
             location, http302RedirectXML.getBytes(), htmlContentType
             );
     }
@@ -919,8 +903,8 @@ public class Actor {
      *
      * @param body a string
      */
-    public boolean html200Ok (String body) {
-        return http200Ok(
+    public void html200Ok (String body) {
+        http200Ok(
             Simple.encode(body, less4jCharacterSet), 
             htmlContentType, 
             less4jCharacterSet
@@ -929,6 +913,12 @@ public class Actor {
     
     protected static final String jsonXJSON = "X-JSON";
     
+    /**
+     * 
+     * @param containers
+     * @param iterations
+     * @return
+     */
     public boolean jsonGET(int containers, int iterations) {
         json = new JSON.Object();
         Map query = request.getParameterMap();
@@ -962,6 +952,13 @@ public class Actor {
         return true;
     }
     
+    /**
+     * 
+     * @param containers
+     * @param iterations
+     * @param type
+     * @return
+     */
     public boolean jsonGET(int containers, int iterations, JSONR.Type type) {
         json = new JSON.Object();
         Map query = request.getParameterMap();
@@ -1034,6 +1031,14 @@ public class Actor {
         }
     }
     
+    /**
+     * 
+     * @param limit
+     * @param containers
+     * @param iterations
+     * @param type
+     * @return
+     */
     public boolean jsonPOST (
         int limit, int containers, int iterations, JSONR.Type type
         ) {
@@ -1049,27 +1054,31 @@ public class Actor {
         }
     }
     
+    /**
+     * 
+     * @param digestedName
+     * @param digestName
+     */
     public void jsonDigest(String digestedName, String digestName) {
         byte[] buff = JSON.encode(json.get(digestedName)).getBytes();
         SHA1 md = new SHA1();
         md.update(buff);
-        md.update(salt);
+        md.update(salts[0]);
         json.put(digestName, md.hexdigest());
     }
     
     public boolean jsonDigested(String digestedName, String digestName) {
         String sign = json.S(digestName, "");
         byte[] buff = JSON.encode(json.get(digestedName)).getBytes();
-        SHA1 md = new SHA1();
-        md.update(buff);
-        md.update(salt);
-        if (md.hexdigest().equals(sign))
-            return true;
-        
-        md = new SHA1();
-        md.update(buff);
-        md.update(salted);
-        return md.hexdigest().equals(sign);
+        String d = null;
+        for (int i=0; i<salts.length; i++) {
+            SHA1 md = new SHA1();
+            md.update(buff);
+            md.update(salts[i]);
+            d = md.hexdigest();
+            if (d.equals(sign)) return true;
+        }
+        return false;
     }
     
     /**
@@ -1081,14 +1090,12 @@ public class Actor {
         "text/javascript;charset=UTF-8";
     
     /**
-     * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON byte
+     * <p>Try to complete an HTTP/1.X response <code>code</code> with a byte
      * string as body and audit the response, or log an error.</p>
-     * 
-     * @return true
      */
-    public boolean json200Ok (byte[] body) {
+    public void jsonResponse (int code, byte[] body) {
         /* the response body must be short enough to be buffered fully */
-        response.setStatus(HttpServletResponse.SC_OK);
+        response.setStatus(code);
         response.setContentType(jsonContentType);
         response.setContentLength(body.length);
         try {
@@ -1097,32 +1104,28 @@ public class Actor {
             os.write(body);
             os.flush();
             // response.flushBuffer();
-            logAudit(200);
+            logAudit(code);
         } catch (IOException e) {
             logError(e);
         }
-        return true;
     }
     
     /**
-     * <p>Try to complete a 200 Ok HTTP/1.X response with the JSON string 
-     * encoded in UTF-8 as body and audit the response, or log an error.</p>
-     * 
-     * @return true
+     * <p>Try to complete an HTTP/1.X response <code>code</code> with a 
+     * string encoded in UTF-8 as body and audit the response, or log an 
+     * error.</p>
      */
-    public boolean json200Ok (String string) {
-        return json200Ok(Simple.encode(string, less4jCharacterSet));
+    public void jsonResponse (int code, String body) {
+        jsonResponse(code, Simple.encode(body, less4jCharacterSet));
     }
     
     /**
-     * <p>Try to complete a 200 Ok HTTP/1.X response with the actor's JSON 
-     * object encoded in UTF-8 as body and audit the response, or log
-     * an error.</p>
-     * 
-     * @return true
+     * <p>Try to complete an HTTP/1.X response <code>code</code> with the 
+     * actor's JSON object encoded in UTF-8 as body and audit the response, 
+     * or log an error.</p>
      */
-    public boolean json200Ok () {
-        return json200Ok(Simple.encode(JSON.encode(json), less4jCharacterSet));
+    public void jsonResponse (int code) {
+        jsonResponse(200, JSON.encode(json));
     }
     /**
      * Try to open a J2EE datasource and disable AutoCommit, return 
