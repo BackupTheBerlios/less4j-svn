@@ -1296,7 +1296,7 @@ public class Actor {
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlRelations (
-        String relations, String statement, String[] arguments, int fetch
+        String statement, String[] arguments, int fetch
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
@@ -1381,7 +1381,7 @@ public class Actor {
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlObjects ( 
-        String object, String statement, String[] arguments, int fetch
+        String statement, String[] arguments, int fetch
     ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
@@ -1418,7 +1418,7 @@ public class Actor {
      * @throws an <code>SQLException</code>
      */
     public JSON.Object sqlObject ( 
-        String object, String statement, String[] arguments, int fetch
+        String statement, String[] arguments, int fetch
     ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
