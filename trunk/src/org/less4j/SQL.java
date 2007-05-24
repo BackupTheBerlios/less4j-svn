@@ -21,11 +21,32 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
- * The simplest implementation of an Object Relational Mapping between JDBC
- * and JSON, with support for six basic object models only: table, relations, 
- * collection, dictionary, many objects or a single object.
+ * Simple Object Relational Mapping between JDBC result sets and six JSON 
+ * patterns: table, relations, collection, dictionary, one or many objects.
  * 
- * <h3>Synopsis</h3>
+ * <p>This class bundles a simple <code>ORM</code> interface and singletons 
+ * for each of its six protected implementations, one per patterns supported.
+ * Most applications of less4j don't need more and you may as well use the
+ * appropriate methods of <code>Actor</code> or <code>Controller</code>.</p>
+ * 
+ * <h3>About ORMs</h3>
+ * 
+ * <p>The benefit of an ORM in a J2EE controller is mainly to paliate the
+ * complications of JDBC and a brain-dead synchronous share-everything design.
+ * Good ORMs can provide developers a convenient API without leaks that allows 
+ * controllers to release SQL connections asap.</p>
+ * 
+ * <p>I doubt there is any benefit for J2EE applications in trying to map
+ * instances of arbitrary Java objects in an SQL database. First because
+ * in most case, data is allready available in a schema that just does not
+ * map to the application's object model. Second because when data is
+ * not an SQL legacy, there is an opportunity <em>not</em> to use a 
+ * relations as object properties.</p>
+ * 
+ * <p>So, you won't find anything like Hibernate here. I expect less4j's
+ * applications to store JSON objects as they are first, then latter
+ * update one or more database with indexes and statistics about those
+ * objects.</p>
  * 
  * @author Laurent Szyster
  * @version 0.30
@@ -33,22 +54,43 @@ import java.sql.SQLException;
 public class SQL {
     
     /**
+     * The simplest ORM interface possible for JDBC <code>ResultSet</code>.
      * 
+     * <h3>Synopsis</h3>
+     * 
+     *<pre>protected static class _Collection implements ORM {
+     *    public Object jdbc2 (ResultSet rs) throws SQLException {
+     *        JSON.Array collection = null;
+     *        if (rs.next()) {
+     *            collection = new JSON.Array();
+     *            do {collection.add(rs.getObject(1));} while (rs.next());
+     *        }
+     *        rs.close();
+     *        return collection;
+     *    }
+     *}
+     *
+     *public static ORM collection = new _Collection ();</pre>
+     *
      * @author Laurent Szyster
      * @version 0.30
      */
-    protected static interface ORM {
+    public static interface ORM {
         /**
+         * Try to map a <code>ResultSet</code> into a Java <code>Object</code>.
+         *  
+         * Note that the six implementations provided return either a 
+         * <code>JSON.Array</code> or a <code>JSON.Object</code>.
          * 
-         * @param rs
-         * @return
+         * @param rs a JDBC <code>ResultSet</code>
+         * @return an <code>Object</code>
          * @throws SQLException
          */
-        public Object jdbc2json (ResultSet rs) throws SQLException;
+        public Object jdbc2 (ResultSet rs) throws SQLException;
     }
     
     protected static class _Table implements ORM {
-        public Object jdbc2json (ResultSet rs) throws SQLException {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object object = null;
             JSON.Array rows = null, row;
             if (rs.next()) {
@@ -79,7 +121,7 @@ public class SQL {
     public static ORM table = new _Table ();
 
     protected static class _Relations implements ORM {
-        public Object jdbc2json (ResultSet rs) throws SQLException {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Array rows = null, row;
             if (rs.next()) {
                 int i;
@@ -104,7 +146,7 @@ public class SQL {
     public static ORM relations = new _Relations ();
 
     protected static class _Collection implements ORM {
-        public Object jdbc2json (ResultSet rs) throws SQLException {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Array collection = null;
             if (rs.next()) {
                 collection = new JSON.Array();
@@ -122,7 +164,7 @@ public class SQL {
     public static ORM collection = new _Collection ();
 
     protected static class _Dictionary implements ORM {
-        public Object jdbc2json (ResultSet rs) throws SQLException {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object dictionary = null;
             if (rs.next()) {
                 dictionary = new JSON.Object();
@@ -143,7 +185,7 @@ public class SQL {
     public static ORM dictionary = new _Dictionary ();
 
     protected static class _Objects implements ORM {
-        public Object jdbc2json (ResultSet rs) throws SQLException {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Array relations = new JSON.Array();
             if (rs.next()) {
                 JSON.Object object = new JSON.Object();
@@ -168,7 +210,7 @@ public class SQL {
     public static ORM objects = new _Objects ();
 
     protected static class _Object implements ORM {
-        public Object jdbc2json (ResultSet rs) throws SQLException {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object object = null;
             if (rs.next()) {
                 object = new JSON.Object();

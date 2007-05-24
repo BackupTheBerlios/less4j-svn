@@ -908,14 +908,14 @@ public class Controller extends HttpServlet {
     }
     
     /**
-     * An <code>Action</code> is the simplest closure possible to 
-     * dynamically dispatch functions of an <code>Actor</code> controller.
+     * A simple interface for functions applied to an actor by a controller
+     * dispatcher, the last articulation in an application of less4j.
      * 
      * <h3>Synopsis</h3>
      * 
      * <blockquote>
-     *<pre>public class HelloWorld implements Controller.Action {
-     *    public boolean function (Actor $) {
+     *<pre>public class HelloWorld implements Controller.Function {
+     *    public boolean call (Actor $) {
      *        $.json.put("hello", "World!");
      *    }
      *}</pre>
@@ -924,14 +924,14 @@ public class Controller extends HttpServlet {
      * @author Laurent Szyster
      * @version 0.30
      */
-    public interface Action {
+    public interface Function {
         /**
-         * Any application of the Actor.
+         * Any application of an <code>Actor</code> instance.
          * 
          * @param $
          * @return
          */
-        public boolean function (Actor $);
+        public boolean call (Actor $);
     }
 
 } // That's all folks.

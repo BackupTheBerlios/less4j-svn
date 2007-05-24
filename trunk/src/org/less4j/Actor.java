@@ -1240,7 +1240,7 @@ public class Actor {
             st.setFetchSize(fetch);
             int i = 1; 
             while (args.hasNext()) {st.setObject(i, args.next()); i++;}
-            result = collector.jdbc2json(st.executeQuery());
+            result = collector.jdbc2(st.executeQuery());
             st.close();
             st = null;
         } finally {
