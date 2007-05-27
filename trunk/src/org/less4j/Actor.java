@@ -222,7 +222,7 @@ public class Actor {
      * <code>int</code> value 
      * (ie: 01/01/1970)  
      */
-    public int time = Math.round(System.currentTimeMillis()/1000);
+    public long time = System.currentTimeMillis()/1000;
     
     /**
      * The authentication and audit digest of the previous request, as set 
@@ -314,8 +314,8 @@ public class Actor {
      * @param conf the controller's configuration HashMap
      */
     public Actor (JSON.Object conf) {
+        test = conf.B("test", false);
         configuration = conf;
-        test = configuration.B("test", false);
     }
     
     /**
@@ -329,12 +329,12 @@ public class Actor {
     public Actor (
         JSON.Object conf, HttpServletRequest req, HttpServletResponse res
         ) {
+        test = conf.B("test", false);
         configuration = conf;
         request = req;
         response = res;
         url = request.getRequestURL().toString();
         context = request.getContextPath() + '/';
-        test = configuration.B("test", false);
         try {
             JSON.Array _salts = configuration.A("irtd2Salts");
             int L=_salts.size();
@@ -571,7 +571,7 @@ public class Actor {
             String lastTime = (String) tokens.next();
             digest = (String) tokens.next();
             digested = (String) tokens.next();
-            if (time - Integer.parseInt(lastTime) > timeout) {
+            if (((int)(time - Long.parseLong(lastTime))) > timeout) {
                 if (test) logInfo("Timeout", "IRTD2");
                 return false; 
             } 
