@@ -226,7 +226,7 @@ public class Simple {
                 _current = -1;
             } else {
                 if (_next > _current)
-                    token = _splitted.substring(_current, _next-1);
+                    token = _splitted.substring(_current, _next);
                 else
                     token = "";
                 _current = _next + 1;

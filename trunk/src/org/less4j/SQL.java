@@ -25,13 +25,19 @@ import java.sql.Statement;
 import java.util.Iterator;
 
 /**
- * Simple Object Relational Mapping between JDBC result sets and six JSON 
+ * Conveniences to query and update an SQL database with a simple object 
+ * relational interface to map between JDBC result sets and six JSON 
  * patterns: table, relations, collection, dictionary, one or many objects.
  * 
- * <p>This class bundles a simple <code>ORM</code> interface and singletons 
- * for each of its six protected implementations, one per patterns supported.
- * Most applications of less4j don't need more and you may as well use the
- * appropriate methods of <code>Actor</code> or <code>Controller</code>.</p>
+ * <h3>Synopsis</h3>
+ * 
+ * <p>This class is a library of static functions applied by less4j's 
+ * <code>Actor</code> methods <code>sql*</code>, so unless you want to
+ * apply it somewhere else, you should use those higher level methods
+ * instead.</p>
+ * 
+ * <p>Also, note that this implementation depends on less4j's 
+ * <code>JSON</code> and makes little sense out of a web controller.</p>
  * 
  * <h3>About ORMs</h3>
  * 
@@ -40,8 +46,8 @@ import java.util.Iterator;
  * Good ORMs can provide developers a convenient API without leaks that allows 
  * controllers to release SQL connections asap.</p>
  * 
- * <p>I doubt there is any benefit for J2EE applications in trying to map
- * instances of arbitrary Java objects in an SQL database. First because
+ * <p>However, I doubt there is any benefit for J2EE applications in trying to 
+ * map instances of arbitrary Java objects in an SQL database. First because
  * in most case, data is allready available in a schema that just does not
  * map to the application's object model. Second because when data is
  * not an SQL legacy, there is an opportunity <em>not</em> to use a 
@@ -51,6 +57,11 @@ import java.util.Iterator;
  * applications to store JSON objects as they are first, then latter
  * update one or more database with indexes and statistics about those
  * objects.</p>
+ * 
+ * <p>This class bundles a simple <code>ORM</code> interface and singletons 
+ * for each of its six protected implementations, one per patterns supported.
+ * Most applications of less4j don't need more and you may as well use the
+ * appropriate methods of <code>Actor</code> or <code>Controller</code>.</p>
  * 
  * @author Laurent Szyster
  * @version 0.30
@@ -235,13 +246,30 @@ public class SQL {
     public static ORM object = new _Object ();
 
     /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and an argument iterator, use an <code>ORM</code> to return 
+     * a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
+     * <code>null</code> if the result set was empty.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    JSON.Array relations = (JSON.Array) <strong>SQL.query(</strong>
+     *        "select * from TABLE wher COLUMN=?", 
+     *        Simple.iterator (new String[]{"criteria"}),
+     *        100, SQL.relations
+     *        <strong>)</strong>;
+     *} catch (SQLException e) {
+     *    e.println(System.err);
+     *}</pre>
      * 
      * @param sql the <code>Connection</code> to query
      * @param statement to prepare and execute as a query
      * @param args an iterator through arguments
      * @param fetch the number of rows to fetch
-     * @param collector the RS2 instance used to collect the result set
-     * @return an <code>ArrayList</code>, a <code>HashMap</code> or null
+     * @param collector the <code>ORM</code> used to map the result set
+     * @return a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
+     *         <code>null</code>
      * @throws SQLException
      */
     public static Object query (
@@ -296,6 +324,17 @@ public class SQL {
         return new Integer(result);
     }
     
+    /**
+     * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
+     * with many arguments iterator, close the JDBC/DataSource 
+     * statement and returns the number of rows updated.
+     * 
+     * @param sql the <code>Connection</code> to update
+     * @param statement the SQL statement to execute
+     * @param params an <code>Iterator</code> of <code>JSON.Array</code>s
+     * @return an <code>Integer</code>
+     * @throws <code>SQLException</code>
+     */
     public static Integer update (
         Connection sql, String statement, Iterator args
         ) 
@@ -317,6 +356,14 @@ public class SQL {
         return new Integer(result);
     }
     
+    /**
+     * 
+     * @param sql
+     * @param statement
+     * @param params
+     * @return
+     * @throws SQLException
+     */
     public static Integer batch (
         Connection sql, String statement, Iterator params
         ) 

@@ -190,7 +190,7 @@ public class Controller extends HttpServlet {
         "\"j2eeDataSource\": null," +
         "\"ldapURL\": null," +
         "\"ldapUsername\": null," +
-        "\"ldapPassword\": null," +
+        "\"ldapPassword\": null" +
         "}"); 
                 
     /**

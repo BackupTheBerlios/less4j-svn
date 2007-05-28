@@ -192,9 +192,16 @@ public class Actor {
     
     /**
      * A usefull copy of <code>request.getRequestURL().toString()</code>
-     * to quickly dispatch the request's URL through simple String tests.
+     * to quickly dispatch the request's through simple String tests.
      */
     public String url;
+    
+    /**
+     * A usefull copy of <code>request.getPathInfo()</code>
+     * to quickly dispatch the request's through simple String tests.
+     */
+    
+    public String about;
     
     /**
      * The IRDT2 state for this actor's actions as an US ASCII string.
@@ -216,11 +223,11 @@ public class Actor {
     public String rights = ""; // whatever fits your application 
     
     /**
-     * The time of this Actor's, in seconds since epoch, as an java
-     * <code>int</code> value 
-     * (ie: 01/01/1970)  
+     * The time of this Actor's, in seconds since epoch (ie: 01/01/1970), 
+     * as an java <code>int</code> value 
+     *   
      */
-    public long time = System.currentTimeMillis()/1000;
+    public int time = (int)(System.currentTimeMillis()/1000);
     
     /**
      * The authentication and audit digest of the previous request, as set 
@@ -332,6 +339,7 @@ public class Actor {
         request = req;
         response = res;
         url = request.getRequestURL().toString();
+        about = request.getPathInfo();
         context = request.getContextPath() + '/';
         try {
             JSON.Array _salts = configuration.A(Controller._irtd2Salts);
@@ -528,6 +536,15 @@ public class Actor {
      * digest a new cookie only if a the digested cookie is still valid in 
      * time and bears the signature of this servlet, return false otherwise. 
      * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>This method is expected to be called by the <code>Actor</code>'s 
+     * <code>Controller</code> before it handles the request, so it should 
+     * not be called by less4j's applications.</p>
+     * 
+     * <p>Nevertheless, application developpers should understand what this
+     * method does and why it is so usefull for web controllers.</p>
+     * 
      * <p>There are four benefits to expect from IRTD2 cookies for
      * J2EE public applications:</p>
      * 
@@ -569,14 +586,18 @@ public class Actor {
             String lastTime = (String) tokens.next();
             digest = (String) tokens.next();
             digested = (String) tokens.next();
-            if (((int)(time - Long.parseLong(lastTime))) > timeout) {
-                if (test) logInfo("Timeout", "IRTD2");
+            int t = Integer.parseInt(lastTime);
+            int interval = (time - t);
+            if (interval > timeout) {
+                if (test) logInfo(
+                    "Timeout " + t + ", " + interval + " > " + timeout, "IRTD2"
+                    );
                 return false; 
             } 
             /* get the IRTD 8-bit bytes from the IRTD2 UNICODE string */
             byte[] irtd = irtd2.substring(
                 0, identity.length() + 1 + rights.length() + 1 + 
-                lastTime.length() + 1 + digested.length()
+                lastTime.length() + 1 + digest.length()
                 ).getBytes();
             /* digest an SHA1 hexadecimal with one of the salts or fail */
             String d = null;
@@ -603,6 +624,8 @@ public class Actor {
      * the request into a new cookie bearing the Actor's time, to be sent
      * with the response.
      * 
+     * <h4>Synopis</h4>
+     * 
      * <p>The cookie value is a formatted string made as follow:</p>
      * 
      * <blockquote>
@@ -627,7 +650,7 @@ public class Actor {
         sb.append(' ');
         sb.append(rights);
         sb.append(' ');
-        sb.append(Long.toString(time));
+        sb.append(time);
         sb.append(' ');
         if (digested != null) sb.append(digested);
         String irtd = sb.toString();
@@ -681,6 +704,8 @@ public class Actor {
     /**
      * A convenience to validate a location as an absolute URL.
      * 
+     * <h4>Synopsis</h4>
+     * 
      * <p>Eventually complete a relative location to this Actor's 
      * requested resource
      * 
@@ -727,6 +752,14 @@ public class Actor {
         return sb.toString();
     };
     
+    /**
+     * ...
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * @param limit
+     * @return
+     */
     public byte[] httpPOST(int limit) {
         int contentLength = request.getContentLength(); 
         if (contentLength < 1 || contentLength > limit)
@@ -755,6 +788,8 @@ public class Actor {
      * to produce headers and body. Audit a successfull response or log an 
      * error.</p>
      * 
+     * <h4>Synopsis</h4>
+     * 
      * @param code HTTP error to send
      */
     public void httpError (int code) {
@@ -769,6 +804,8 @@ public class Actor {
      * <p>Try to send an HTTP response with the appropriate headers
      * for an arbitrary bytes string as body, a given content type and 
      * charset. Audit a successfull response or log an error.</p>
+     * 
+     * <h4>Synopsis</h4>
      * 
      * @param code the HTTP response code
      * @param body a byte string
@@ -800,7 +837,7 @@ public class Actor {
      * uses the plateform default character set if the given encoding is
      * not supported. Audit a successfull response or log an error.</p>
      * 
-     * <p>Usage:
+     * <h4>Synopsis</h4>
      * 
      * <blockquote>
      * <pre>$.httpResponse(200, "&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
@@ -862,10 +899,10 @@ public class Actor {
      * 
      * as body.</p>
      * 
-     * <p>Usage:
+     * <h4>Synopsis</h4>
      * 
      * <blockquote>
-     * <pre>$.rest302Redirect("/resource?action")</pre>
+     * <pre>$.http302Redirect("/resource?action")</pre>
      * </blockquote>
      * 
      * Note that this method does <em>not</em> apply the
@@ -884,10 +921,10 @@ public class Actor {
     
     /**
      * Send a 200 Ok HTTP response with the appropriate headers for
-     * an XML string using the UTF-8 character set encoding. Audit a
+     * an HTML string using the UTF-8 character set encoding. Audit a
      * successfull response or log an error.
      *
-     * <p>Usage:
+     * <h4>Synopsis</h4>
      * 
      * <blockquote>
      * <pre>$.html200Ok("&lt;hello-world/&gt;")</pre>
@@ -996,7 +1033,7 @@ public class Actor {
      * in UTF-8 and fitting in a limited buffer. Return true on success or 
      * log an error and return false.</p>
      * 
-     * <p>This is a controller's actor and less4j is an framework for 
+     * <p>This is a controller's actor and less4j is a framework for 
      * entreprise web interfaces: there is no reason to accept JSON objects 
      * larger than the limit that fits its application.</p>
      * 
@@ -1201,16 +1238,17 @@ public class Actor {
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument iterator, use an RS2 collector to return 
-     * a JSON.Array, a JSON.Object or null if the result set was empty.
+     * statement and an argument values iterator, use an <code>ORM</code>
+     * to return a <code>JSON.Array</code>, a <code>JSON.Object</code>
+     * or null if the result set was empty.
      * 
      * <h4>Synopsis</h4>
      * 
      * <pre>try {
      *    JSON.Array relations = (JSON.Array) $.<strong>sqlQuery(</strong>
-     *        "select * from TABLE wher COLUMN=?", 
-     *        Simple.iterator (new String[]{"criteria"}),
-     *        100, Actor.sql2relations
+     *        "select * from TABLE where KEY = ? and VALUE > ?", 
+     *        Simple.iterator (new Object[]{"key", new Integer(10)}),
+     *        100, SQL.relations
      *        <strong>)</strong>;
      *} catch (SQLException e) {
      *    $.logError(e);
@@ -1219,8 +1257,9 @@ public class Actor {
      * @param statement to prepare and execute as a query
      * @param args an iterator through arguments
      * @param fetch the number of rows to fetch
-     * @param collector the RS2 instance used to collect the result set
-     * @return an <code>ArrayList</code>, a <code>HashMap</code> or null
+     * @param collector the <code>ORM</code> used to map the result set
+     * @return a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
+     *         <code>null</code>
      * @throws SQLException
      */
     public Object sqlQuery (
@@ -1233,9 +1272,23 @@ public class Actor {
 
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, return a <code>JSON.Object</code>
+     * statement and an argument names, return a <code>JSON.Object</code>
      * with the obvious "columns" and "rows" members, or <code>null</code> 
      * if the result set was empty.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <blockquote>
+     * <pre>try {
+     *    $.json.put("table", $.<strong>sqlTable(</strong>
+     *        "select * from TABLE where KEY=?", 
+     *        new String[]{"key"},
+     *        100
+     *        <strong>)</strong>)
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * </blockquote>
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
@@ -1254,8 +1307,9 @@ public class Actor {
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, return a <code>JSON.Array</code> 
-     * or use <code>null</code> if the result set was empty.
+     * statement and an argument names, return a <code>JSON.Array</code> 
+     * of <code>JSON.Array</code>s as relations or <code>null</code> 
+     * if the result set was empty.
      * 
      * <h4>Synopsis</h4>
      * 
@@ -1274,7 +1328,7 @@ public class Actor {
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @param fetch the number of rows to fetch
-     * @return a <code>JSON.Array</code> or null 
+     * @return a <code>JSON.Array</code> of relations or null 
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlRelations (
@@ -1288,16 +1342,15 @@ public class Actor {
 
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, name a <code>JSON.Array</code> 
-     * as <code>collection</code> in <code>$.json</code> and return true
-     * or set <code>collection</code> to <code>null</code> if the result 
-     * set was empty and return false.
+     * statement and argument names, returns a <code>JSON.Array</code> 
+     * as a collection for the first row in the result set or 
+     * <code>null</code> if the result set was empty.
      * 
      * <h4>Synopsis</h4>
      * 
      * <pre>try {
      *    $.json.put("collection", ($.<strong>sqlCollection(</strong>
-     *        "select COLUMN from TABLE wher KEY=?", 
+     *        "select COLUMN from TABLE where KEY=?", 
      *        new String[]{"key"},
      *        100
      *        <strong>)</strong>);
@@ -1308,7 +1361,7 @@ public class Actor {
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @param fetch the number of rows to fetch
-     * @return a <code>JSON.Array</code> or null 
+     * @return a <code>JSON.Array</code> as collection or <code>null</code> 
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlCollection (
@@ -1321,11 +1374,27 @@ public class Actor {
     }
     
     /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and argument names, returns a <code>JSON.Object</code> 
+     * that maps the first column of the result set to the second or 
+     * <code>null</code> if the result set was empty.
      * 
-     * @param statement
-     * @param arguments
-     * @param fetch
-     * @return
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    $.json.put("dictionary", ($.<strong>sqlCollection(</strong>
+     *        "select KEY, VALUE from TABLE where VALUE > ?", 
+     *        new String[]{"value"},
+     *        100
+     *        <strong>)</strong>);
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @param fetch the number of rows to fetch
+     * @return a <code>JSON.Object</code> as dictionnary or <code>null</code> 
      * @throws SQLException
      */
     public JSON.Object sqlDictionary (
@@ -1338,28 +1407,10 @@ public class Actor {
     }
         
     /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, name a <code>JSON.Object</code> 
-     * as <code>object</code> in <code>$.json</code> and return true or set 
-     * <code>object</code> to <code>null</code> if the result set was 
-     * empty and return false.
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("objects", $.<strong>sqlObjects(</strong>
-     *        "select * from TABLE where KEY=?",
-     *        new String[]{"key"},
-     *        10
-     *        <strong>)</strong>);
-     *} catch (SQLException e) {
-     *    $.logError(e);
-     *}</pre>
-     * 
-     * @param objects the name of the result in <code>$.json</code>
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
-     * @return a  
+     * @return a <code>JSON.Array</code> of <code>JSON.Objects</code> 
+     *         or <code>null</code> 
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlObjects ( 
@@ -1372,31 +1423,9 @@ public class Actor {
     }
     
     /**
-     * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument array, name a <code>JSON.Object</code> 
-     * as <code>object</code> in <code>$.json</code> and return true or set 
-     * <code>object</code> to <code>null</code> if the result set was 
-     * empty and return false.
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    if ($.<strong>sqlObject(</strong>
-     *        "object",
-     *        "select * from TABLE where PRIMARY=?",
-     *        new String[]{"key"}
-     *        <strong>)</strong>);
-     *        ... // process object
-     *    else
-     *        ... // error, null result
-     *} catch (Exception e) {
-     *    $.logError(e);
-     *}</pre>
-     * 
-     * @param object the name of the result in <code>$.json</code>
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
-     * @return false if no collection was returned 
+     * @return a <code>JSON.Object</code> or <code>null</code> 
      * @throws an <code>SQLException</code>
      */
     public JSON.Object sqlObject ( 
