@@ -29,7 +29,7 @@ import java.util.Iterator;
  * Accept: text/javascript; charset=UTF-8
  * Content-Type: application/json; charset=UTF-8
  * 
- * {"function": ...}</pre>
+ * {"expression": ...}</pre>
  * 
  * <pre>GET /script/function?...</pre>
  * Accept: text/javascript; charset=UTF-8
@@ -81,71 +81,148 @@ import java.util.Iterator;
  *
  */
 public class Script extends Controller {
-    // static
+
     static final long serialVersionUID = 0L; // TODO: regenerate
-    // statefull once
-    private Scriptable _scope = null;
-    private JSON.Object _functions = null;
-    public boolean less4jConfigure (Actor $) {
-        if (super.less4jConfigure($) && sqlOpen($)) try {
-            // fetch the function name and source for this servlet 
-            // from its resources.
-            String resource = Simple.read(
-                getServletContext().getResource("/WEB-INF/lib/functions.js")
+
+    // statefull
+    /**
+     * 
+     * @param $
+     * @return
+     * @throws Exception
+     */
+    public boolean scriptLoad (Actor $) throws Exception {
+        String source = Simple.read(
+            getServletContext().getResource("/WEB-INF/lib/functions.js")
+            ); // synchronized!
+        if (source == null)
+            return false;
+        Scriptable scope;
+        Context cx = Context.enter();
+        try {
+            scope = cx.initStandardObjects(null, true);
+            cx.evaluateString(
+                scope, source, this.getClass().getName(), 1, null
                 );
-            if (_functions == null)
-                // if no functions available, stop the configuration and 
-                // continue in test or fail in production.
-                return $.test;
-            // compile the functions selected in a shared scope 
-            Context cx = Context.enter();
-            try {
-                _scope = cx.initStandardObjects(null, true);
-                Iterator names = _functions.keySet().iterator();
-                String name;
-                while (names.hasNext()) {
-                    name = (String) names.next();
-                    _functions.put(name, cx.compileFunction(
-                        _scope, _functions.S(name), name, 1, null 
-                        ));
-                    _scope.put(name, (
-                        org.mozilla.javascript.Function
-                        ) _functions.get(name), null);
-                } // note: the sources are compiled in place.
-            } finally {
-                Context.exit();
-            }
-            return true;
+        } finally {
+            Context.exit();
+        }
+        ScriptableObject functions = (ScriptableObject) scope.get(
+            "less4j", scope
+            );
+        // map functions found in the object named less4j, if any or throw up.
+        if (functions == Scriptable.NOT_FOUND)
+            if ($.test) $.logInfo(
+                "Object 'less4j' not found in JavaScript sources.",
+                "WARNING"
+                );
+        JSON.Object funs = new JSON.Object(); 
+        Iterator names = Simple.iterator(functions.getIds());
+        String name; Object fun;
+        while (names.hasNext()) {
+            name = (String) names.next();
+            fun = functions.get(name, scope);
+            if (fun instanceof org.mozilla.javascript.Function)
+                funs.put(name, fun);
+            else if ($.test) $.logInfo(
+                "Property '" + name + "' of 'less4j' not a function", 
+                "WARNING"
+                );
+        }
+        $.configuration.put("scriptScope", scope);
+        $.configuration.put("scriptFunctions", funs);
+        return true;
+    }
+    public void scriptReload (Actor $) {
+        try {
+            JSON.Object newConfiguration = new JSON.Object();
+            newConfiguration.putAll($.configuration);
+            $.configuration = newConfiguration;
+            if (scriptLoad($)) {
+                $.json.put("reloaded", Boolean.TRUE);
+                setConfiguration($.configuration);
+            } else
+                $.json.put("reloaded", Boolean.FALSE);
+        } catch (Exception e) {
+            if ($.test) $.logError(e);
+            $.json.put("exception", e.getMessage());
+        }
+    }
+    /**
+     * 
+     * @param $
+     */
+    public static void scriptEvaluate (Actor $) {
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get("scriptScope");
+        Context cx = Context.enter();
+        try {
+            Scriptable scope = cx.newObject(scriptScope);
+            scope.setPrototype(scriptScope);
+            scope.setParentScope(null);
+            $.json.put("result", cx.evaluateString(
+                scope, $.json.S("expr"), "<cmd>", 1, null
+                ));
+        } catch (Exception e) {
+            $.json.put("exception", e.getMessage());
+        } finally {
+            Context.exit();
+        }
+        $.jsonResponse(200);
+    }
+    /**
+     * 
+     * @param $
+     */
+    public static void scriptApply (Actor $) {
+        String name = "";
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get("scriptScope");
+        JSON.Object scriptFunctions = $.configuration.O(
+            "scriptFunctions", null // not safe, but works ,~)
+            );
+        Context cx = Context.enter();
+        try {
+            Scriptable scope = cx.newObject(scriptScope);
+            scope.setPrototype(scriptScope);
+            scope.setParentScope(null);
+            org.mozilla.javascript.Function fun = (
+                org.mozilla.javascript.Function
+                ) scriptFunctions.get(name); 
+            $.json.put("result", fun.call(
+                cx, scope, scope, new Object[]{$}
+                ));
+        } catch (Exception e) {
+            $.json.put("exception", e.getMessage());
+        } finally {
+            Context.exit();
+        }
+        $.jsonResponse(200);
+    }
+    /**
+     * 
+     */
+    public boolean less4jConfigure (Actor $) {
+        if (super.less4jConfigure($)) try {
+            return scriptLoad($);
         } catch (Exception e) {
             $.logError(e);
-        } finally {
-            $.sqlClose();
         }
-        return false;
+        return $.test;
     }
-    // stateless thereafter ... 
-    protected static class Application implements Controller.Function {
-        private Scriptable _scope;
-        private org.mozilla.javascript.Function _function;
-        public Application (
-            Scriptable scope, org.mozilla.javascript.Function fun
-            ) {
-            _scope = scope; _function = fun;
-        }
-        public boolean call (Actor $) {
-            Context cx = Context.enter();
-            try {
-                Scriptable scope = cx.newObject(_scope); // copy a scope
-                scope.setPrototype(_scope);
-                scope.setParentScope(null);
-                _function.call(cx, scope, scope, new Object[]{$});
-                return true;
-            } catch (Exception e) {
-                $.logError(e);
-                return false;
-            } finally {
-                Context.exit();
-            }
-        }
-    } 
+    /**
+     * 
+     */
+    public void jsonApplication (Actor $) {
+        if (true)
+            if ($.json.containsKey("expression"))
+                if ($.test)
+                    scriptEvaluate($); // Available only in development ...
+                else
+                    $.jsonResponse(401); // ... Not Authorized in production.
+            else
+                $.jsonResponse(400); // ... Bad Request. 
+        else
+            scriptApply($);
+    }
 }
