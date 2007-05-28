@@ -30,8 +30,6 @@ import java.io.IOException;
 
 import java.sql.DriverManager;
 import java.sql.Connection;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
@@ -314,7 +312,7 @@ public class Actor {
      * @param conf the controller's configuration HashMap
      */
     public Actor (JSON.Object conf) {
-        test = conf.B("test", false);
+        test = conf.B(Controller._test, false);
         configuration = conf;
     }
     
@@ -329,14 +327,14 @@ public class Actor {
     public Actor (
         JSON.Object conf, HttpServletRequest req, HttpServletResponse res
         ) {
-        test = conf.B("test", false);
+        test = conf.B(Controller._test, false);
         configuration = conf;
         request = req;
         response = res;
         url = request.getRequestURL().toString();
         context = request.getContextPath() + '/';
         try {
-            JSON.Array _salts = configuration.A("irtd2Salts");
+            JSON.Array _salts = configuration.A(Controller._irtd2Salts);
             int L=_salts.size();
             salts = new byte[L][];
             for (int i=0; i<L; i++)
@@ -768,16 +766,19 @@ public class Actor {
     }
     
     /**
-     * <p>Try to send a 200 Ok HTTP response with the appropriate headers
+     * <p>Try to send an HTTP response with the appropriate headers
      * for an arbitrary bytes string as body, a given content type and 
      * charset. Audit a successfull response or log an error.</p>
      * 
+     * @param code the HTTP response code
      * @param body a byte string
-     * @param type the resource content type
+     * @param type the response body content type
      * @param charset the character set encoding used (eg: "ASCII")
      */
-    public void http200Ok (byte[] body, String type, String charset) {
-        response.setStatus(HttpServletResponse.SC_OK);
+    public void httpResponse (
+        int code, byte[] body, String type, String charset
+        ) {
+        response.setStatus(code);
         if (charset != null) type += ";charset=" + charset;
         // if (charset != null) response.setCharacterEncoding(charset);
         response.setContentType(type);
@@ -786,14 +787,14 @@ public class Actor {
             ServletOutputStream os = response.getOutputStream(); 
             os.write(body);
             os.flush();
-            logAudit(200);
+            logAudit(code);
         } catch (IOException e) {
             logError(e);
         }
     }
     
     /**
-     * <p>Send a 200 Ok HTTP response with the appropriate headers for
+     * <p>Send an HTTP response with the appropriate headers for
      * a UNICODE string as body, a given content type and charset. This
      * method catches any <code>UnsupportedEncodingException</code> and 
      * uses the plateform default character set if the given encoding is
@@ -802,7 +803,7 @@ public class Actor {
      * <p>Usage:
      * 
      * <blockquote>
-     * <pre>$.http200Ok("&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
+     * <pre>$.httpResponse(200, "&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
      * </blockquote>
      * 
      * where <code>$</code> is an <code>Actor</code> instance.</p>
@@ -811,8 +812,10 @@ public class Actor {
      * @param type the resource content type
      * @param charset the character set encoding used (eg: "UTF-8")
      */
-    public void http200Ok (String body, String type, String charset) {
-        http200Ok(Simple.encode(body, charset), type, charset);
+    public void httpResponse (
+        int code, String body, String type, String charset
+        ) {
+        httpResponse(code, Simple.encode(body, charset), type, charset);
     }
     
     /**
@@ -837,20 +840,11 @@ public class Actor {
      * @param body an of bytes with the response body 
      * @param type the Content-Type of the response 
      */
-    protected void http302Redirect (String location, byte[] body, String type) {
-        response.setStatus(HttpServletResponse.SC_FOUND);
+    protected void http302Redirect (
+        String location, byte[] body, String type
+        ) {
         response.addHeader(httpLocation, httpLocation(location));
-        response.setContentType(type);
-        response.setContentLength(body.length);
-        try {
-            ServletOutputStream os = response.getOutputStream(); 
-            os.write(body);
-            os.flush();
-            logAudit(302);
-        } catch (IOException e) {
-            logError(e);
-            logAudit(500); // TODO: ? work out "own" error code ? 
-        }
+        httpResponse(302, body, type, null);
     }
     
     protected static final String http302RedirectXML = (
@@ -904,7 +898,8 @@ public class Actor {
      * @param body a string
      */
     public void html200Ok (String body) {
-        http200Ok(
+        httpResponse(
+            200,
             Simple.encode(body, less4jCharacterSet), 
             htmlContentType, 
             less4jCharacterSet
@@ -1233,23 +1228,7 @@ public class Actor {
         ) 
     throws SQLException {
         if (test) logInfo(statement, "SQL");
-        Object result = null;
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            st.setFetchSize(fetch);
-            int i = 1; 
-            while (args.hasNext()) {st.setObject(i, args.next()); i++;}
-            result = collector.jdbc2(st.executeQuery());
-            st.close();
-            st = null;
-        } finally {
-            if (st != null) {
-                try {st.close();} catch (SQLException e) {;}
-                st = null;
-            }
-        }
-        return result;
+        return SQL.query(sql, statement, args, fetch, collector);
     }
 
     /**
@@ -1438,19 +1417,9 @@ public class Actor {
      *         or the numbers of rows updated, deleted or inserted.
      * @throws SQLException
      */
-    public int sqlUpdate (String statement) throws SQLException {
-        int result = -1;
+    public Integer sqlUpdate (String statement) throws SQLException {
         if (test) logInfo (statement, less4j);
-        Statement st = null;
-        try {
-            st = sql.createStatement(); 
-            result = st.executeUpdate(statement);
-            st.close();
-            st = null;
-        } finally {
-            if (st != null) try {st.close();} catch (SQLException se) {;}
-        }
-        return result;
+        return SQL.update(sql, statement);
     }
 
     /**
@@ -1459,60 +1428,31 @@ public class Actor {
      * statement and return the number of rows updated.
      * 
      * @param statement the SQL statement to execute
-     * @param args the statement arguments iterator
+     * @param args an <code>Iterator</code> of arguments
      * @return -1 if the statement failed, 0 if no row update took place, 
      *         or the numbers of rows updated, deleted or inserted.
      * @throws SQLException
      */
-    public int sqlUpdate (String statement, Iterator args) 
+    public Integer sqlUpdate (String statement, Iterator args) 
     throws SQLException {
-        int result = -1;
         if (test) logInfo (statement, less4j);
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            int i=0; while (args.hasNext()) st.setObject(i++, args.next());
-            result = st.executeUpdate();
-            st.close();
-            st = null;
-        } finally {
-            if (st != null) try {st.close();} catch (SQLException se) {;}
-        }
-        return result;
+        return SQL.update(sql, statement, args);
     }
     
     /**
      * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
      * with many arguments iterator, close the JDBC/DataSource 
-     * statement and return a JSON array that list the number of rows 
-     * updated for each set of arguments.
+     * statement and returns the number of rows updated.
      * 
      * @param statement the SQL statement to execute
-     * @param params the JSON array of parameter arrays
-     * @return a JSON array of integers
-     * @throws SQLException, JSON.Error
+     * @param params an <code>Iterator</code> of <code>JSON.Array</code>s
+     * @return an <code>Integer</code>
+     * @throws <code>SQLException</code>
      */
-    public JSON.Array sqlUpdateMany (String statement, Iterator params) 
-    throws SQLException, JSON.Error {
-        int i, L;
-        JSON.Array args;
-        JSON.Array result = null;
+    public Integer sqlBatch (String statement, Iterator params) 
+    throws SQLException {
         if (test) logInfo (statement, less4j);
-        PreparedStatement st = null;
-        try {
-            st = sql.prepareStatement(statement);
-            while (params.hasNext()) {
-                args = (JSON.Array) params.next();
-                for (i=0, L=args.size(); i < L; i++)
-                    st.setObject(i, args.get(i));
-                result.add(new Integer(st.executeUpdate()));
-            }
-            st.close();
-            st = null;
-        } finally {
-            if (st != null) try {st.close();} catch (SQLException se) {;}
-        }
-        return result;
+        return SQL.batch(sql, statement, params);
     }
     
     protected static final 

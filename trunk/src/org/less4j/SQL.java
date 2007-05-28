@@ -16,9 +16,13 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Iterator;
 
 /**
  * Simple Object Relational Mapping between JDBC result sets and six JSON 
@@ -230,4 +234,115 @@ public class SQL {
      */
     public static ORM object = new _Object ();
 
+    /**
+     * 
+     * @param sql the <code>Connection</code> to query
+     * @param statement to prepare and execute as a query
+     * @param args an iterator through arguments
+     * @param fetch the number of rows to fetch
+     * @param collector the RS2 instance used to collect the result set
+     * @return an <code>ArrayList</code>, a <code>HashMap</code> or null
+     * @throws SQLException
+     */
+    public static Object query (
+        Connection sql, String statement, Iterator args, 
+        int fetch, SQL.ORM collector
+        ) 
+    throws SQLException {
+        Object result = null;
+        PreparedStatement st = null;
+        try {
+            st = sql.prepareStatement(statement);
+            st.setFetchSize(fetch);
+            int i = 1; 
+            while (args.hasNext()) {st.setObject(i, args.next()); i++;}
+            result = collector.jdbc2(st.executeQuery());
+            st.close();
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;}
+                st = null;
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Try to execute and UPDATE, INSERT, DELETE or DDL statement, close
+     * the JDBC/DataSource statement, return the number of rows updated.
+     * 
+     * @param sql the <code>Connection</code> to update
+     * @param statement the SQL statement to execute
+     * @return -1 if the statement failed, 0 if no row update took place, 
+     *         or the numbers of rows updated, deleted or inserted.
+     * @throws SQLException
+     */
+    public static Integer update (Connection sql, String statement) 
+    throws SQLException {
+        int result = -1;
+        Statement st = null;
+        try {
+            st = sql.createStatement(); 
+            result = st.executeUpdate(statement);
+            st.close();
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;}
+                st = null;
+            }
+        }
+        return new Integer(result);
+    }
+    
+    public static Integer update (
+        Connection sql, String statement, Iterator args
+        ) 
+    throws SQLException {
+        int result = -1;
+        PreparedStatement st = null;
+        try {
+            st = sql.prepareStatement(statement);
+            int i=0; while (args.hasNext()) st.setObject(i++, args.next());
+            result = st.executeUpdate();
+            st.close();
+            st = null;
+        } finally {
+            if (st != null)  {
+                try {st.close();} catch (SQLException e) {;}
+                st = null;
+            }
+        }
+        return new Integer(result);
+    }
+    
+    public static Integer batch (
+        Connection sql, String statement, Iterator params
+        ) 
+    throws SQLException {
+        int i, L, result = -1;
+        JSON.Array args;
+        PreparedStatement st = null;
+        try {
+            st = sql.prepareStatement(statement);
+            while (params.hasNext()) {
+                args = (JSON.Array) params.next();
+                for (i=0, L=args.size(); i < L; i++)
+                    st.setObject(i, args.get(i));
+                st.addBatch();
+            }
+            st.execute();
+            result = st.getUpdateCount();
+            st.close();
+            st = null;
+        } finally {
+            if (st != null) {
+                try {st.close();} catch (SQLException e) {;}
+                st = null;
+            }
+        }
+        return new Integer(result);
+    }
+    
 }
