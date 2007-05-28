@@ -100,6 +100,22 @@ public class Controller extends HttpServlet {
     static final long serialVersionUID = 0L; // TODO: regenerate
     
     protected static final String less4j = "less4j";
+
+    protected static final String _test = "test";
+    protected static final String _irtd2Salts = "irtd2Salts";
+    protected static final String _irtd2Timeout = "irtd2Timeout"; 
+    protected static final String _jsonContainers = "jsonContainers";
+    protected static final String _jsonIterations = "jsonIterations";
+    protected static final String _jsonRegular = "jsonRegular";
+    protected static final String _jsonBytes = "jsonBytes";
+    protected static final String _jdbcDriver = "jdbcDriver";
+    protected static final String _jdbcURL = "jdbcURL";
+    protected static final String _jdbcUsername = "jdbcUsername";
+    protected static final String _jdbcPassword = "jdbcPassword";
+    protected static final String _j2eeDataSource = "j2eeDataSource";
+    protected static final String _ldapURL = "ldapURL";
+    protected static final String _ldapUsername = "ldapUsername";
+    protected static final String _ldapPassword = "ldapPassword";
     
     private JSON.Object configuration = new JSON.Object ();
     
@@ -149,7 +165,8 @@ public class Controller extends HttpServlet {
      *        "username": "@", // the universal e-mail sign by now. 
      *        "password": "........+"
      *    },
-     *    "jdbcDriver": "jdbc:.+",
+     *    "jdbcDriver": ".+",
+     *    "jdbcURL": "jdbc:.+",
      *    "jdbcUsername": "(?!root|admin)", // no priviledged users 
      *    "jdbcPassword": "........+"
      *}</pre>
@@ -165,8 +182,9 @@ public class Controller extends HttpServlet {
         "\"jsonBytes\": null," +
         "\"jsonContainers\": null," +
         "\"jsonIterations\": null," +
-        "\"jsonrModel\": null," +
+        "\"jsonRegular\": null," +
         "\"jdbcDriver\": null," +
+        "\"jdbcURL\": null," +
         "\"jdbcUsername\": null," +
         "\"jdbcPassword\": null," +
         "\"j2eeDataSource\": null," +
@@ -209,7 +227,7 @@ public class Controller extends HttpServlet {
                     );
             }
         }
-        object.put("j2eeRealPath", getServletContext().getRealPath(""));
+        // object.put("j2eeRealPath", getServletContext().getRealPath(""));
         Actor $ = new Actor (object);
         if (!less4jConfigure ($)) throw new ServletException(
             "Failed less4j configuration."
@@ -257,28 +275,28 @@ public class Controller extends HttpServlet {
      */
     public boolean less4jConfigure (Actor $) {
         try {
-            if ($.configuration.A("irtd2Salts").size() < 1)
+            if ($.configuration.A(_irtd2Salts).size() < 1)
                 throw new Exception ();
         } catch (Exception e) {
             $.logInfo("add salt(s) to digest cookies!", less4j);
             return false;
         }
         try {
-            if ($.configuration.containsKey("jdbcDriver")) {
-                Class.forName($.configuration.S("jdbcDriver"));
+            if ($.configuration.containsKey(_jdbcDriver)) {
+                Class.forName($.configuration.S(_jdbcDriver));
                 //if (DriverManager.getLogWriter() != null)
                 //    DriverManager.setLogWriter(null);
                 //if (DriverManager.getLoginTimeout() < jdbcTimeout)
                 //    DriverManager.setLoginTimeout(jdbcTimeout);
                 if (sqlOpen($)) $.sqlClose(); else return false;
-            } else if ($.configuration.containsKey("j2eeDataSource"))
+            } else if ($.configuration.containsKey(_j2eeDataSource))
                 if (sqlOpen($)) $.sqlClose(); else return false;
         } catch (Exception e) {
             $.logError(e); return false;
         }
-        if ($.configuration.containsKey("jsonrModel")) try {
-            $.configuration.put("jsonrModel", JSONR.compile(
-                $.configuration.O("jsonModel"), JSONR.TYPES
+        if ($.configuration.containsKey(_jsonRegular)) try {
+            $.configuration.put(_jsonRegular, JSONR.compile(
+                $.configuration.O(_jsonRegular), JSONR.TYPES
             ));
         } catch (JSON.Error e) {$.logError(e); return false;}
         if ($.test) $.logInfo("configuration ok", less4j);
@@ -287,6 +305,7 @@ public class Controller extends HttpServlet {
 
     private static final String _GET = "GET";
     private static final String _POST = "POST";
+    private static final String _application_json = "application/json";
 
     /**
      * <p>...</p>
@@ -327,7 +346,7 @@ public class Controller extends HttpServlet {
                 httpContinue($);
         else if (
             method.equals(_POST) && 
-            $.request.getContentType().equals("application/json") &&
+            $.request.getContentType().equals(_application_json) &&
             $.request.getCharacterEncoding().equals(Actor.less4jCharacterSet)
             )
             if (jsonPOST($))
@@ -349,7 +368,7 @@ public class Controller extends HttpServlet {
      */
     public static boolean irtd2Identified (Actor $) {
         return $.irtd2Digested(
-            $.configuration.intValue("irtd2Timeout", 3600)
+            $.configuration.intValue(_irtd2Timeout, 3600)
             );
         } 
     
@@ -372,16 +391,16 @@ public class Controller extends HttpServlet {
      * @return true if a valid JSON expression was found in a GET request
      */
     public static boolean jsonGET (Actor $) {
-        if ($.configuration.containsKey("jsonrModel"))
+        if ($.configuration.containsKey(_jsonRegular))
             return $.jsonGET(
-                $.configuration.intValue("jsonContainers", 65355),
-                $.configuration.intValue("jsonIterations", 65355),
-                (JSONR.Type) $.configuration.get("jsonrModel")
+                $.configuration.intValue(_jsonContainers, 65355),
+                $.configuration.intValue(_jsonIterations, 65355),
+                (JSONR.Type) $.configuration.get(_jsonRegular)
                 );
         else 
             return $.jsonGET(
-                $.configuration.intValue("jsonContainers", 65355),
-                $.configuration.intValue("jsonIterations", 65355)
+                $.configuration.intValue(_jsonContainers, 65355),
+                $.configuration.intValue(_jsonIterations, 65355)
                 );
         }
     
@@ -409,18 +428,18 @@ public class Controller extends HttpServlet {
      * @return true if a valid JSON expression was found in a POST request
      */
     public static boolean jsonPOST (Actor $) {
-        if ($.configuration.containsKey("jsonrModel")) 
+        if ($.configuration.containsKey(_jsonRegular)) 
             return $.jsonPOST(
-                $.configuration.intValue("jsonBytes", 16384), 
-                $.configuration.intValue("jsonContainers", 65355),
-                $.configuration.intValue("jsonIterations", 65355),
-                (JSONR.Type) $.configuration.get("jsonrModel")
+                $.configuration.intValue(_jsonBytes, 16384), 
+                $.configuration.intValue(_jsonContainers, 65355),
+                $.configuration.intValue(_jsonIterations, 65355),
+                (JSONR.Type) $.configuration.get(_jsonRegular)
                 );
         else 
             return $.jsonPOST(
-                $.configuration.intValue("jsonBytes", 16384), 
-                $.configuration.intValue("jsonContainers", 65355),
-                $.configuration.intValue("jsonIterations", 65355)
+                $.configuration.intValue(_jsonBytes, 16384), 
+                $.configuration.intValue(_jsonContainers, 65355),
+                $.configuration.intValue(_jsonIterations, 65355)
                 );
         }
     
@@ -463,17 +482,17 @@ public class Controller extends HttpServlet {
      * @return true if the connection was successfull, false otherwise
      */
     public static boolean sqlOpen (Actor $) {
-        if ($.configuration.containsKey("jdbcDriver"))
+        if ($.configuration.containsKey(_jdbcDriver))
             return $.sqlOpenJDBC(
                 $.configuration.S(
-                    "jdbcURL", "jdbc:mysql://127.0.0.1:3306/"
+                    _jdbcURL, "jdbc:mysql://127.0.0.1:3306/"
                     ),
-                $.configuration.S("jdbcUsername", less4j),
-                $.configuration.S("jdbcPassword", "")
+                $.configuration.S(_jdbcUsername, less4j),
+                $.configuration.S(_jdbcPassword, "")
                 );
         else 
             return $.sqlOpenJ2EE(
-                $.configuration.S("j2eeDataSource", less4j)
+                $.configuration.S(_j2eeDataSource, less4j)
                 );
     }
 
@@ -669,9 +688,9 @@ public class Controller extends HttpServlet {
         ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(result, new Integer($.sqlUpdate(
+            $.json.put(result, $.sqlUpdate(
                 statement, Simple.itermap($.json, arguments)
-                )));
+                ));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
@@ -690,7 +709,7 @@ public class Controller extends HttpServlet {
         ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(name, $.sqlUpdateMany(statement, relations.iterator()));
+            $.json.put(name, $.sqlBatch(statement, relations.iterator()));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
@@ -736,15 +755,15 @@ public class Controller extends HttpServlet {
      * @return true if the connection was successfull, false otherwise
      */
     public static boolean ldapOpen (Actor $) {
-        if ($.configuration.containsKey("ldapUsername"))
+        if ($.configuration.containsKey(_ldapUsername))
             return $.ldapOpen(
-                $.configuration.S("ldapURL", "ldap://127.0.0.1:389/"),
-                $.configuration.S("ldapUsername", less4j), 
-                $.configuration.S("ldapPassword", "")
+                $.configuration.S(_ldapURL, "ldap://127.0.0.1:389/"),
+                $.configuration.S(_ldapUsername, less4j), 
+                $.configuration.S(_ldapPassword, "")
                 );
         else
             return $.ldapOpen(
-                $.configuration.S("ldapURL", "ldap://127.0.0.1:389/")
+                $.configuration.S(_ldapURL, "ldap://127.0.0.1:389/")
                 );
     }
     
