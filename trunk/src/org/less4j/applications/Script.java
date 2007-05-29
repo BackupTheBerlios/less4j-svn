@@ -123,11 +123,13 @@ public class Script extends Controller {
         String name; Object fun;
         while (names.hasNext()) {
             name = (String) names.next();
-            if ($.test && (name.length() < 1 || name.charAt(0) != '/'))
-                $.logInfo(
+            if (name.length() < 1 || name.charAt(0) != '/')
+                if ($.test) $.logInfo(
                     "Invalid path '" + name + "' in 'less4jScript' map", 
                     "WARNING"
-                    );                
+                    );
+                else
+                    return false;
             fun = functions.get(name, scope);
             if (fun instanceof org.mozilla.javascript.Function)
                 funs.put(name, fun);
@@ -135,6 +137,8 @@ public class Script extends Controller {
                 "Property '" + name + "' of 'less4jScript' not a function", 
                 "WARNING"
                 );
+            else
+                return false;
         }
         $.configuration.put("scriptScope", scope);
         $.configuration.put("scriptFunctions", funs);
@@ -168,13 +172,25 @@ public class Script extends Controller {
             $.configuration.get("scriptScope");
         Context cx = Context.enter();
         try {
-            Scriptable scope = cx.newObject(scriptScope);
-            scope.setPrototype(scriptScope);
-            scope.setParentScope(null);
-            $.json.put("result", cx.evaluateString(
-                scope, $.json.S("expr"), "<cmd>", 1, null
-                ));
+            Scriptable scope;
+            if (scriptScope==null)
+                scope = cx.initStandardObjects(null, true);
+            else {
+                scope = cx.newObject(scriptScope);
+                scope.setPrototype(scriptScope);
+                scope.setParentScope(null);
+            }
+            ScriptableObject.putProperty(
+                scope, "$", Context.javaToJS($, scope)
+                );
+            Object result = cx.evaluateString(
+                scope, $.json.S("expression"), "<cmd>", 1, null
+                );
+            if (result instanceof NativeJavaObject)
+                result = ((Wrapper) result).unwrap();
+            $.json.put("result", result);
         } catch (Exception e) {
+            if ($.test) $.logError(e);
             $.json.put("exception", e.getMessage());
         } finally {
             Context.exit();
@@ -185,49 +201,52 @@ public class Script extends Controller {
      * 
      * @param $
      */
-    public static void scriptApply (Actor $) {
+    public static int scriptApply (Actor $) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get("scriptScope");
+        if (scriptScope==null)
+            return 501; // Not Implemented
         JSON.Object scriptFunctions = $.configuration.O(
             "scriptFunctions", null // not safe, but works ,~)
             );
-        if (scriptFunctions==null) {
-            return;
-        }
+        if (
+            scriptFunctions == null || 
+            !(scriptFunctions.containsKey($.about))
+            )
+            return 400; // Bad Request
         org.mozilla.javascript.Function fun = (
                 org.mozilla.javascript.Function
-                ) scriptFunctions.get($.about); 
+                ) scriptFunctions.get($.about);
         Context cx = Context.enter();
         try {
             Scriptable scope = cx.newObject(scriptScope);
             scope.setPrototype(scriptScope);
             scope.setParentScope(null);
-            $.json.put("result", fun.call(
-                cx, scope, scope, new Object[]{$}
-                ));
+            fun.call(cx, scope, scope, new Object[]{$});
         } catch (Exception e) {
+            if ($.test) $.logError(e);
             $.json.put("exception", e.getMessage());
         } finally {
             Context.exit();
         }
-        $.jsonResponse(200);
+        return 200;
     }
-//    /**
-//     * Apply the inherited <code>Controller</code> configuration, then maybe 
-//     * try to evaluate the JavaScript sources found in this servlet's
-//     * <code>/WEB-INF/functions.js</code> and return true or log an error and 
-//     * return false.
-//     * 
-//     * @param $ the <code>Actor</code> used to configure this controller.
-//     */
-//    public boolean less4jConfigure (Actor $) {
-//        if (super.less4jConfigure($)) try {
-//            return scriptLoad($);
-//        } catch (Exception e) {
-//            $.logError(e);
-//        }
-//        return false;
-//    }
+    /**
+     * Apply the inherited <code>Controller</code> configuration, then maybe 
+     * try to evaluate the JavaScript sources found in this servlet's
+     * <code>/WEB-INF/functions.js</code> and return true or log an error and 
+     * return false.
+     * 
+     * @param $ the <code>Actor</code> used to configure this controller.
+     */
+    public boolean less4jConfigure (Actor $) {
+        if (super.less4jConfigure($)) try {
+            return scriptLoad($);
+        } catch (Exception e) {
+            $.logError(e);
+        }
+        return false;
+    }
     /**
      * Dispatch requests based on their path between arbitrary expression 
      * evaluation and the application of configured functions.
@@ -254,6 +273,6 @@ public class Script extends Controller {
             else
                 $.jsonResponse(400); // ... Bad Request. 
         else
-            scriptApply($);
+            $.jsonResponse(scriptApply($));
     }
 }

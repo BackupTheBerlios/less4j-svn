@@ -516,7 +516,10 @@ public class Actor {
         sb.append(' ');
         sb.append(request.getRequestURI());
         String query = request.getQueryString();
-        if (query != null) sb.append(query);
+        if (query != null) {
+            sb.append('?');
+            sb.append(query);
+            }
         sb.append(' ');
         sb.append(request.getProtocol());
         sb.append(' ');
@@ -1157,7 +1160,7 @@ public class Actor {
      * or log an error.</p>
      */
     public void jsonResponse (int code) {
-        jsonResponse(200, JSON.encode(json));
+        jsonResponse(code, JSON.encode(json));
     }
     /**
      * Try to open a J2EE datasource and disable AutoCommit, return 
