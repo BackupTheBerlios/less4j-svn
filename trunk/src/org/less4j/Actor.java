@@ -93,6 +93,7 @@ import javax.servlet.http.Cookie;
  * </dd></di>
  * <di><dt>HTTP:
  * <code>url</code>,
+ * <code>about</code>,
  * <code>context</code>,
  * <code>request</code>,
  * <code>response</code>,
@@ -121,12 +122,13 @@ import javax.servlet.http.Cookie;
  * <code>sqlObject</code>, 
  * <code>sqlObjects</code>, 
  * <code>sqlCollection</code>, 
+ * <code>sqlRelations</code>, 
  * <code>sqlUpdate</code>,
- * <code>sqlUpdateMany</code>.
+ * <code>sqlBatch</code>.
  * </dt><dd>
- * Enough SQL conveniences up to all the Object Relational Mapping you
- * will ever need for JSON applications: table, relations, collection and
- * object(s). 
+ * Enough SQL conveniences to declare, update and query a database, including
+ * support for all the Object Relational Mapping you will ever need in a JSON 
+ * application: table, relations, collection and object(s). 
  * </dd></di>
  * <di><dt>LDAP:
  * <code>ldap</code>,
@@ -153,7 +155,7 @@ public class Actor {
      * web 2.0 browsers (IE6, Firefox, etc ...) and java runtime
      * environments. Also the defacto standard for JSON encoding.</p>
      */
-    protected static final String less4jCharacterSet = "UTF-8";
+    protected static final String _UTF_8 = "UTF-8";
     
     /**
      * A copy of the servlet controller's configuration, mapping all
@@ -643,8 +645,6 @@ public class Actor {
      * 
      * <p>This method is usefull in authorization controllers, like user
      * identification or roles attribution services.</p>
-     *
-     * @param path in which the IRTD2 Cookie's is applied
      */
     public void irtd2Digest() {
         StringBuffer sb = new StringBuffer();
@@ -863,9 +863,9 @@ public class Actor {
      * standard supported by XSL, CSS and JavaScript in web 2.0
      * browsers.
      */
-    protected static final String htmlContentType = "text/html";
+    protected static final String _text_html = "text/html";
     
-    protected static final String httpLocation = "Location";
+    protected static final String _Location = "Location";
     
     /**
      * Try to send a 302 Redirect HTTP response to a location and set the
@@ -883,7 +883,7 @@ public class Actor {
     protected void http302Redirect (
         String location, byte[] body, String type
         ) {
-        response.addHeader(httpLocation, httpLocation(location));
+        response.addHeader(_Location, httpLocation(location));
         httpResponse(302, body, type, null);
     }
     
@@ -918,7 +918,7 @@ public class Actor {
      */
     public void http302Redirect(String location) {
         http302Redirect(
-            location, http302RedirectXML.getBytes(), htmlContentType
+            location, http302RedirectXML.getBytes(), _text_html
             );
     }
     
@@ -939,10 +939,7 @@ public class Actor {
      */
     public void html200Ok (String body) {
         httpResponse(
-            200,
-            Simple.encode(body, less4jCharacterSet), 
-            htmlContentType, 
-            less4jCharacterSet
+            200, Simple.encode(body, _UTF_8), _text_html, _UTF_8
             );
     }
     
@@ -1057,7 +1054,7 @@ public class Actor {
         if (body == null) return false; else try {
             // parse JSON when the buffer is filled but not overflowed
             json = (new JSON(containers, iterations)).object(
-                new String(body, less4jCharacterSet)
+                new String(body, _UTF_8)
                 );
             return (json != null);
         } catch (Exception e) {
@@ -1081,7 +1078,7 @@ public class Actor {
         if (body == null) return false; else try {
             json = (
                 new JSONR(type, containers, iterations)
-                ).object(new String(body, less4jCharacterSet));
+                ).object(new String(body, _UTF_8));
             return true;
         } catch (Exception e) {
             logError(e);
@@ -1102,6 +1099,12 @@ public class Actor {
         json.put(digestName, md.hexdigest());
     }
     
+    /**
+     * 
+     * @param digestedName
+     * @param digestName
+     * @return
+     */
     public boolean jsonDigested(String digestedName, String digestName) {
         String sign = json.S(digestName, "");
         byte[] buff = JSON.encode(json.get(digestedName)).getBytes();
@@ -1151,7 +1154,7 @@ public class Actor {
      * error.</p>
      */
     public void jsonResponse (int code, String body) {
-        jsonResponse(code, Simple.encode(body, less4jCharacterSet));
+        jsonResponse(code, Simple.encode(body, _UTF_8));
     }
     
     /**
@@ -1385,7 +1388,7 @@ public class Actor {
      * <h4>Synopsis</h4>
      * 
      * <pre>try {
-     *    $.json.put("dictionary", ($.<strong>sqlCollection(</strong>
+     *    $.json.put("dictionary", ($.<strong>sqlDictionary(</strong>
      *        "select KEY, VALUE from TABLE where VALUE > ?", 
      *        new String[]{"value"},
      *        100
@@ -1410,6 +1413,18 @@ public class Actor {
     }
         
     /**
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    $.json.put("objects", ($.<strong>sqlObjects(</strong>
+     *        "select * from TABLE where VALUE > ?", 
+     *        new String[]{"value"},
+     *        100
+     *        <strong>)</strong>);
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @return a <code>JSON.Array</code> of <code>JSON.Objects</code> 
@@ -1426,6 +1441,15 @@ public class Actor {
     }
     
     /**
+     * <pre>try {
+     *    $.json.put("object", ($.<strong>sqlObject(</strong>
+     *        "select * from TABLE where VALUE = ?", 
+     *        new String[]{"value"}
+     *        <strong>)</strong>);
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
      * @return a <code>JSON.Object</code> or <code>null</code> 
@@ -1663,17 +1687,12 @@ public class Actor {
     }
     
     /**
-     * Try to create an LDAP context from a JSON object, return true if the 
-     * context was created, false otherwise.
      * 
      * @param dn the distinguished name of the context created
-     * @param object the JSON object from which to set the attribute values
+     * @param object the JSON.O object from which to set the attribute values
+     * @param names of the attributes to update
      * @return true, false
      */
-    public boolean ldapCreate (String dn, JSON.Object object) {
-        return ldapCreate (dn, object, object.keySet().iterator());
-    }
-    
     public boolean ldapUpdate (
         String dn, JSON.Object object, Iterator names
         ) {
@@ -1681,12 +1700,6 @@ public class Actor {
         // TODO: ldapUpdate ...
         return true;
     }
-    
-    public boolean ldapUpdate (String dn, JSON.Object object) {
-        return ldapUpdate(dn, object, object.keySet().iterator());
-    }
-    
-    /* that's all folks */
     
 }
 

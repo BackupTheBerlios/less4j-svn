@@ -84,6 +84,25 @@ public class Script extends Controller {
 
     static final long serialVersionUID = 0L; // TODO: regenerate
 
+    public static String configurationPattern = ("{" +
+        "\"test\": false," + // optional boolean
+        "\"irtd2Salts\": [\"^...........*$\"]," + 
+        "\"irtd2Service\": null," +
+        "\"irtd2Timeout\": null," +
+        "\"jsonBytes\": null," +
+        "\"jsonContainers\": null," +
+        "\"jsonIterations\": null," +
+        "\"jsonRegular\": null," +
+        "\"jdbcDriver\": null," +
+        "\"jdbcURL\": null," +
+        "\"jdbcUsername\": null," +
+        "\"jdbcPassword\": null," +
+        "\"j2eeDataSource\": null," +
+        "\"ldapURL\": null," +
+        "\"ldapUsername\": null," +
+        "\"ldapPassword\": null" +
+        "}"); 
+                    
     /**
      * 
      * @param $
@@ -96,53 +115,29 @@ public class Script extends Controller {
             ); // synchronized!
         if (source == null)
             return true;
-        Scriptable scope;
+        ScriptableObject scope;
         Context cx = Context.enter();
         try {
-            scope = cx.initStandardObjects(null, true);
+            scope = new ImporterTopLevel(cx, true); // sealed
             cx.evaluateString(
                 scope, source, this.getClass().getName(), 1, null
                 );
+            $.configuration.put("scriptScope", scope);
         } finally {
             Context.exit();
         }
-        ScriptableObject functions = (ScriptableObject) scope.get(
-            "less4jScript", scope
-            );
-        // map functions found in the object named less4j, if any or throw up.
-        if (functions == Scriptable.NOT_FOUND) {
-            if ($.test) $.logInfo(
-                "Object 'less4jScript' not found in JavaScript sources.",
-                "WARNING"
+        Object function = scope.get("jsonApplication", scope);
+        if (function instanceof org.mozilla.javascript.Function) {
+            $.configuration.put("scriptApplication", function);
+            return true;
+        } else if (function != null) {
+            $.logInfo(
+                "Variable 'jsonApplication' is not a function", 
+                "org.less4j.applications.Script"
                 );
-            else
-                return false;
-        }
-        JSON.Object funs = new JSON.Object(); 
-        Iterator names = Simple.iterator(functions.getIds());
-        String name; Object fun;
-        while (names.hasNext()) {
-            name = (String) names.next();
-            if (name.length() < 1 || name.charAt(0) != '/')
-                if ($.test) $.logInfo(
-                    "Invalid path '" + name + "' in 'less4jScript' map", 
-                    "WARNING"
-                    );
-                else
-                    return false;
-            fun = functions.get(name, scope);
-            if (fun instanceof org.mozilla.javascript.Function)
-                funs.put(name, fun);
-            else if ($.test) $.logInfo(
-                "Property '" + name + "' of 'less4jScript' not a function", 
-                "WARNING"
-                );
-            else
-                return false;
-        }
-        $.configuration.put("scriptScope", scope);
-        $.configuration.put("scriptFunctions", funs);
-        return true;
+            return false;
+        } else
+            return true;
     }
     /**
      * 
@@ -167,69 +162,33 @@ public class Script extends Controller {
      * 
      * @param $
      */
-    public static void scriptEvaluate (Actor $) {
+    public void scriptApply (Actor $, String fun) throws Exception {
         Scriptable scriptScope = (Scriptable) 
-            $.configuration.get("scriptScope");
-        Context cx = Context.enter();
-        try {
-            Scriptable scope;
-            if (scriptScope==null)
-                scope = cx.initStandardObjects(null, true);
-            else {
-                scope = cx.newObject(scriptScope);
-                scope.setPrototype(scriptScope);
-                scope.setParentScope(null);
-            }
-            ScriptableObject.putProperty(
-                scope, "$", Context.javaToJS($, scope)
-                );
-            Object result = cx.evaluateString(
-                scope, $.json.S("expression"), "<cmd>", 1, null
-                );
-            if (result instanceof NativeJavaObject)
-                result = ((Wrapper) result).unwrap();
-            $.json.put("result", result);
-        } catch (Exception e) {
-            if ($.test) $.logError(e);
-            $.json.put("exception", e.getMessage());
-        } finally {
-            Context.exit();
+        $.configuration.get("scriptScope");
+        Object function = scriptScope.get(fun, scriptScope);
+        if (function == Scriptable.NOT_FOUND) {
+            $.jsonResponse(501); // Not Implemented
+            return;
         }
-        $.jsonResponse(200);
-    }
-    /**
-     * 
-     * @param $
-     */
-    public static int scriptApply (Actor $) {
-        Scriptable scriptScope = (Scriptable) 
-            $.configuration.get("scriptScope");
-        if (scriptScope==null)
-            return 501; // Not Implemented
-        JSON.Object scriptFunctions = $.configuration.O(
-            "scriptFunctions", null // not safe, but works ,~)
-            );
-        if (
-            scriptFunctions == null || 
-            !(scriptFunctions.containsKey($.about))
-            )
-            return 400; // Bad Request
-        org.mozilla.javascript.Function fun = (
-                org.mozilla.javascript.Function
-                ) scriptFunctions.get($.about);
+        if (function == null) {
+            $.jsonResponse(400); // Bad Request
+            return;
+        }
         Context cx = Context.enter();
         try {
             Scriptable scope = cx.newObject(scriptScope);
             scope.setPrototype(scriptScope);
             scope.setParentScope(null);
-            fun.call(cx, scope, scope, new Object[]{$});
+            ((org.mozilla.javascript.Function) function).call(
+                cx, scope, scope, new Object[]{$}
+                );
         } catch (Exception e) {
-            if ($.test) $.logError(e);
+            $.logError(e);
             $.json.put("exception", e.getMessage());
+            $.jsonResponse(500); // Server Error
         } finally {
             Context.exit();
         }
-        return 200;
     }
     /**
      * Apply the inherited <code>Controller</code> configuration, then maybe 
@@ -264,15 +223,45 @@ public class Script extends Controller {
      * @param $ the request's <code>Actor</code> controlled.
      */
     public void jsonApplication (Actor $) {
-        if ($.about == null)
-            if ($.json.containsKey("expression"))
-                if ($.test)
-                    scriptEvaluate($); // Available only in development ...
-                else
-                    $.jsonResponse(400); // ... but not in production.
-            else
-                $.jsonResponse(400); // ... Bad Request. 
-        else
-            $.jsonResponse(scriptApply($));
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get("scriptScope");
+        Object function = scriptScope.get("jsonApplication", scriptScope);
+        if (function == Scriptable.NOT_FOUND) {
+            $.jsonResponse(501); // Not Implemented
+            return;
+        }
+        if (function == null) {
+            $.jsonResponse(400); // Bad Request
+            return;
+        }
+        Context cx = Context.enter();
+        try {
+            Scriptable scope = cx.newObject(scriptScope);
+            scope.setPrototype(scriptScope);
+            scope.setParentScope(null);
+            ((org.mozilla.javascript.Function) function).call(
+                cx, scope, scope, new Object[]{$}
+                );
+        } catch (Exception e) {
+            $.logError(e);
+            $.json.put("exception", e.getMessage());
+            $.jsonResponse(500); // Server Error
+        } finally {
+            Context.exit();
+        }
     }
 }
+
+/* Note about this implementation
+ * 
+ * The purpose of org.less4j.applications.Script is to develop rapidely.
+ * 
+ * There is ample room for optimization here, using two axis: bytecode
+ * compilation of JavaScript sources and implementations of Scriptable
+ * interfaces for each Java class applied. However, it may be easier
+ * to actually cut and paste a working but slow JavaScript application
+ * in a new Controller in Java: if you sticked to less4j's API, its name 
+ * conventions and a java-like syntax then your prototype might compile
+ * without changes.
+ * 
+ */

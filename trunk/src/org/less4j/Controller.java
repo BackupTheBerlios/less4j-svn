@@ -16,8 +16,6 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-// import java.sql.DriverManager;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException; 
 import javax.servlet.ServletRequest; 
@@ -39,9 +37,8 @@ import javax.servlet.http.HttpServletResponse;
  * 
  * <blockquote>
  * <pre>class HelloWorld extends Controller {
- *     public boolean jsonApplication(Actor $) {
- *         json200Ok ()
- *         return true;
+ *     public void jsonApplication(Actor $) {
+ *         $.jsonResponse(200)
  *     }
  *}</pre></blockquote>
  * 
@@ -347,7 +344,7 @@ public class Controller extends HttpServlet {
         else if (
             method.equals(_POST) && 
             $.request.getContentType().equals(_application_json) &&
-            $.request.getCharacterEncoding().equals(Actor.less4jCharacterSet)
+            $.request.getCharacterEncoding().equals(Actor._UTF_8)
             )
             if (jsonPOST($))
                 jsonApplication($); // valid JSON request
@@ -768,13 +765,15 @@ public class Controller extends HttpServlet {
     }
     
     /**
-     * Try to update a JSON object with the attributes of an LDAP context, 
+     * Try to update the Actor's JSON with the attributes of an LDAP context, 
      * return true if the context's name was resolved, false otherwise.
      * Attributes not named in the original JSON object are filtered out.
      * 
+     * @param $
      * @param dn the distinguished name to resolve
-     * @param object the JSONObject to update
+     * @param attributes names of the properties to update
      * @return true if the name was resolve, false otherwise
+     * @throws JSON.Error
      */
     public static boolean ldapResolve (
         Actor $, String dn, String attributes
@@ -791,6 +790,28 @@ public class Controller extends HttpServlet {
     }
     
     /**
+     * 
+     * @param $
+     * @param dn the distinguished name to resolve
+     * @param attributes names of the properties to create
+     * @return true if the context was created, false otherwise
+     * @throws JSON.Error
+     */
+    public static boolean ldapCreate (
+        Actor $, String dn, String attributes
+        ) 
+    throws JSON.Error {
+        if (ldapOpen($)) try {
+            JSON.Object object = $.json.O(attributes);
+            return $.ldapCreate(
+                $.json.S(dn), object, object.keySet().iterator()
+                );
+        } finally {
+            $.ldapClose();
+        } else return false;
+    }
+        
+    /**
      * Identify the requester and return true to digest a new IRTD2 Cookie 
      * and continue the request or complete the response and return false, 
      * by default grant no rights to a random user ID made of ten alphanumeric 
@@ -799,7 +820,7 @@ public class Controller extends HttpServlet {
      * <h4>Synopsis</h4>
      * 
      * <blockquote>
-     * <pre>public static boolean irtd2Identify (Actor $) {
+     * <pre>public boolean irtd2Identify (Actor $) {
      *    $.identity = Simple.password(10);
      *    return true;
      *}</pre>
@@ -809,16 +830,18 @@ public class Controller extends HttpServlet {
      * with a <code>401 Not Authorized</code> response:
      * 
      * <blockquote>
-     *<pre>public static boolean irtd2Identify (Actor $) {
-     *   $.httpError(401)); return false; // Not Authorized
+     *<pre>public boolean irtd2Identify (Actor $) {
+     *   $.httpError(401)); 
+     *   return false; 
      *}</pre>
      * </blockquote>
      * 
      * <p>or redirect the user agent to another controller:</p>
      * 
      * <blockquote>
-     *<pre>public static boolean irtd2Identify (Actor $) {
-     *   $.http302Redirect("/login"); return false; 
+     *<pre>public boolean irtd2Identify (Actor $) {
+     *   $.http302Redirect("/login"); 
+     *   return false; 
      *}</pre>
      * </blockquote>
      * 
@@ -831,7 +854,7 @@ public class Controller extends HttpServlet {
      *   return true;
      *}
      *
-     *public static boolean jsonApplication (Actor $) {
+     *public void jsonApplication (Actor $) {
      *   if ( // there is an URL query string or a JSON body with a password
      *       $.json.S("password", "").equals(
      *           $.configuration.S("password", "less4j")
@@ -841,11 +864,9 @@ public class Controller extends HttpServlet {
      *       $.identity = "root";
      *       $.rights = "root";
      *       $.irtd2Digest("/");
-     *       return true; 
      *       // is identified, continue the request...
      *   else
      *       $.httpError(401); // Not Authorized
-     *       return false; 
      *       // not identified, response completed. 
      *}</pre>
      * </blockquote>
@@ -866,7 +887,7 @@ public class Controller extends HttpServlet {
      * <h4>Synopsis</h4>
      *
      * <blockquote>
-     *<pre>public static boolean httpContinue (Actor $) {
+     *<pre>public void httpContinue (Actor $) {
      *    return $.httpError(400); // Bad Request
      *}</pre>
      *</blockquote>
@@ -886,7 +907,7 @@ public class Controller extends HttpServlet {
      * <h4>Synopsis</h4>
      * 
      * <blockquote>
-     *<pre>public static boolean httpResource (Actor $) {
+     *<pre>public void httpResource (Actor $) {
      *    return $.httpError(404); // Not Found
      *}</pre>
      *</blockquote>
@@ -913,8 +934,8 @@ public class Controller extends HttpServlet {
      * <h4>Synopsis</h4>
      * 
      * <blockquote>
-     *<pre>public static boolean jsonApplication (Actor $) {
-     *    return $.json200Ok();
+     *<pre>public void jsonApplication (Actor $) {
+     *    $.jsonResponse(200);
      *}</pre>
      *</blockquote>
      *
@@ -934,7 +955,7 @@ public class Controller extends HttpServlet {
      * 
      * <blockquote>
      *<pre>public class HelloWorld implements Controller.Function {
-     *    public boolean call (Actor $) {
+     *    public void call (Actor $) {
      *        $.json.put("hello", "World!");
      *    }
      *}</pre>
@@ -948,9 +969,8 @@ public class Controller extends HttpServlet {
          * Any application of an <code>Actor</code> instance.
          * 
          * @param $
-         * @return
          */
-        public boolean call (Actor $);
+        public void call (Actor $);
     }
 
 } // That's all folks.

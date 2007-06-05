@@ -331,7 +331,7 @@ public class SQL {
      * 
      * @param sql the <code>Connection</code> to update
      * @param statement the SQL statement to execute
-     * @param params an <code>Iterator</code> of <code>JSON.Array</code>s
+     * @param args an <code>Iterator</code> of <code>JSON.Array</code>s
      * @return an <code>Integer</code>
      * @throws <code>SQLException</code>
      */
