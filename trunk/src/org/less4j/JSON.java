@@ -698,6 +698,8 @@ public class JSON {
             // strb(sb, object, Simple.iterator(names));
         } else if (value instanceof List) 
             strb(sb, ((List) value).iterator());
+        else if (value instanceof Iterator) 
+            strb(sb, (Iterator) value);
         else if (value instanceof java.lang.Object[])
             strb(sb, Simple.iterator((java.lang.Object[]) value));
         else if (value instanceof Error) 
@@ -891,6 +893,8 @@ public class JSON {
             repr(sb, object, Simple.iterator(names), indent);
         } else if (value instanceof List) 
             repr(sb, ((List) value).iterator(), indent);
+        else if (value instanceof Iterator) 
+            repr(sb, ((Iterator) value), indent);
         else if (value instanceof Error) 
             ((Error) value).strb(sb);
         else 
