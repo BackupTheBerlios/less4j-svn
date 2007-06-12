@@ -165,7 +165,6 @@ public class Netstring {
         private InputStream _is = null;
         private int _limit, _length, _off, _pos;
         private byte[] _buffer;
-        private boolean _next = false;
         
         public String error = null;
         
@@ -174,59 +173,54 @@ public class Netstring {
             _is = is;
             _limit = limit;
             _buffer = new byte[Integer.toString(limit).length() + 1];
-            _buffer[0] = ',';
-            _next = _pull(1);
         }
 
-        private boolean _pull (int off) throws IOException {
-            _pos = Simple.recv(_is, _buffer, off);
-            if (_pos == off) {
-                return false; // nothing to read, stop iteration.
-            }
-            if (_buffer[0] != ',') {
-                error = _invalid_epilogue; return false;
-            }
-            // read the prologue up to ':', assert numeric only
-            byte c;
-            for (_off = 1; _off < _pos; _off++) {
-                c = _buffer[_off];
-                if (c == ':') break;
-                else if (!(c >= '0' && c <= '9')) {
-                    error = _invalid_prologue; return false;
-                }
-            }
-            if (_off == _buffer.length) {
-                error = _too_long; return false;
-            }
-            _length = Integer.parseInt(new String(_buffer, 1, _off - 1));
-            if (_length > _limit) {
-                error = _too_long; return false;
-            }
-            _off += 1;
-            return true;
+        public boolean hasNext () {
+            return true; // synchronous API can't stall
         }
         
-        public boolean hasNext () {return _next;}
-        
         public Object next () {
-            if (!_next)
-                throw new NoSuchElementException();
             try {
+                _pos = Simple.recv(_is, _buffer, 0);
+                if (_pos == 0)
+                    return null; // nothing more to read, stop iteration.
+
+                // read the prologue up to ':', assert numeric only
+                byte c;
+                for (_off = 1; _off < _pos; _off++) {
+                    c = _buffer[_off];
+                    if (c == ':') break;
+                    else if (!(c >= '0' && c <= '9'))
+                        throw new NoSuchElementException(_invalid_prologue);
+                    
+                }
+                if (_off == _buffer.length)
+                    throw new NoSuchElementException(_too_long);
+                
+                _length = Integer.parseInt(new String(_buffer, 1, _off - 1));
+                if (_length > _limit)
+                    throw new NoSuchElementException(_too_long);
+                
+                _off += 1;
                 byte[] bytes = new byte[_length];
                 for (int i=_off; i < _pos; i++) bytes[i] = _buffer[i];
                 _pos = Simple.recv(_is, bytes, _pos - _off);
-                if (_pos != _length) {
-                    error = _unexpected_end; _next = false;
-                } else 
-                    _next = _pull(0);
+                if (_pos != _length)
+                    throw new NoSuchElementException(_unexpected_end);
+                
+                if (_buffer[0] != ',')
+                    throw new NoSuchElementException(_invalid_epilogue);
+                
                 return bytes;
+                
             } catch (IOException e) {
-                _next = false;
-                error = e.toString();
-                throw new NoSuchElementException();
-            }
+                throw new NoSuchElementException(e.toString());
+            } // checked exception really sucks.
         }
-        public void remove () {/* how can an iterator API suck more? */}
+        
+        public void remove () {
+            /* how can an iterator API suck more than this one? */
+        }
     } 
     
     protected static class StringIterator implements Iterator {
