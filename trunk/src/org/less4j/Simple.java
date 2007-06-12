@@ -16,6 +16,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.FileReader;
 import java.io.BufferedReader;
@@ -134,6 +135,29 @@ public class Simple {
             return null;
         }
      }
+    
+    /**
+     * 
+     * @param is
+     * @param buffer
+     * @param off
+     * @return
+     * @throws IOException
+     */
+    static public int recv (InputStream is, byte[] buffer, int off) 
+    throws IOException {
+        int len = 0;
+        while (off < buffer.length) {
+            len = is.read(buffer, off, buffer.length - off);
+            if (len > -1)
+                off += len; 
+            else if (len == 0)
+                Thread.yield(); // ... wait for input, cooperate!
+            else 
+                break; // ... end of stream.
+        }
+        return off;
+    }
 
 	protected static class ObjectIterator implements Iterator {
 		private Object[] _objects;
@@ -200,6 +224,20 @@ public class Simple {
             return unicode.getBytes(encoding);
         } catch (UnsupportedEncodingException e) {
             return unicode.getBytes();
+        }
+    }
+    
+    /**
+     * 
+     * @param bytes
+     * @param encoding
+     * @return
+     */
+    public static String decode(byte[] bytes, String encoding) {
+        try {
+            return new String (bytes, encoding);
+        } catch (UnsupportedEncodingException e) {
+            return new String (bytes);
         }
     }
     
