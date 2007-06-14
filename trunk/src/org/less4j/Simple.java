@@ -38,6 +38,11 @@ import java.net.URL;
  * @version 0.30
  */
 public class Simple {
+    
+    /**
+     * The default 8 bit encoding for UNICODE strings
+     */
+    public static final String encoding = "UTF-8";
 	
     /**
      * The maximum block size for many file system.
