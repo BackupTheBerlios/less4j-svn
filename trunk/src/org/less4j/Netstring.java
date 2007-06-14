@@ -23,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 import java.net.Socket;
 
@@ -150,21 +151,21 @@ public class Netstring {
     throws IOException {
         send(conn, Simple.encode(string, encoding));
     }
-        
+    
+    private static final String 
+    _unexpected_end = "unexpected InputStream's end";
+    private static final String 
+    _invalid_prologue = "invalid netstring prologue"; 
+    private static final String 
+    _invalid_epilogue = "invalid netstring epilogue"; 
+    private static final String 
+    _too_long = "too long netstring";
+    
     static protected class ByteCollector implements Iterator {
         
-        private static final String 
-        _unexpected_end = "unexpected InputStream's end";
-        private static final String 
-        _invalid_prologue = "invalid netstring prologue"; 
-        private static final String 
-        _invalid_epilogue = "invalid netstring epilogue"; 
-        private static final String 
-        _too_long = "too long netstring";
-        
-        private InputStream _is = null;
-        private int _limit, _length, _off, _pos;
+        private int _limit;
         private byte[] _buffer;
+        private InputStream _is = null;
         
         public String error = null;
         
@@ -180,35 +181,37 @@ public class Netstring {
         }
         
         public Object next () {
+            int read = 0, len, c;
             try {
-                _pos = Simple.recv(_is, _buffer, 0);
-                if (_pos == 0)
-                    return null; // nothing more to read, stop iteration.
-
                 // read the prologue up to ':', assert numeric only
-                byte c;
-                for (_off = 1; _off < _pos; _off++) {
-                    c = _buffer[_off];
-                    if (c == ':') break;
-                    else if (!(c >= '0' && c <= '9'))
+                do {
+                    c = _is.read(); 
+                    if (c == 58) {
+                        break; 
+                    } else if (c < 48 || c > 57)
                         throw new NoSuchElementException(_invalid_prologue);
-                    
+                    else if (c == -1)
+                        break;
+                    else if (read < _buffer.length)
+                        _buffer[read] = (byte) c;
+                    else
+                        throw new NoSuchElementException(_too_long);
+                    read ++;
+                } while (true);
+                if (read == 0) {
+                    _is = null;
+                    return null; // nothing more to read, stop iteration.
                 }
-                if (_off == _buffer.length)
+                len = Integer.parseInt(new String(_buffer, 0, read));
+                if (len > _limit)
                     throw new NoSuchElementException(_too_long);
                 
-                _length = Integer.parseInt(new String(_buffer, 1, _off - 1));
-                if (_length > _limit)
-                    throw new NoSuchElementException(_too_long);
-                
-                _off += 1;
-                byte[] bytes = new byte[_length];
-                for (int i=_off; i < _pos; i++) bytes[i] = _buffer[i];
-                _pos = Simple.recv(_is, bytes, _pos - _off);
-                if (_pos != _length)
+                byte[] bytes = new byte[len + 1];
+                read = Simple.recv(_is, bytes, 0);
+                if (read != len + 1)
                     throw new NoSuchElementException(_unexpected_end);
                 
-                if (_buffer[0] != ',')
+                if (bytes[len] != 44)
                     throw new NoSuchElementException(_invalid_epilogue);
                 
                 return bytes;
@@ -267,4 +270,75 @@ public class Netstring {
             );
     }
     
+    static protected class NetstringIterator implements Iterator {
+        private Object _next;
+        private byte[] _buffer;
+        private int _limit, _end;
+        private String _encoding, _error;
+        public NetstringIterator (byte[] buffer, String encoding) {
+            _end = -1;
+            _buffer = buffer;
+            _limit = Integer.toString(_buffer.length).length() + 1;
+            _encoding = encoding;
+            _next = pull ();
+        }
+        protected Object pull () {
+            _end++; 
+            if (_end >= _buffer.length) {
+                _error = "end of netstrings"; return null;
+            }
+            int pos = _end;
+            int limit = pos + _limit; 
+            byte c;
+            do {
+                c = _buffer[pos];
+                if (c == 58) {
+                    break; 
+                } else if (c < 48 || c > 57) {
+                    _error = _invalid_prologue; return null;
+                }
+                pos ++;
+                if (pos == limit) {
+                    _error = _too_long; return null;
+                }
+            } while (true);
+            int len = Integer.parseInt(
+                new String(_buffer, _end, pos - _end)
+                );
+            pos++;
+            _end = pos + len;
+            if (_end > _buffer.length){
+                len = _buffer.length - pos;
+                try {
+                    return new String(_buffer, pos, len, _encoding);
+                } catch (UnsupportedEncodingException e) {
+                    return new String(_buffer, pos, len);
+                }
+            } else if (_buffer[_end] == 44) {
+                try {
+                    return new String(_buffer, pos, len, _encoding);
+                } catch (UnsupportedEncodingException e) {
+                    return new String(_buffer, pos, len);
+                }
+            } else {
+                _error = _invalid_epilogue; return null;
+            }
+        }
+        public boolean hasNext () {
+            return (_next != null);
+        }
+        public Object next () {
+            if (_next == null)
+                throw new NoSuchElementException(_error);
+            Object result = _next;
+            _next = pull ();
+            return result;
+        }
+        public void remove () {};
+    }
+    
+    public static Iterator decode (byte[] buffer, String encoding) {
+        return new NetstringIterator(buffer, encoding);
+    }
+        
 }
