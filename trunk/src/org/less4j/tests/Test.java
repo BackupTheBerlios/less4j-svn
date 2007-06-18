@@ -231,7 +231,7 @@ public class Test {
             return;
         
         dir += File.separatorChar; 
-        Iterator filenames = Simple.iterator(dirlist);
+        Iterator filenames = Simple.iter(dirlist);
         while (filenames.hasNext()) {
             filename = (String) filenames.next();
             if (filename.endsWith(".json")) {
@@ -363,7 +363,7 @@ public class Test {
         pattern.containers = limits.intValue(0, 65355);
         pattern.iterations = limits.intValue(1, 65355);
         dir += File.separatorChar; 
-        Iterator filenames = Simple.iterator(dirlist);
+        Iterator filenames = Simple.iter(dirlist);
         while (filenames.hasNext()) {
             filename = (String) filenames.next();
             if (filename.endsWith(".json")) {

@@ -141,16 +141,13 @@ public class Controller extends HttpServlet {
      * to enforce a minimal configuration without constraints on the JSON 
      * objects handled and no SQL or LDAP connections:</p>
      * 
-     * <blockquote>
      * <pre>public static String configurationPattern = ("{" +
      *    "\"test\": true," +
      *    "\"irtd2Salts\": [\".........+\"]" +
      *    "}");</pre>
-     * </blockquote>
      * 
      * <p>...</p>
      * 
-     * <blockquote>
      * <pre>{
      *    "test": false, // default to production
      *    "irtd2Salts": [".........+"],
@@ -167,7 +164,6 @@ public class Controller extends HttpServlet {
      *    "jdbcUsername": "(?!root|admin)", // no priviledged users 
      *    "jdbcPassword": "........+"
      *}</pre>
-     * </blockquote>
      * 
      * <p>...</p>
      */
@@ -232,6 +228,9 @@ public class Controller extends HttpServlet {
         setConfiguration(object);
     }
  
+    /**
+     * ...
+     */
     public void service (ServletRequest req, ServletResponse res) {
         Actor $ = new Actor (
             getConfiguration(), 
@@ -311,24 +310,13 @@ public class Controller extends HttpServlet {
      * 
      * <p>...</p>
      * 
-     * <blockquote>
-     * <pre>GET /subject/predicate
-     *Host: context
-     *...</pre>
-     *</blockquote>
+     * <pre>GET /resource</pre>
      *
-     * <blockquote>
-     * <pre>GET /subject/predicate?query
-     *Host: context
-     *...</pre>
-     * </blockquote>
+     * <pre>GET /function?</pre>
      *
-     * <blockquote>
-     * <pre>POST /subject/predicate
-     *Host: context
+     * <pre>POST /function
      *Content-type: application/javascript; charset=UTF-8
      *...</pre>
-     * </blockquote>
      *
      * @param $
      */
@@ -524,7 +512,7 @@ public class Controller extends HttpServlet {
         ) {
         if (sqlOpen($)) try {
             Object object = $.sqlQuery(
-                statement, Simple.itermap($.json, arguments), fetch, model
+                statement, Simple.iter($.json, arguments), fetch, model
                 );
             $.json.put(result, object);
             return (object == null);
@@ -580,8 +568,6 @@ public class Controller extends HttpServlet {
      * JSON named state and return true if no exception was raised.
      * 
      * <h4>Synopsis</h4>
-     * 
-     * <p>...</p>
      * 
      * <pre>if (slqCollection(
      *    $, "result", "select COLUMN from TABLE where KEY=?", 
@@ -649,8 +635,6 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <p>...</p>
-     * 
      * <pre>if (slqObject(
      *    $, "result", "select * from TABLE where COLUMN=?", 
      *    String[]{"argument"}
@@ -686,7 +670,7 @@ public class Controller extends HttpServlet {
         boolean success = false;
         if (sqlOpen($)) try {
             $.json.put(result, $.sqlUpdate(
-                statement, Simple.itermap($.json, arguments)
+                statement, Simple.iter($.json, arguments)
                 ));
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
@@ -716,11 +700,11 @@ public class Controller extends HttpServlet {
      * Try to open an LDAP connection using the configuration properties,
      * or the following defaults:
      * 
-     * {
+     * <pre>{
      *    "ldapURL": "ldap://127.0.0.1:389/",
      *    "ldapUsername": "org.less4j.Controller",
      *    "ldapPassword": ""
-     *    }
+     *    }</pre>
      * 
      * and return true if the connection was successfull, false otherwise.
      * 
@@ -819,37 +803,30 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>public boolean irtd2Identify (Actor $) {
      *    $.identity = Simple.password(10);
      *    return true;
      *}</pre>
-     * </blockquote>
      * 
      * <p>A simpler implementation is to reply unidentified requests
      * with a <code>401 Not Authorized</code> response:
      * 
-     * <blockquote>
      *<pre>public boolean irtd2Identify (Actor $) {
      *   $.httpError(401)); 
      *   return false; 
      *}</pre>
-     * </blockquote>
      * 
      * <p>or redirect the user agent to another controller:</p>
      * 
-     * <blockquote>
      *<pre>public boolean irtd2Identify (Actor $) {
      *   $.http302Redirect("/login"); 
      *   return false; 
      *}</pre>
-     * </blockquote>
      * 
      * <p>The simplest implementation is to pass unidentified requests 
      * through, here to handle JSON login with a configurable password
      * for a <code>root</code> access in the root context "/":</p>
      * 
-     * <blockquote>
      *<pre>public static boolean irtd2Identify (Actor $) {
      *   return true;
      *}
@@ -869,7 +846,6 @@ public class Controller extends HttpServlet {
      *       $.httpError(401); // Not Authorized
      *       // not identified, response completed. 
      *}</pre>
-     * </blockquote>
      * 
      * <p>...</p>
      *  
@@ -886,11 +862,9 @@ public class Controller extends HttpServlet {
      *
      * <h4>Synopsis</h4>
      *
-     * <blockquote>
      *<pre>public void httpContinue (Actor $) {
      *    return $.httpError(400); // Bad Request
      *}</pre>
-     *</blockquote>
      *
      * <p>...</p>
      *
@@ -906,11 +880,9 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      *<pre>public void httpResource (Actor $) {
      *    return $.httpError(404); // Not Found
      *}</pre>
-     *</blockquote>
      *
      * <p>This is a method to overload in an application controller that
      * serve resources in this servlet context to identified users.</p>
@@ -933,11 +905,9 @@ public class Controller extends HttpServlet {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      *<pre>public void jsonApplication (Actor $) {
      *    $.jsonResponse(200);
      *}</pre>
-     *</blockquote>
      *
      * <p>...</p>
      * 
@@ -947,30 +917,4 @@ public class Controller extends HttpServlet {
         $.jsonResponse(200, $.toString());
     }
     
-    /**
-     * A simple interface for functions applied to an actor by a controller
-     * dispatcher, the last articulation in an application of less4j.
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <blockquote>
-     *<pre>public class HelloWorld implements Controller.Function {
-     *    public void call (Actor $) {
-     *        $.json.put("hello", "World!");
-     *    }
-     *}</pre>
-     * </blockquote>
-     * 
-     * @author Laurent Szyster
-     * @version 0.30
-     */
-    public interface Function {
-        /**
-         * Any application of an <code>Actor</code> instance.
-         * 
-         * @param $
-         */
-        public void call (Actor $);
-    }
-
 } // That's all folks.

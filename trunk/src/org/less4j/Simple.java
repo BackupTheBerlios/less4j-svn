@@ -38,11 +38,6 @@ import java.net.URL;
  * @version 0.30
  */
 public class Simple {
-    
-    /**
-     * The default 8 bit encoding for UNICODE strings
-     */
-    public static final String encoding = "UTF-8";
 	
     /**
      * The maximum block size for many file system.
@@ -76,9 +71,18 @@ public class Simple {
     public static int netBufferSize = 16384;
     
     /**
+     * Read byte arrays from a BufferedReader by chunks of 
+     * <code>fioBufferSize</code> until the input stream buffered is
+     * exhausted, accumulate those chunks in a <code>StringBuffer</code>,
+     * join them and  then returns a UNICODE string (implicitely using the 
+     * default character set encoding). 
      * 
-     * @param br
-     * @return
+     * <p>This is a "low-level" API to support convenience to glob files,
+     * URLs resources or any input stream that can be wrapped with a
+     * <code>BufferedReader</code>.</p>
+     * 
+     * @param br a <code>BufferedReader</code> to glob.
+     * @return a <code>String</code> with all data read
      * @throws IOException
      */
     public static String read (BufferedReader br) throws IOException {
@@ -102,18 +106,13 @@ public class Simple {
     /**
      * Try to read a complete file into a String.
      * 
-     * <p>Usage:
+     * <h4>Synopsis</h4>
      * 
-     * <blockquote>
-     * <pre>String resource = fileRead("my.xml");</pre>
-     * </blockquote>
+     * <pre>String resource = Simple.read("my.xml");</pre>
      *     
-     * Note that since it does not throw exceptions, this method can
+     * <p>Note that since it does not throw exceptions, this method can
      * be used to load static class String members, piggy-backing the 
      * class loader to fetch text resources at runtime.</p> 
-     * 
-     * <p>This convenience allows the servlet controller to cache resources
-     * when it is initialized.</p>
      * 
      * @param name the file's name
      * @return a <code>String</code> or <code>null</code> 
@@ -127,9 +126,18 @@ public class Simple {
     }
 
     /**
+     * Try to read a complete file into a String.
      * 
-     * @param url
-     * @return
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>String resource = Simple.read("http://w3c.org/");</pre>
+     *     
+     * <p>Note that since it does not throw exceptions, this method can
+     * be used to load static class String members, piggy-backing the 
+     * class loader to fetch text resources at runtime.</p> 
+     * 
+     * @param url to read from
+     * @return a <code>String</code> or <code>null</code>
      */
     static public String read (URL url) {
         try {
@@ -142,11 +150,32 @@ public class Simple {
      }
     
     /**
+     * Fill the <code>byte</code> buffer with data read from an 
+     * <code>InputStream</code>, starting at position <code>off</code>
+     * until the buffer is full or the stream is closed, then return
+     * the position in the buffer after the last byte received (ie:
+     * the length of the buffer if it was filled).
      * 
-     * @param is
-     * @param buffer
-     * @param off
-     * @return
+     * <h4>Synopsis</code>
+     * 
+     * <pre>import org.less4j.Simple;
+     *import java.net.Socket;
+     *
+     *byte[] buffer = new byte[4096];
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    int pos = Simple.recv(conn.getInputStream(), buffer, 0);
+     *    if (pos == buffer.length)
+     *        System.out.println("buffer filled");
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     * 
+     * 
+     * @param is the <code>InputStream</code> to receive from
+     * @param buffer a <code>byte</code> array to fill
+     * @param off the position to start from
+     * @return the position in the buffer after the last byte received
      * @throws IOException
      */
     static public int recv (InputStream is, byte[] buffer, int off) 
@@ -181,7 +210,7 @@ public class Simple {
      * <p>...
 	 * 
      * <blockquote>
-	 * <pre>Iterator iter = Simple.iterator(new Object[]{x, y, z});</pre>
+	 * <pre>Iterator iter = Simple.iter(new Object[]{x, y, z});</pre>
      * </blockquote>
 	 *     
 	 * Usefull to iterate through final arrays, a prime construct in web
@@ -191,7 +220,7 @@ public class Simple {
 	 * @param objects the array to iterate through
 	 * @return iterator yields all objects in the array
 	 */
-	public static Iterator iterator (Object[] objects) {
+	public static Iterator iter (Object[] objects) {
 		return new ObjectIterator(objects);
 		}
     
@@ -206,19 +235,66 @@ public class Simple {
         public void remove () {/* optional interface? what else now ...*/}
     }
 
-    public static Iterator itermap (Map map, Object[] keys) {
-        return new MapIterator(map, iterator(keys));
-        }
-    
-    public static void associate (Object[] namespace, Map object) {
-        for (int i=0; i<namespace.length; i =+ 2)
-            object.put(namespace[i], namespace[i+1]);
+    /**
+     * Extend a <code>Map</code> with the keys and values sequence found in
+     * an even <code>Object</code> array.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>HashMap map = Simple.dict(new HashMap(), new Object[]{
+     *     "A", "test", 
+     *     "B", true, 
+     *     "C": 1.0, 
+     *     "D", null
+     *     });</pre>
+     * 
+     * <p>This method is convenient to instanciate or update dictionaries 
+     * with a clearer syntax than using a sequence of <code>Map.put</code>.
+     * </p> 
+     * 
+     * @param items
+     * @param map
+     */
+    public static Map dict (Map map, Object[] items) {
+        for (int i=0; i<items.length; i =+ 2)
+            map.put(items[i], items[i+1]);
+        return map;
     }
     
     /**
-     * Encode a <code>unicode</code> string in the given characterset 
+     * Iterate through arbitrary values in a <code>Map</code>.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>HashMap map = Simple.dict(new HashMap(), new Object[]{
+     *     "A", "test", 
+     *     "B", true, 
+     *     "C": 1.0, 
+     *     "D", null
+     *     });;
+     * Iterator values = Simple.iter(map, new Object[]{
+     *     "A", "C", "E"
+     *     };);</pre>
+     * 
+     * <p>This method is convenient to extract an ordered set of named
+     * values from a dictionary using a <code>Object</code> array.</p>
+     * 
+     * @param map the <code>Map</code> to iterate through
+     * @param keys and array of keys to iterate through 
+     * @return an <code>Iterator</code>
+     */
+    public static Iterator iter (Map map, Object[] keys) {
+        return new MapIterator(map, iter(keys));
+    }
+    
+    /**
+     * Encode a <code>unicode</code> string in the given character set 
      * <code>encoding</code> or use the default if a 
      * <code>UnsupportedEncodingException</code> was throwed.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>byte[] encoded = Simple.encode("test", "UTF-8");</pre>
      * 
      * @param unicode the <code>String</code> to encode
      * @param encoding the character set name
@@ -233,10 +309,19 @@ public class Simple {
     }
     
     /**
+     * Decode a <code>byte</code> array to UNICODE from the given character 
+     * set <code>encoding</code> or use the default if a 
+     * <code>UnsupportedEncodingException</code> was throwed.
      * 
-     * @param bytes
-     * @param encoding
-     * @return
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>String decoded = Simple.decode(
+     *    new byte[]{'t', 'e', 's', 't'}, "UTF-8"
+     *    );</pre>
+     * 
+     * @param bytes the <code>byte</code> array to decode 
+     * @param encoding the character set name
+     * @return a UNICODE <code>String</code>
      */
     public static String decode(byte[] bytes, String encoding) {
         try {
@@ -285,6 +370,10 @@ public class Simple {
      * character as fast an lean as possible in Java (without a PCRE and
      * for a maybe too simple use case).
      * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>Iterator strings = Simple.split("one two three", ' ');</pre>
+     * 
      * @param splitted the <code>String</code> to split
      * @param splitter the <code>char</char> used to split input
      * @return an <code>Iterator</code> of <code>String</code>
@@ -298,14 +387,8 @@ public class Simple {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <p>...
-     * 
-     * <blockquote>
-     * <pre>Iterator iter = Simple.iterator(new Object[]{"A", "B", "C"});
+     * <pre>Iterator iter = Simple.iter(new Object[]{"A", "B", "C"});
      *StringBuffer joined = Simple.join(", ", iter, new StringBuffer())</pre>
-     * </blockquote>
-     * 
-     * ...</p>
      * 
      * @param separator
      * @param iter
@@ -328,14 +411,8 @@ public class Simple {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <p>...
-     * 
-     * <blockquote>
-     * <pre>Iterator iter = Simple.iterator(new Object[]{"A", "B", "C"});
-     *String joined = Simple.join(", ", iter)</pre>
-     * </blockquote>
-     * 
-     * ...</p>
+     * <pre>Iterator strings = Simple.iter(new Object[]{"A", "B", "C"});
+     *String joined = Simple.join(", ", strings)</pre>
      * 
      * @param separator 
      * @param iter 

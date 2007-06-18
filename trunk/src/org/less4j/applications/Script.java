@@ -7,57 +7,17 @@ import org.less4j.Simple;
 
 import org.mozilla.javascript.*;
 
-import java.util.Iterator;
-
 /**
- * A controller for JavaScript actions, from development to production.
- * 
- * <p>Servlet instances of <code>Script</code> ready to run scripts
- * loaded from the configured SQL connection in a production environment.</p>
- * 
- * <p>Literraly, <code>org.less4j.Script</code> is "More JavaScript 
- * Applications". There is a least-resistance path in programming the 
- * Web 2.0 client and server sides with the same language.</p>
+ * The <code>org.less4j.Script</code> servlet delivers "More JavaScript 
+ * Applications", from development to production.
  * 
  * <h3>Synopsis</h3>
  * 
- * <pre>GET /script?expression=...</pre>
- * Accept: text/javascript; charset=UTF-8
- * </pre>
- * 
- * <pre>POST /script</pre>
- * Accept: text/javascript; charset=UTF-8
- * Content-Type: application/json; charset=UTF-8
- * 
- * {"expression": ...}</pre>
- * 
- * <pre>GET /script/function?...</pre>
- * Accept: text/javascript; charset=UTF-8
- * </pre>
- * 
- * <pre>POST /script/function
- * Accept: text/javascript; charset=UTF-8
- * Content-Type: application/json; charset=UTF-8
- * 
- * {...}</pre>
- * 
- * <h3>Configuration</h3>
+ * <h4>Configuration</h4>
  * 
  * <pre>{"test": true}</pre>
  * 
- * <pre>GET /script?eval</pre>
- * 
- * <pre>"function jsonApplication($) {
- *     $.jsonResponse(200);
- *}"</pre>
- * 
- * <pre>GET fun?...</pre>
- * 
- * <pre>POST fun
- *Host: domain
- *Content-Type: application/json; charset=UTF-8
- *
- *{}</pre>
+ * <h4>Script</h4>
  * 
  * <h3>Applications</h3>
  * 
@@ -85,6 +45,7 @@ public class Script extends Controller {
     static final long serialVersionUID = 0L; // TODO: regenerate
 
     public static String configurationPattern = ("{" +
+        "\"scripts\": [\"^.+?[.]js$\"]," +
         "\"test\": false," + // optional boolean
         "\"irtd2Salts\": [\"^...........*$\"]," + 
         "\"irtd2Service\": null," +
@@ -102,7 +63,10 @@ public class Script extends Controller {
         "\"ldapUsername\": null," +
         "\"ldapPassword\": null" +
         "}"); 
-                    
+           
+    private static final String _scripts = "scripts";
+    private static final String _scriptScope = "scriptScope";
+    
     /**
      * 
      * @param $
@@ -110,34 +74,27 @@ public class Script extends Controller {
      * @throws Exception
      */
     public boolean scriptLoad (Actor $) throws Exception {
-        String source = Simple.read(
-            getServletContext().getResource("/WEB-INF/functions.js")
-            ); // synchronized!
-        if (source == null)
-            return true;
         ScriptableObject scope;
         Context cx = Context.enter();
         try {
             scope = new ImporterTopLevel(cx, true); // sealed
-            cx.evaluateString(
-                scope, source, this.getClass().getName(), 1, null
-                );
-            $.configuration.put("scriptScope", scope);
+            JSON.Array scripts = $.configuration.A(_scripts);
+            String name, source;
+            for (int i=0, L=scripts.size(); i<L; i++) {
+                name = scripts.S(i);
+                source = Simple.read(
+                    getServletContext().getResource("/WEB-INF/" + name)
+                    );
+                if (source == null)
+                    throw new Exception ("Could not read script " + name);
+                else
+                    cx.evaluateString(scope, source, name, 1, null);
+            }
+            $.configuration.put(_scriptScope, scope);
         } finally {
             Context.exit();
         }
-        Object function = scope.get("jsonApplication", scope);
-        if (function instanceof org.mozilla.javascript.Function) {
-            $.configuration.put("scriptApplication", function);
-            return true;
-        } else if (function != null) {
-            $.logInfo(
-                "Variable 'jsonApplication' is not a function", 
-                "org.less4j.applications.Script"
-                );
-            return false;
-        } else
-            return true;
+        return true;
     }
     /**
      * 
@@ -158,38 +115,40 @@ public class Script extends Controller {
             $.json.put("exception", e.getMessage());
         }
     }
-    /**
-     * 
-     * @param $
-     */
-    public void scriptApply (Actor $, String fun) throws Exception {
-        Scriptable scriptScope = (Scriptable) 
-        $.configuration.get("scriptScope");
-        Object function = scriptScope.get(fun, scriptScope);
-        if (function == Scriptable.NOT_FOUND) {
-            $.jsonResponse(501); // Not Implemented
-            return;
-        }
-        if (function == null) {
-            $.jsonResponse(400); // Bad Request
-            return;
-        }
+    
+    private static Function scriptFunction (
+        Scriptable scriptScope, String name
+        ) {
+        Object function = scriptScope.get(name, scriptScope);
+        if (!(
+            function == null || function == Scriptable.NOT_FOUND
+            ) && function instanceof Function) {
+            return (Function) function;
+        } else 
+            return null;
+    }
+    
+    private static Object scriptCall (
+        Actor $, Scriptable scriptScope, Function function
+        ) 
+    throws Exception {
+        Object result = null;
         Context cx = Context.enter();
         try {
             Scriptable scope = cx.newObject(scriptScope);
             scope.setPrototype(scriptScope);
             scope.setParentScope(null);
-            ((org.mozilla.javascript.Function) function).call(
+            result = ((Function) function).call(
                 cx, scope, scope, new Object[]{$}
                 );
-        } catch (Exception e) {
-            $.logError(e);
-            $.json.put("exception", e.getMessage());
-            $.jsonResponse(500); // Server Error
         } finally {
             Context.exit();
         }
+        return result;
     }
+    
+    private static final String _less4jConfigure = "_less4jConfigure"; 
+    
     /**
      * Apply the inherited <code>Controller</code> configuration, then maybe 
      * try to evaluate the JavaScript sources found in this servlet's
@@ -200,54 +159,90 @@ public class Script extends Controller {
      */
     public boolean less4jConfigure (Actor $) {
         if (super.less4jConfigure($)) try {
-            return scriptLoad($);
+            if (scriptLoad($)) {
+                Scriptable scriptScope = (Scriptable) 
+                    $.configuration.get(_scriptScope);
+                Function function = scriptFunction(
+                    scriptScope, _less4jConfigure
+                    );
+                if (function == null)
+                    return true;
+                else {
+                    Object result = scriptCall($, scriptScope, function);
+                    // TODO: unwrap and test
+                    return true;
+                }
+            } else
+                return false;
         } catch (Exception e) {
             $.logError(e);
         }
         return false;
     }
-    /**
-     * Dispatch requests based on their path between arbitrary expression 
-     * evaluation and the application of configured functions.
-     * 
-     * Try to evaluate requests such as 
-     * 
-     * <pre>?expression=...</pre>
-     * 
-     * or try to apply functions for requests like
-     * 
-     * <pre>function?...</pre>
-     * 
-     * Otherwise reply with an HTTP 400 Bad Request and a JSON body.
-     * 
-     * @param $ the request's <code>Actor</code> controlled.
-     */
+    
+    private static final String _irtd2Identify = "irtd2Identify";
+    
+    public boolean irtd2Identify (Actor $) {
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get(_scriptScope);
+        Function function = scriptFunction(scriptScope, _irtd2Identify);
+        if (function == null) {
+            return false;
+        } else try {
+            Object result = scriptCall($, scriptScope, function);
+            return true;
+        } catch (Exception e) {
+            $.logError(e);
+            return false;
+        }
+    }
+    
+    private static final String _httpContinue = "httpContinue";
+    
+    public void httpContinue (Actor $) {
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get(_scriptScope);
+        Function function = scriptFunction(scriptScope, _httpContinue);
+        if (function == null) {
+            $.httpError(400); // Bad Request
+        } else try {
+            scriptCall($, scriptScope, function);
+        } catch (Exception e) {
+            $.logError(e);
+            $.httpError(500); // Server Error
+        }
+    }
+    
+    private static final String _httpResource = "httpResource";
+    
+    public void httpResource (Actor $) {
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get(_scriptScope);
+        Function function = scriptFunction(scriptScope, _httpResource);
+        if (function == null) {
+            $.httpError(404); // Not Found
+        } else try {
+            scriptCall($, scriptScope, function);
+        } catch (Exception e) {
+            $.logError(e);
+            $.httpError(500); // Server Error
+        }
+    }
+    
+    private static final String _jsonApplication = "jsonApplication";
+    
     public void jsonApplication (Actor $) {
         Scriptable scriptScope = (Scriptable) 
-            $.configuration.get("scriptScope");
-        Object function = scriptScope.get("jsonApplication", scriptScope);
-        if (function == Scriptable.NOT_FOUND) {
-            $.jsonResponse(501); // Not Implemented
-            return;
-        }
+            $.configuration.get(_scriptScope);
+        Function function = scriptFunction(scriptScope, _jsonApplication);
         if (function == null) {
             $.jsonResponse(400); // Bad Request
-            return;
-        }
-        Context cx = Context.enter();
-        try {
-            Scriptable scope = cx.newObject(scriptScope);
-            scope.setPrototype(scriptScope);
-            scope.setParentScope(null);
-            ((org.mozilla.javascript.Function) function).call(
-                cx, scope, scope, new Object[]{$}
-                );
+        } else try {
+            scriptCall($, scriptScope, function);
         } catch (Exception e) {
             $.logError(e);
             $.json.put("exception", e.getMessage());
             $.jsonResponse(500); // Server Error
-        } finally {
-            Context.exit();
         }
     }
 }

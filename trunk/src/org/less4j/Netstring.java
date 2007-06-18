@@ -67,13 +67,33 @@ public class Netstring {
      * single <code>byte</code> array, write it to the <code>conn</code>
      * socket's output stream and finally flush that stream. 
      * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import org.less4j.Simple;
+     *import java.util.Iterator;
+     *import java.net.Socket;
+     *
+     *Iterator netstrings = Simple.iterator(new String[]{
+     *    "one", "two", "three", "four"
+     *});
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    Netstring.send(conn, netstrings, "UTF-8");
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     *
+     * <p>The code above connects to a host named 'server' on TCP port 1234,
+     * sends the netstrings below:</p>
+     * 
+     * <pre>3:one,3:two,5:three,4:four,</pre>
+     * 
      * <p>The purpose is to buffer small strings before actually sending
      * data through the socket in order to minimize local overhead and
      * network latency. I found out writing a byte at a time to a TCP
      * socket <code>OutputStream</code> that each byte can waste a few 
      * UDP datagrams and considerably slow down its application.</p>
-     * 
-     * <p>Again, let's trade space for speed.</code>
      * 
      * @param conn
      * @param strings
@@ -108,11 +128,29 @@ public class Netstring {
     }
     
     /**
+     * A low level interface to send data from a <code>byte</code> array
+     * as one netstring.
      * 
-     * @param os
-     * @param buffer
-     * @param off
-     * @param len
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import java.net.Socket;
+     *
+     *byte[] data = new byte[]{
+     *    'h', 'e', 'l', 'l', 'o', 'w', 'o', 'r', 'l', 'd'
+     *};
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    Netstring.send(conn, data, 0, 5);
+     *    Netstring.send(conn, data, 5, 5);
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     * 
+     * @param os the socket's <code>OutputStream</code> to send to
+     * @param buffer the <code>byte</code> from which to send data
+     * @param off position of the first byte to send in <code>buffer</code>
+     * @param len the number of bytes to send
      * @throws IOException
      */
     static public void 
@@ -129,9 +167,24 @@ public class Netstring {
     }
     
     /**
+     * A low level interface to send a <code>byte</code> array as one 
+     * netstring.
      * 
-     * @param os
-     * @param buffer
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import java.net.Socket;
+     *
+     *byte[] data = new byte[]{'h', 'e', 'l', 'l', 'o'};
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    Netstring.send(conn, data);
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     * 
+     * @param os the socket's <code>OutputStream</code> to send to
+     * @param buffer the <code>byte</code> from which to send data
      * @throws IOException
      */
     static public void send (Socket conn, byte[] buffer) 
@@ -140,10 +193,24 @@ public class Netstring {
     }
        
     /**
+     * A convenience to encode a UNICODE string in 8-bit and send the byte
+     * array result as one netstring.
      * 
-     * @param os
-     * @param string
-     * @param encoding
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import java.net.Socket;
+     *
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    Netstring.send(conn, "hello", "UTF-8");
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     * 
+     * @param os the socket's <code>OutputStream</code> to send to
+     * @param string to encoded as 8-bit bytes and send
+     * @param encoding the character set encoding (eg: "UTF-8") 
      * @throws IOException
      */
     static public void 
@@ -244,10 +311,33 @@ public class Netstring {
     }
     
     /**
+     * Instanciate an <code>Iterator</code> of <code>byte[]</code> received.
      * 
-     * @param conn
-     * @param limit
-     * @return
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import java.util.Iterator;
+     *import java.net.Socket;
+     *
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    Iterator recv = Netstring.recv(conn, 16384);
+     *    byte[] data = recv.next();
+     *    while (data != null)
+     *        data = recv.next();
+     *} (catch NoSuchElementException e) {
+     *    ; // handle error
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     *
+     * <p>The code above opens a connection to "server" on TCP port 1234
+     * and receive all netstrings one by one until the connection is closed
+     * by the server.</p>
+     * 
+     * @param conn the <code>Socket</code> to receive from 
+     * @param limit the maximum netstring length
+     * @return an <code>Iterator</code> of <code>byte[]</code>
      * @throws IOException
      */
     public static Iterator recv (Socket conn, int limit) 
@@ -256,11 +346,35 @@ public class Netstring {
     }
 
     /**
+     * Instanciate an <code>Iterator</code> of <code>String</code> received
+     * and decoded from the given 8-bit character set <code>encoding</code>.
      * 
-     * @param conn
-     * @param limit
-     * @param encoding
-     * @return
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import java.util.Iterator;
+     *import java.net.Socket;
+     *
+     *Socket conn = new Socket("server", 1234);
+     *try {
+     *    Iterator recv = Netstring.recv(conn, 16384, "UTF-8");
+     *    String data = recv.next ();
+     *    while (data != null)
+     *        data = recv.next();
+     *} (catch NoSuchElementException e) {
+     *    ; // handle error
+     *} finally {
+     *    conn.close();
+     *}</pre>
+     *
+     * <p>The code above opens a connection to "server" on TCP port 1234,
+     * then receive and decode from "UTF-8" all incoming netstrings until the 
+     * connection is closed by the server.</p>
+     * 
+     * @param conn the <code>Socket</code> to receive from 
+     * @param limit the maximum netstring length
+     * @param encoding the character set to decode <code>byte</code> received
+     * @return an <code>Iterator</code> of <code>String</code>
      * @throws IOException
      */
     public static Iterator recv (Socket conn, int limit, String encoding) 
@@ -337,6 +451,28 @@ public class Netstring {
         public void remove () {};
     }
     
+    /**
+     * Iterate through netstrings found in a byte <code>buffer</code> and
+     * decode them from the given character set <code>encoding</cide>.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>import org.less4j.Netstring;
+     *import java.util.Iterator;
+     *0
+     *byte[] buffer = new byte[]{
+     *    '0', ':', ',', '1', ':', 'A', ',', '2', ':', 'B', 'C', ','
+     *}
+     *Iterator netstrings = Netstring.decode(buffer, "UTF-8");
+     *String data;
+     *while (netstrings.hasNext())
+     *    data = netstrings.next();
+     *</pre>
+     *
+     * @param buffer a <code>byte</code> array
+     * @param encoding
+     * @return
+     */
     public static Iterator decode (byte[] buffer, String encoding) {
         return new NetstringIterator(buffer, encoding);
     }

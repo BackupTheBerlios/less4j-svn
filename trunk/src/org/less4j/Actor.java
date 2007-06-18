@@ -158,9 +158,7 @@ public class Actor {
     protected static final String _UTF_8 = "UTF-8";
     
     /**
-     * A copy of the servlet controller's configuration, mapping all
-     * options listed in the servlet's XML configuration file and whose 
-     * name start with <code>"less4j"</code>. 
+     * A safe copy of the servlet controller's <code>configuration</code>. 
      */
     public JSON.Object configuration;
 
@@ -289,13 +287,10 @@ public class Actor {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>$.json200Ok ($.toString());</pre>
-     * </blockquote>
      * 
      * <p>The string returned matches this JSONR pattern:
      * 
-     * <blockquote>
      * <pre>{
      *    "identity": "$[0-9a-zA-Z]+^", 
      *    "rights": "$[0-9a-zA-Z]+^",
@@ -305,7 +300,6 @@ public class Actor {
      *    "about": [""],
      *    "json": null
      *}</pre>
-     * </blockquote>
      * 
      * <p>Note that it does not include the controller's private part
      * of its state: configuration, salt, salted, sql or ldap.</p>
@@ -355,21 +349,19 @@ public class Actor {
     }
 
     /**
-     * <p>Write a message to STDOUT, as one line: 
+     * <p>Write a message to STDOUT, as one line: </p>
      * 
-     * <blockquote>
      * <pre>message</pre>
-     * </blockquote>
      *     
-     * If you cannot apply Resin's excellent configuration of STDOUT for
-     * your web applications:
+     * <p>If you cannot apply Resin's excellent configuration of STDOUT for
+     * your web applications:</p>
      * 
      * <blockquote>
      * <pre><a href="http://wiki.caucho.com/Stdout-log"
      *   >http://wiki.caucho.com/Stdout-log</a></pre>
      * </blockquote>
      * 
-     * use multilog or any other log post-processor to add timestamp and
+     * <p>Use multilog or any other log post-processor to add timestamp and
      * other usefull audit information, from outside your application 
      * where it belong.</p>
      * 
@@ -383,21 +375,19 @@ public class Actor {
     private static final String logInfoDelimiter = ": "; 
     
     /**
-     * <p>Write a categorized message to STDERR, as:
+     * <p>Write a categorized message to STDERR, as:</p>
      * 
-     * <blockquote>
      * <pre>category: message</pre>
-     * </blockquote>
      *
      * <p>Again, you should use a log-posprocessor to add audit information 
-     * to your logs. Or apply Resin:
+     * to your logs. Or apply Resin:</p>
      * 
      * <blockquote>
      * <pre><a href="http://wiki.caucho.com/Stderr-log"
      *   >http://wiki.caucho.com/Stderr-log</a></pre>
      * </blockquote>
      * 
-     * Audit logs may inform about a completed transaction, an aborted
+     * <p>Audit logs may inform about a completed transaction, an aborted
      * action, a authorization failure or any hazardous event for which
      * a trace is legaly required.</p>
      * 
@@ -420,20 +410,27 @@ public class Actor {
     
     /**
      * <p>Write a compact stack trace to STDERR in the "StackTrace" category,
-     * in one line, like:
+     * in one line.</p>
      * 
-     * <blockquote>
-     * <pre>StackTrace: 34|thrower.called 12|catcher.calling</pre>
-     * </blockquote>
+     * <h4>Synopsis</h4>
      * 
-     * Also, if test is false, log the JSON object of this actor.</p>
-     * 
-     * <p><strong>Usage:</strong>
-     * 
-     * <blockquote>
      * <pre>try {...} catch (Exception e) {logError (e);}</pre>
-     * </blockquote>
      *     
+     * <p>Could yield:</p>
+     * 
+     * <pre>StackTrace: 34|thrower.called 12|catcher.calling</pre>
+     * 
+     * <p>If <code>test</code> is false this method will also log its actor 
+     * <code>json</code> member.</p>
+     * 
+     * <pre>StackTrace: error 34|thrower.called 12|catcher.calling {...}</pre>
+     *
+     * <p>In production (not testing), what you need to audit errors is an
+     * image of the application context without confidential information: 
+     * the entire JSON object model but none of the server's configuration.</p>
+     * 
+     * <p>This is what the helpdesk needs and it still fits on one line.</p>
+     *
      * <p>The purpose is to give debuggers a usefull "slice" of the stack
      * trace: which error, where it occurred and what caused it. In its
      * context, amongst other log lines, not spread all over the screen.</p>
@@ -445,16 +442,6 @@ public class Actor {
      * information to understand why an error conditions was not handled
      * by the application and how to fix it.</p>
      * 
-     * <p>In production (not testing), what you need to audit errors is an
-     * image of the application context without confidential information: 
-     * the entire JSON object model but none of the server's configuration.
-     * 
-     * <blockquote>
-     * <pre>StackTrace: error 34|thrower.called 12|catcher.calling {...}</pre>
-     * </blockquote>
-     *
-     * This is what the helpdesk needs and it still fits on one line.</p>
-     *
      * @param error the throwable instance catched
      * 
      */
@@ -493,22 +480,11 @@ public class Actor {
     /** 
      * Log an audit of this HTTP request and response in one line. 
      * 
-     * <p>For instance:
+     * <p>For instance:</p>
      * 
-     * <blockquote>
      * <pre>LESS4J: identity roles time digested digest GET url HTTP/1.1 200</pre>
-     * </blockquote>
-     * 
-     * using by convention strings without whitespace for the identity
-     * and the enumeration of the rights granted. Practically, that fits
-     * email addresses or names that users allready use as principals.</p>
-     * 
-     * <p>Role names don't *need* whitespaces, they are pretty much
-     * constants defined at the network level (for instance products of an 
-     * ASP or rigths over contents in a CMS, etc ...).</p>
-     * 
-     * <p>Note that digested is the digest of the previous request, the
-     * backlink to chain a session step by step ... and detect fraud.</p>
+     *
+     * <p>...</p>
      * 
      */
     public void logAudit (int status) {
@@ -542,6 +518,8 @@ public class Actor {
      * time and bears the signature of this servlet, return false otherwise. 
      * 
      * <h4>Synopsis</h4>
+     * 
+     * <pre>...</pre>
      * 
      * <p>This method is expected to be called by the <code>Actor</code>'s 
      * <code>Controller</code> before it handles the request, so it should 
@@ -631,11 +609,11 @@ public class Actor {
      * 
      * <h4>Synopis</h4>
      * 
+     * <pre>...</pre>
+     * 
      * <p>The cookie value is a formatted string made as follow:</p>
      * 
-     * <blockquote>
      * <pre>Cookie: IRTD2=<strong>identity roles time digested digest</strong>; </pre>
-     * </blockquote>
      * 
      * <p>where <code>identity</code> and <code>roles</code> are respectively
      * Public Names and netstrings of 7-bit ASCII characters only, followed
@@ -760,6 +738,8 @@ public class Actor {
      * 
      * <h4>Synopsis</h4>
      * 
+     * <pre>...</pre>
+     * 
      * @param limit
      * @return
      */
@@ -767,23 +747,15 @@ public class Actor {
         int contentLength = request.getContentLength(); 
         if (contentLength < 1 || contentLength > limit)
             return null; // don't do null or excess data
+        
         byte[] body = new byte[contentLength];
-        try { // fill that buffer ASAP
-            ServletInputStream is = request.getInputStream();
-            int len;
-            int off = 0;
-            while (off < contentLength) {
-                len = is.read(body, off, contentLength - off);
-                if (len > -1)
-                    off += len; 
-                else if (len == 0)
-                    Thread.yield(); // ... wait for input ...
-                else break;
-            }
-            return body;
+        try {
+            Simple.recv(request.getInputStream(), body, 0);
         } catch (IOException ioe) {
-            logError(ioe); return null;
+            logError(ioe); 
+            body = null;
         }
+        return body;
     }
     
     /**
@@ -792,6 +764,8 @@ public class Actor {
      * error.</p>
      * 
      * <h4>Synopsis</h4>
+     * 
+     * <pre>...</pre>
      * 
      * @param code HTTP error to send
      */
@@ -809,6 +783,8 @@ public class Actor {
      * charset. Audit a successfull response or log an error.</p>
      * 
      * <h4>Synopsis</h4>
+     * 
+     * <pre>...</pre>
      * 
      * @param code the HTTP response code
      * @param body a byte string
@@ -842,11 +818,9 @@ public class Actor {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>$.httpResponse(200, "&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
-     * </blockquote>
      * 
-     * where <code>$</code> is an <code>Actor</code> instance.</p>
+     * <p>Note: here <code>$</code> is an <code>Actor</code> instance.</p>
      *
      * @param body a string
      * @param type the resource content type
@@ -894,21 +868,17 @@ public class Actor {
         
     /**
      * <p>Try to send a 302 HTTP Redirect response to the a relative or
-     * absolute location with the XML string 
+     * absolute location with the following XML string as body: 
      * 
      * <blockquote>
      * <pre>&lt;rest302Redirect/&gt;</pre>
      * </blockquote>
      * 
-     * as body.</p>
-     * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>$.http302Redirect("/resource?action")</pre>
-     * </blockquote>
      * 
-     * Note that this method does <em>not</em> apply the
+     * <p>Note that this method does <em>not</em> apply the
      * <code>sendRedirect</code> method of <code>HttpServletResponse</code>
      * in order to send its own response body. Instead it uses the 
      * <code>URL</code> convenience to validate a location as an
@@ -929,11 +899,9 @@ public class Actor {
      *
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>$.html200Ok("&lt;hello-world/&gt;")</pre>
-     * </blockquote>
      * 
-     * where <code>$</code> is an <code>Actor</code> instance.</p>
+     * <p>Note: here <code>$</code> is an <code>Actor</code> instance.</p>
      *
      * @param body a string
      */
@@ -1284,7 +1252,6 @@ public class Actor {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>try {
      *    $.json.put("table", $.<strong>sqlTable(</strong>
      *        "select * from TABLE where KEY=?", 
@@ -1294,7 +1261,6 @@ public class Actor {
      *} catch (SQLException e) {
      *    $.logError(e);
      *}</pre>
-     * </blockquote>
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
@@ -1307,7 +1273,7 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, SQL.table
+            statement, Simple.iter(json, arguments), fetch, SQL.table
             );
     }
     
@@ -1319,7 +1285,6 @@ public class Actor {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <blockquote>
      * <pre>try {
      *    $.json.put("relations", $.<strong>sqlRelations(</strong>
      *        "select * from TABLE where KEY=?", 
@@ -1329,7 +1294,6 @@ public class Actor {
      *} catch (SQLException e) {
      *    $.logError(e);
      *}</pre>
-     * </blockquote>
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an array of <code>String[]</code> 
@@ -1342,7 +1306,7 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, SQL.relations
+            statement, Simple.iter(json, arguments), fetch, SQL.relations
             );
     }
 
@@ -1375,7 +1339,7 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, SQL.collection
+            statement, Simple.iter(json, arguments), fetch, SQL.collection
             );
     }
     
@@ -1408,11 +1372,13 @@ public class Actor {
         ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, SQL.dictionary
+            statement, Simple.iter(json, arguments), fetch, SQL.dictionary
             );
     }
         
     /**
+     * ...
+     * 
      * <h4>Synopsis</h4>
      * 
      * <pre>try {
@@ -1436,11 +1402,15 @@ public class Actor {
     ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, SQL.objects
+            statement, Simple.iter(json, arguments), fetch, SQL.objects
             );
     }
     
     /**
+     * ...
+     * 
+     * <h4>Synopsis</h4>
+     * 
      * <pre>try {
      *    $.json.put("object", ($.<strong>sqlObject(</strong>
      *        "select * from TABLE where VALUE = ?", 
@@ -1456,11 +1426,11 @@ public class Actor {
      * @throws an <code>SQLException</code>
      */
     public JSON.Object sqlObject ( 
-        String statement, String[] arguments, int fetch
+        String statement, String[] arguments
     ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.itermap(json, arguments), fetch, SQL.object
+            statement, Simple.iter(json, arguments), 1, SQL.object
             );
     }
     
@@ -1614,7 +1584,7 @@ public class Actor {
      * @return true if the name was resolved, false otherwise
      */
     public boolean ldapResolve (
-        String dn, Map map, Iterator names
+        String dn, JSON.Object object, Iterator names
         ) {
         if (test) logInfo ("request dn=" + dn, "LDAP");
         Attributes attributes;
@@ -1626,16 +1596,16 @@ public class Actor {
                 key = (String) names.next();
                 attrs = attributes.get(key);
                 if (attrs == null)
-                    map.put(key, null);
+                    object.put(key, null);
                 else {
                     int L = attrs.size();
                     if (L == 1)
-                        map.put(key, attrs.get(0).toString());
+                        object.put(key, attrs.get(0).toString());
                     else {
-                        ArrayList list = new ArrayList();
+                        JSON.Array list = new JSON.Array();
                         for (int i=0; i<L; i++) 
                             list.add(attrs.get(i).toString());
-                        map.put(key, list);
+                        object.put(key, list);
                     }
                 }
             }
@@ -1643,7 +1613,7 @@ public class Actor {
             logError(e);
             return false;
         }
-        if (test) logInfo(JSON.encode(map), "LDAP");
+        if (test) logInfo(JSON.encode(object), "LDAP");
         return true;
     }
     

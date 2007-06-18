@@ -39,30 +39,6 @@ import java.util.Iterator;
  * <p>Also, note that this implementation depends on less4j's 
  * <code>JSON</code> and makes little sense out of a web controller.</p>
  * 
- * <h3>About ORMs</h3>
- * 
- * <p>The benefit of an ORM in a J2EE controller is mainly to paliate the
- * complications of JDBC and a brain-dead synchronous share-everything design.
- * Good ORMs can provide developers a convenient API without leaks that allows 
- * controllers to release SQL connections asap.</p>
- * 
- * <p>However, I doubt there is any benefit for J2EE applications in trying to 
- * map instances of arbitrary Java objects in an SQL database. First because
- * in most case, data is allready available in a schema that just does not
- * map to the application's object model. Second because when data is
- * not an SQL legacy, there is an opportunity <em>not</em> to use a 
- * relations as object properties.</p>
- * 
- * <p>So, you won't find anything like Hibernate here. I expect less4j's
- * applications to store JSON objects as they are first, then latter
- * update one or more database with indexes and statistics about those
- * objects.</p>
- * 
- * <p>This class bundles a simple <code>ORM</code> interface and singletons 
- * for each of its six protected implementations, one per patterns supported.
- * Most applications of less4j don't need more and you may as well use the
- * appropriate methods of <code>Actor</code> or <code>Controller</code>.</p>
- * 
  * @author Laurent Szyster
  * @version 0.30
  */
@@ -87,6 +63,25 @@ public class SQL {
      *
      *public static ORM collection = new _Collection ();</pre>
      *
+     * <h3>Applications</h3>
+     * 
+     * <p>The benefit of an ORM in a J2EE controller is mainly to paliate the
+     * complications of JDBC and a brain-dead synchronous share-everything 
+     * design. The good ones provide developers a convenient API without leaks 
+     * that allows controllers to release SQL connections asap.</p>
+     * 
+     * <p>However, I doubt there is any benefit for J2EE applications in 
+     * trying to map instances of arbitrary Java objects in an SQL database. 
+     * First because in most case, data is allready available in a schema that
+     * just does not map to the application's object model. Second because 
+     * when data is not an SQL legacy, there is an opportunity <em>not</em> 
+     * to use a relations as object properties.</p>
+     * 
+     * <p>So, you won't find anything like Hibernate here. I expect less4j's
+     * applications to store JSON objects as they are first, then latter
+     * update one or more database with indexes and statistics about those
+     * objects.</p>
+     * 
      * @author Laurent Szyster
      * @version 0.30
      */

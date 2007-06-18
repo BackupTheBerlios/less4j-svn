@@ -701,7 +701,7 @@ public class JSON {
         else if (value instanceof Iterator) 
             strb(sb, (Iterator) value);
         else if (value instanceof java.lang.Object[])
-            strb(sb, Simple.iterator((java.lang.Object[]) value));
+            strb(sb, Simple.iter((java.lang.Object[]) value));
         else if (value instanceof Error) 
             ((Error) value).strb(sb);
         else 
@@ -803,7 +803,7 @@ public class JSON {
         } else if (value instanceof List) 
             xjson(sb, ((List) value).iterator());
         else if (value instanceof java.lang.Object[]) 
-            xjson(sb, Simple.iterator((java.lang.Object[]) value));
+            xjson(sb, Simple.iter((java.lang.Object[]) value));
         else if (value instanceof Error) 
             ((Error) value).strb(sb);
         else 
@@ -890,7 +890,7 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            repr(sb, object, Simple.iterator(names), indent);
+            repr(sb, object, Simple.iter(names), indent);
         } else if (value instanceof List) 
             repr(sb, ((List) value).iterator(), indent);
         else if (value instanceof Iterator) 
