@@ -128,7 +128,7 @@ public class Script extends Controller {
     }
     
     private static Function scriptFunction (
-        Scriptable scriptScope, String name
+        Context cx, Scriptable scriptScope, String name
         ) {
         Object function = scriptScope.get(name, scriptScope);
         if (!(
@@ -140,22 +140,15 @@ public class Script extends Controller {
     }
     
     private static Object scriptCall (
-        Actor $, Scriptable scriptScope, Function function
+        Actor $, Context cx, Scriptable scriptScope, Function function
         ) 
     throws Exception {
-        Object result = null;
-        Context cx = Context.enter();
-        try {
-            Scriptable scope = cx.newObject(scriptScope);
-            scope.setPrototype(scriptScope);
-            scope.setParentScope(null);
-            result = ((Function) function).call(
-                cx, scope, scope, new Object[]{$}
-                );
-        } finally {
-            Context.exit();
-        }
-        return result;
+        Scriptable scope = cx.newObject(scriptScope);
+        scope.setPrototype(scriptScope);
+        scope.setParentScope(null);
+        return ((Function) function).call(
+            cx, scope, scope, new Object[]{$}
+            );
     }
     
     private static final String _less4jConfigure = "_less4jConfigure"; 
@@ -173,15 +166,20 @@ public class Script extends Controller {
             if (scriptLoad($)) {
                 Scriptable scriptScope = (Scriptable) 
                     $.configuration.get(_scriptScope);
-                Function function = scriptFunction(
-                    scriptScope, _less4jConfigure
-                    );
-                if (function == null)
-                    return true;
-                else {
-                    Object result = scriptCall($, scriptScope, function);
-                    // TODO: unwrap and test
-                    return true;
+                Context cx = Context.enter();
+                try {
+                    Function function = scriptFunction(
+                        cx, scriptScope, _less4jConfigure
+                        );
+                    if (function == null)
+                        return true;
+                    else {
+                        return ((Boolean) Context.jsToJava(scriptCall(
+                            $, cx, scriptScope, function
+                            ), Boolean.class)).booleanValue();
+                    }
+                } finally {
+                    Context.exit();
                 }
             } else
                 return false;
@@ -196,15 +194,23 @@ public class Script extends Controller {
     public boolean irtd2Identify (Actor $) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get(_scriptScope);
-        Function function = scriptFunction(scriptScope, _irtd2Identify);
-        if (function == null) {
-            return super.irtd2Identify($);
-        } else try {
-            Object result = scriptCall($, scriptScope, function);
-            return true;
-        } catch (Exception e) {
-            $.logError(e);
-            return false;
+        Context cx = Context.enter();
+        try {
+            Function function = scriptFunction(
+                cx, scriptScope, _irtd2Identify
+                );
+            if (function == null) {
+                return super.irtd2Identify($);
+            } else try {
+                return ((Boolean) Context.jsToJava(scriptCall(
+                        $, cx, scriptScope, function
+                        ), Boolean.class)).booleanValue();
+            } catch (Exception e) {
+                $.logError(e);
+                return false;
+            }
+        } finally {
+            Context.exit();
         }
     }
     
@@ -213,14 +219,21 @@ public class Script extends Controller {
     public void httpContinue (Actor $) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get(_scriptScope);
-        Function function = scriptFunction(scriptScope, _httpContinue);
-        if (function == null) {
-            super.httpContinue($);
-        } else try {
-            scriptCall($, scriptScope, function);
-        } catch (Exception e) {
-            $.logError(e);
-            $.httpError(500); // Server Error
+        Context cx = Context.enter();
+        try {
+            Function function = scriptFunction(
+                cx, scriptScope, _httpContinue
+                );
+            if (function == null) {
+                super.httpContinue($);
+            } else try {
+                scriptCall($, cx, scriptScope, function);
+            } catch (Exception e) {
+                $.logError(e);
+                $.httpError(500); // Server Error
+            }
+        } finally {
+            Context.exit();
         }
     }
     
@@ -229,14 +242,21 @@ public class Script extends Controller {
     public void httpResource (Actor $) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get(_scriptScope);
-        Function function = scriptFunction(scriptScope, _httpResource);
-        if (function == null) {
-            super.httpResource($);
-        } else try {
-            scriptCall($, scriptScope, function);
-        } catch (Exception e) {
-            $.logError(e);
-            $.httpError(500); // Server Error
+        Context cx = Context.enter();
+        try {
+            Function function = scriptFunction(
+                cx, scriptScope, _httpResource
+                );
+            if (function == null) {
+                super.httpResource($);
+            } else try {
+                scriptCall($, cx, scriptScope, function);
+            } catch (Exception e) {
+                $.logError(e);
+                $.httpError(500); // Server Error
+            }
+        } finally {
+            Context.exit();
         }
     }
     
@@ -245,13 +265,18 @@ public class Script extends Controller {
     public JSONR.Type jsonRegular (Actor $) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get(_scriptScope);
-        Object model = scriptScope.get(_jsonRegular, scriptScope);
-        if (!(
-            model == null || model == Scriptable.NOT_FOUND
-            ) && model instanceof JSONR.Type) {
-            return (JSONR.Type) model;
-        } else 
-            return super.jsonRegular($);
+        Context.enter();
+        try {
+            Object model = scriptScope.get(_jsonRegular, scriptScope);
+            if (!(
+                model == null || model == Scriptable.NOT_FOUND
+                ) && model instanceof JSONR.Type) {
+                return (JSONR.Type) model;
+            } else 
+                return super.jsonRegular($);
+        } finally {
+            Context.exit();
+        }
     }
 
     private static final String _jsonApplication = "jsonApplication";
@@ -259,15 +284,22 @@ public class Script extends Controller {
     public void jsonApplication (Actor $) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get(_scriptScope);
-        Function function = scriptFunction(scriptScope, _jsonApplication);
-        if (function == null) {
-            super.jsonApplication($);
-        } else try {
-            scriptCall($, scriptScope, function);
-        } catch (Exception e) {
-            $.logError(e);
-            $.json.put("exception", e.getMessage());
-            $.jsonResponse(500); // Server Error
+        Context cx = Context.enter();
+        try {
+            Function function = scriptFunction(
+                cx, scriptScope, _jsonApplication
+                );
+            if (function == null) {
+                super.jsonApplication($);
+            } else try {
+                scriptCall($, cx, scriptScope, function);
+            } catch (Exception e) {
+                $.logError(e);
+                $.json.put("exception", e.getMessage());
+                $.jsonResponse(500); // Server Error
+            }
+        } finally {
+            Context.exit();
         }
     }
 }
