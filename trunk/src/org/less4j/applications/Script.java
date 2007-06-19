@@ -2,10 +2,11 @@ package org.less4j.applications;
 
 import org.less4j.Controller;
 import org.less4j.Actor;
+import org.less4j.JSONR;
 import org.less4j.JSON;
 import org.less4j.Simple;
 
-import org.mozilla.javascript.*;
+import org.mozilla.javascript.*; // More JavaScript Applications!
 
 /**
  * The <code>org.less4j.Script</code> servlet delivers "More JavaScript 
@@ -13,11 +14,17 @@ import org.mozilla.javascript.*;
  * 
  * <h3>Synopsis</h3>
  * 
- * <h4>Configuration</h4>
+ * <pre>importPackage(org.less4j);
  * 
- * <pre>{"test": true}</pre>
+ *function irtd2Identify($) {
+ *    $.identity = Simple.password(10);
+ *    return true;
+ *}
  * 
- * <h4>Script</h4>
+ *function jsonApplication($) {
+ *    $.json.put("hello", $.json.S("who", $.identity) + "!");
+ *    $.jsonResponse(200);
+ *}</pre>
  * 
  * <h3>Applications</h3>
  * 
@@ -44,7 +51,7 @@ public class Script extends Controller {
 
     static final long serialVersionUID = 0L; // TODO: regenerate
 
-    public static String configurationPattern = ("{" +
+    private static String _configurationPattern = ("{" +
         "\"scripts\": [\"^.+?[.]js$\"]," +
         "\"test\": false," + // optional boolean
         "\"irtd2Salts\": [\"^...........*$\"]," + 
@@ -64,6 +71,10 @@ public class Script extends Controller {
         "\"ldapPassword\": null" +
         "}"); 
            
+    public JSONR.Type configurationPattern () throws JSON.Error {
+        return JSONR.compile(_configurationPattern);
+    }
+    
     private static final String _scripts = "scripts";
     private static final String _scriptScope = "scriptScope";
     
@@ -187,7 +198,7 @@ public class Script extends Controller {
             $.configuration.get(_scriptScope);
         Function function = scriptFunction(scriptScope, _irtd2Identify);
         if (function == null) {
-            return false;
+            return super.irtd2Identify($);
         } else try {
             Object result = scriptCall($, scriptScope, function);
             return true;
@@ -204,7 +215,7 @@ public class Script extends Controller {
             $.configuration.get(_scriptScope);
         Function function = scriptFunction(scriptScope, _httpContinue);
         if (function == null) {
-            $.httpError(400); // Bad Request
+            super.httpContinue($);
         } else try {
             scriptCall($, scriptScope, function);
         } catch (Exception e) {
@@ -220,7 +231,7 @@ public class Script extends Controller {
             $.configuration.get(_scriptScope);
         Function function = scriptFunction(scriptScope, _httpResource);
         if (function == null) {
-            $.httpError(404); // Not Found
+            super.httpResource($);
         } else try {
             scriptCall($, scriptScope, function);
         } catch (Exception e) {
@@ -229,6 +240,20 @@ public class Script extends Controller {
         }
     }
     
+    private static final String _jsonRegular = "jsonRegular";
+    
+    public JSONR.Type jsonRegular (Actor $) {
+        Scriptable scriptScope = (Scriptable) 
+            $.configuration.get(_scriptScope);
+        Object model = scriptScope.get(_jsonRegular, scriptScope);
+        if (!(
+            model == null || model == Scriptable.NOT_FOUND
+            ) && model instanceof JSONR.Type) {
+            return (JSONR.Type) model;
+        } else 
+            return super.jsonRegular($);
+    }
+
     private static final String _jsonApplication = "jsonApplication";
     
     public void jsonApplication (Actor $) {
@@ -236,7 +261,7 @@ public class Script extends Controller {
             $.configuration.get(_scriptScope);
         Function function = scriptFunction(scriptScope, _jsonApplication);
         if (function == null) {
-            $.jsonResponse(400); // Bad Request
+            super.jsonApplication($);
         } else try {
             scriptCall($, scriptScope, function);
         } catch (Exception e) {

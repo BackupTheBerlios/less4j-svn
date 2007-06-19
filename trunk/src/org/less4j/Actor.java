@@ -19,7 +19,7 @@ package org.less4j; // less java for more applications
 // import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.ArrayList;
+// import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -43,7 +43,7 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 
-import javax.servlet.ServletInputStream;
+// import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -406,73 +406,46 @@ public class Actor {
         System.err.println(sb.toString());
     }
 
-    private static final String stackTraceCategory = "StackTrace: ";
+    // private static final String stackTraceCategory = "StackTrace: ";
     
     /**
-     * <p>Write a compact stack trace to STDERR in the "StackTrace" category,
-     * in one line.</p>
+     * <p>Write a stack trace to STDERR.</p>
      * 
      * <h4>Synopsis</h4>
      * 
      * <pre>try {...} catch (Exception e) {logError (e);}</pre>
      *     
-     * <p>Could yield:</p>
-     * 
-     * <pre>StackTrace: 34|thrower.called 12|catcher.calling</pre>
-     * 
-     * <p>If <code>test</code> is false this method will also log its actor 
-     * <code>json</code> member.</p>
-     * 
-     * <pre>StackTrace: error 34|thrower.called 12|catcher.calling {...}</pre>
-     *
-     * <p>In production (not testing), what you need to audit errors is an
-     * image of the application context without confidential information: 
-     * the entire JSON object model but none of the server's configuration.</p>
-     * 
-     * <p>This is what the helpdesk needs and it still fits on one line.</p>
-     *
-     * <p>The purpose is to give debuggers a usefull "slice" of the stack
-     * trace: which error, where it occurred and what caused it. In its
-     * context, amongst other log lines, not spread all over the screen.</p>
-     *
-     * <p>Without an error message, because developers need a stack trace of 
-     * *unexpected* exception only. In such case any attempt to explicit 
-     * it with a message would be ludicrous. Again, it's the meaning of
-     * the log context around that do give debuggers the most relevant
-     * information to understand why an error conditions was not handled
-     * by the application and how to fix it.</p>
-     * 
      * @param error the throwable instance catched
-     * 
      */
     public void logError (Throwable error) {
-        StackTraceElement[] stacktrace = error.getStackTrace();
-        StackTraceElement catcher, thrower;
-        int i = 0;
-        do {
-            thrower = stacktrace[i++];
-        } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
-        catcher = stacktrace[i];
-        StringBuffer sb = new StringBuffer();
-        sb.append(stackTraceCategory);
-        sb.append(error.getMessage());
-        sb.append(' ');
-        sb.append(thrower.getLineNumber());
-        sb.append('|');
-        sb.append(thrower.getClassName());
-        sb.append('.');
-        sb.append(thrower.getMethodName());
-        sb.append(' ');
-        sb.append(catcher.getLineNumber());
-        sb.append('|');
-        sb.append(catcher.getClassName());
-        sb.append('.');
-        sb.append(catcher.getMethodName());
-        if (!test && json != null) {
-            sb.append(' ');
-            JSON.strb(sb, json);
-        }
-        System.err.println(sb.toString());
+//        StackTraceElement[] stacktrace = error.getStackTrace();
+//        StackTraceElement catcher, thrower;
+//        int i = 0;
+//        do {
+//            thrower = stacktrace[i++];
+//        } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
+//        catcher = stacktrace[i];
+//        StringBuffer sb = new StringBuffer();
+//        sb.append(stackTraceCategory);
+//        sb.append(error.getMessage());
+//        sb.append(' ');
+//        sb.append(thrower.getLineNumber());
+//        sb.append('|');
+//        sb.append(thrower.getClassName());
+//        sb.append('.');
+//        sb.append(thrower.getMethodName());
+//        sb.append(' ');
+//        sb.append(catcher.getLineNumber());
+//        sb.append('|');
+//        sb.append(catcher.getClassName());
+//        sb.append('.');
+//        sb.append(catcher.getMethodName());
+//        if (!test && json != null) {
+//            sb.append(' ');
+//            JSON.strb(sb, json);
+//        }
+//        System.err.println(sb.toString());
+        error.printStackTrace(System.err);
     }
     
     protected static String logLESS4J = "LESS4J: ";
@@ -889,25 +862,6 @@ public class Actor {
     public void http302Redirect(String location) {
         http302Redirect(
             location, http302RedirectXML.getBytes(), _text_html
-            );
-    }
-    
-    /**
-     * Send a 200 Ok HTTP response with the appropriate headers for
-     * an HTML string using the UTF-8 character set encoding. Audit a
-     * successfull response or log an error.
-     *
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>$.html200Ok("&lt;hello-world/&gt;")</pre>
-     * 
-     * <p>Note: here <code>$</code> is an <code>Actor</code> instance.</p>
-     *
-     * @param body a string
-     */
-    public void html200Ok (String body) {
-        httpResponse(
-            200, Simple.encode(body, _UTF_8), _text_html, _UTF_8
             );
     }
     
@@ -1672,61 +1626,3 @@ public class Actor {
     }
     
 }
-
-/* Note about this implementation
-
-This actor is meant for RESTfull applications. Grossly outlined, here is
-a typical one:
-
-    /resource(/.*)?
-
-is the pattern of the context path dispatched to the servlet by its J2EE
-container. Each servlet controller made of a doGet and doPost methods
-that apply the Actor's API and possibly a flat API of action methods, all
-preferrably with the same interface:
-
-    void action (Actor $) {}
-
-so as to be easely chained together.
-
-For idempotent URL like
-
-    /resource
-
-the controller may respond a redirect to the URL of the relevant 
-authorization service, an XML or JSON body as stateless as possible.
-
-Things like a "home page" where a user's preferences are rooted
-is best stored as an allready serialized XHTML string, ready to be
-dumped from the database. The root of the application:
-
-    /
-
-is the most obvious stateless thing.
-
-As transient GET or POST response, less4j tries to allways speak JSON,
-if not as JSON embedded in XML (usually XHTML).
-
-Note that the flow of control for all actions on the same resource is 
-expected to be written entirely in java, in a single controller class.
-
-Actions shared by controllers can be aggregated in one controller class
-from which to derive all others in the domain. Functions that transcend 
-all applications should be added to a site specific Actor's API.
-
-There are no other serialization protocol implemented than JSON here,
-all XML is expected to be static and the rest of the stack is better
-programmed in XSLT, CSS and JavaScript, running in the browser
-
-Last but not least, electing JSON as The Object Model saves less4j 
-of having to choose an ORM. When doing a dumb thing like filling an invoice, 
-instead of each time locking a table of invoice details updating, deleting 
-and inserting rows in a shared resource it is better to work on a separate 
-object instance?
-
-And since all that work happens to be done in JavaScript in the browser,
-then why not just forget about classes and interfaces of Java objects.
-
-And make it asynchronous.
-
-*/

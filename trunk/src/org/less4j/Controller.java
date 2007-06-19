@@ -55,11 +55,12 @@ import javax.servlet.http.HttpServletResponse;
  * <pre>configurationPattern</pre>
  * </blockquote>
  * 
- * <p>and one of more of the five methods:</p>
+ * <p>and one of more of the six methods:</p>
  * 
  * <blockquote>
  *<pre>less4jConfigure(Actor)
  *irtd2Identify(Actor)
+ *jsonRegular(Actor)
  *jsonApplication(Actor)
  *httpResource(Actor)
  *httpContinue(Actor)</pre>
@@ -70,22 +71,6 @@ import javax.servlet.http.HttpServletResponse;
  * <code>Controller</code> also provides a full stack of configurable 
  * conveniences for entreprise web 2.0 applications (ie: for HTTP, JSON, SQL 
  * and LDAP).</p>
- * 
- * <h4>less4jConfigure(Actor)</h4>
- * 
- * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
- * method is called with a new <code>Actor</code> instance (represented
- * throughout less4j by the <code>$</code> symbol).</p>
- * 
- * <p>The <code>Actor</code> passed has a <code>configuration</code> 
- * property decoded from the <code>less4j</code> parameter found in the 
- * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
- * deployement configuration medium with a J2EE interface).</p>
- * 
- * <p>By convention, this method is expected to test the servlet's named
- * parameters found in the <code>$.configuration</code> JSON object.</p>
- * 
- * <p>...</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -124,50 +109,7 @@ public class Controller extends HttpServlet {
         synchronized (configuration) {configuration = object;}
     }
     
-    /**
-     * <p>If a valid JSONR <code>configurationPattern</code> string has 
-     * been set for the controller class as a static member, it will be 
-     * compiled and used to test the actor's <code>configuration</code>.
-     * </p>
-     * 
-     * <p>The default pattern essentially restricts configuration to a
-     * namespace, typing only the values named <code>test</code> and 
-     * <code>irtd2Salts</code>.</p>
-     * 
-     * <h4>Synospis</h4>
-     * 
-     * <p>To restrict or extend the valid configuration options, override
-     * this property in your class with the appropriate pattern. For instance,
-     * to enforce a minimal configuration without constraints on the JSON 
-     * objects handled and no SQL or LDAP connections:</p>
-     * 
-     * <pre>public static String configurationPattern = ("{" +
-     *    "\"test\": true," +
-     *    "\"irtd2Salts\": [\".........+\"]" +
-     *    "}");</pre>
-     * 
-     * <p>...</p>
-     * 
-     * <pre>{
-     *    "test": false, // default to production
-     *    "irtd2Salts": [".........+"],
-     *    "irtd2Timeout": 3600, // one hour maximum
-     *    "jsonBytes": 4096, // relatively small passwords
-     *    "jsonContainers": 1, // one object
-     *    "jsonIterations": 2, // two values
-     *    "jsonRegular": {
-     *        "username": "@", // the universal e-mail sign by now. 
-     *        "password": "........+"
-     *    },
-     *    "jdbcDriver": ".+",
-     *    "jdbcURL": "jdbc:.+",
-     *    "jdbcUsername": "(?!root|admin)", // no priviledged users 
-     *    "jdbcPassword": "........+"
-     *}</pre>
-     * 
-     * <p>...</p>
-     */
-    public static String configurationPattern = ("{" +
+    private static String _configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
         "\"irtd2Salts\": [\"^...........*$\"]," + 
         "\"irtd2Service\": null," +
@@ -185,7 +127,43 @@ public class Controller extends HttpServlet {
         "\"ldapUsername\": null," +
         "\"ldapPassword\": null" +
         "}"); 
-                
+           
+    /**
+     * <p>Returns a JSONR pattern</code> to test the actor's 
+     * <code>configuration</code>.</p>
+     * 
+     * <h4>Synospis</h4>
+     * 
+     * <p>The default pattern essentially restricts configuration to a
+     * namespace, typing only the values named <code>test</code> and 
+     * <code>irtd2Salts</code>.</p>
+     * 
+     * <p>To restrict or extend the valid configuration options, override
+     * this property in your class with the appropriate pattern. For instance,
+     * to enforce a minimal configuration without constraints on the JSON 
+     * objects handled and no SQL or LDAP connections:</p>
+     * 
+     * <pre>{
+     *    "test": false, // default to production
+     *    "irtd2Salts": [".........+"],
+     *    "irtd2Timeout": 3600, // one hour maximum
+     *    "jsonBytes": 4096, // relatively small passwords
+     *    "jsonContainers": 1, // one object
+     *    "jsonIterations": 2, // two values
+     *    "jsonRegular": {
+     *        "username": "@", // the universal e-mail sign by now. 
+     *        "password": "........+"
+     *    },
+     *    "jdbcDriver": ".+",
+     *    "jdbcURL": "jdbc:.+",
+     *    "jdbcUsername": "(?!root|admin)", // no priviledged users 
+     *    "jdbcPassword": "........+"
+     *}</pre>
+     */
+    public JSONR.Type configurationPattern () throws JSON.Error {
+        return JSONR.compile(_configurationPattern);
+    }
+    
     /**
      * Initialize a servlet controller: extract the less4j properties,
      * test the resource configured with a new Actor and call the
@@ -201,8 +179,9 @@ public class Controller extends HttpServlet {
         String conf = config.getInitParameter(less4j);
         if (conf != null) {
             JSONR.Type type;
-            try {type = JSONR.compile(configurationPattern);} 
-            catch (JSON.Error ec) {
+            try {
+                type = configurationPattern ();
+            } catch (JSON.Error ec) {
                 throw new ServletException(
                     "Invalid less4j configuration JSONR pattern.", ec
                     );
@@ -237,9 +216,31 @@ public class Controller extends HttpServlet {
             (HttpServletRequest) req, 
             (HttpServletResponse) res
             );
-        if (irtd2Identified($)||irtd2Identify($))
-            $.irtd2Digest();
-            less4jControl ($);
+        if ($.irtd2Digested(
+                $.configuration.intValue(_irtd2Timeout, 3600)
+                ) || irtd2Identify($)) {
+            if ($.digested != null) 
+                $.irtd2Digest();
+            String method = $.request.getMethod();
+            if (method.equals(_GET))
+                if ($.request.getQueryString() == null)
+                    httpResource($);
+                else if (jsonGET($))
+                    jsonApplication($);
+                else
+                    httpContinue($);
+            else if (
+                method.equals(_POST) && 
+                $.request.getContentType().equals(_application_json) &&
+                $.request.getCharacterEncoding().equals(Actor._UTF_8)
+                )
+                if (jsonPOST($))
+                    jsonApplication($); // valid JSON request
+                else
+                    httpContinue($);
+            else
+                httpContinue($);
+        }
     }
     
     // private static final int jdbcTimeout = 15;
@@ -248,9 +249,7 @@ public class Controller extends HttpServlet {
      * <p>Test wether this controller's configuration actually supports 
      * this Actor class at runtime.</p>
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <p>For this class, test wether:</p> 
+     * <p>This implementation test wether:</p> 
      * 
      * <ol>
      * <li>the actor instances has salt to digest a cookie and audit of
@@ -266,6 +265,20 @@ public class Controller extends HttpServlet {
      * 
      * <p>Application developers that extend the namespace of less4j's 
      * configuration and the Actor class must overload this method.</p>
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
+     * method is called with a new <code>Actor</code> instance (represented
+     * throughout less4j by the <code>$</code> symbol).</p>
+     * 
+     * <p>The <code>Actor</code> passed has a <code>configuration</code> 
+     * property decoded from the <code>less4j</code> parameter found in the 
+     * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
+     * deployement configuration medium with a J2EE interface).</p>
+     * 
+     * <p>By convention, this method is expected to test the servlet's named
+     * parameters found in the <code>$.configuration</code> JSON object.</p>
      * 
      * @return true if the test was successfull, false otherwise
      */
@@ -304,60 +317,6 @@ public class Controller extends HttpServlet {
     private static final String _application_json = "application/json";
 
     /**
-     * <p>...</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <p>...</p>
-     * 
-     * <pre>GET /resource</pre>
-     *
-     * <pre>GET /function?</pre>
-     *
-     * <pre>POST /function
-     *Content-type: application/javascript; charset=UTF-8
-     *...</pre>
-     *
-     * @param $
-     */
-    public void less4jControl (Actor $) {
-        String method = $.request.getMethod();
-        if (method.equals(_GET))
-            if ($.request.getQueryString() == null)
-                httpResource($);
-            else if (jsonGET($))
-                jsonApplication($);
-            else
-                httpContinue($);
-        else if (
-            method.equals(_POST) && 
-            $.request.getContentType().equals(_application_json) &&
-            $.request.getCharacterEncoding().equals(Actor._UTF_8)
-            )
-            if (jsonPOST($))
-                jsonApplication($); // valid JSON request
-            else
-                httpContinue($);
-        else
-            httpContinue($);
-    }
-
-    /**
-     * Test the IRTD2 cookie if any, returns true only if such cookie was
-     * digested with one of the two salts in this Actor's configuration
-     * before the <code>irdt2Timeout</code> configured or the one hour 
-     * set as default.
-     * 
-     * @param $ the Actor state
-     * @return true if the HTTP request came with a digestable IRTD2 cookie
-     */
-    public static boolean irtd2Identified (Actor $) {
-        return $.irtd2Digested(
-            $.configuration.intValue(_irtd2Timeout, 3600)
-            );
-        } 
-    
-    /**
      * Parse the request query string in the Actor's <code>json</code> state
      * enforce the configured constraints on containers and iterations
      * and eventualy apply a configured JSONR model, return <code>true</code>
@@ -375,18 +334,19 @@ public class Controller extends HttpServlet {
      * @param $ the Actor state
      * @return true if a valid JSON expression was found in a GET request
      */
-    public static boolean jsonGET (Actor $) {
-        if ($.configuration.containsKey(_jsonRegular))
+    protected boolean jsonGET (Actor $) {
+        JSONR.Type model = jsonRegular($);
+        if (model == null)
             return $.jsonGET(
-                $.configuration.intValue(_jsonContainers, 65355),
-                $.configuration.intValue(_jsonIterations, 65355),
-                (JSONR.Type) $.configuration.get(_jsonRegular)
-                );
+                    $.configuration.intValue(_jsonContainers, 65355),
+                    $.configuration.intValue(_jsonIterations, 65355)
+                    );
         else 
             return $.jsonGET(
-                $.configuration.intValue(_jsonContainers, 65355),
-                $.configuration.intValue(_jsonIterations, 65355)
-                );
+                    $.configuration.intValue(_jsonContainers, 65355),
+                    $.configuration.intValue(_jsonIterations, 65355),
+                    model
+                    );
         }
     
     /**
@@ -412,21 +372,153 @@ public class Controller extends HttpServlet {
      * @param $ the Actor state
      * @return true if a valid JSON expression was found in a POST request
      */
-    public static boolean jsonPOST (Actor $) {
-        if ($.configuration.containsKey(_jsonRegular)) 
+    protected boolean jsonPOST (Actor $) {
+        JSONR.Type model = jsonRegular($);
+        if (model == null)
             return $.jsonPOST(
-                $.configuration.intValue(_jsonBytes, 16384), 
-                $.configuration.intValue(_jsonContainers, 65355),
-                $.configuration.intValue(_jsonIterations, 65355),
-                (JSONR.Type) $.configuration.get(_jsonRegular)
-                );
+                    $.configuration.intValue(_jsonBytes, 16384), 
+                    $.configuration.intValue(_jsonContainers, 65355),
+                    $.configuration.intValue(_jsonIterations, 65355)
+                    );
         else 
             return $.jsonPOST(
-                $.configuration.intValue(_jsonBytes, 16384), 
-                $.configuration.intValue(_jsonContainers, 65355),
-                $.configuration.intValue(_jsonIterations, 65355)
-                );
+                    $.configuration.intValue(_jsonBytes, 16384), 
+                    $.configuration.intValue(_jsonContainers, 65355),
+                    $.configuration.intValue(_jsonIterations, 65355),
+                    model
+                    );
         }
+    
+    /**
+     * Identify the requester and return true to digest a new IRTD2 Cookie 
+     * and continue the request or complete the response and return false, 
+     * by default grant no rights to a random user ID made of ten alphanumeric 
+     * characters.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>public boolean irtd2Identify (Actor $) {
+     *    $.identity = Simple.password(10);
+     *    return true;
+     *}</pre>
+     * 
+     * <p>A simpler implementation is to reply unidentified requests
+     * with a <code>401 Not Authorized</code> response:
+     * 
+     *<pre>public boolean irtd2Identify (Actor $) {
+     *   $.httpError(401)); 
+     *   return false; 
+     *}</pre>
+     * 
+     * <p>or redirect the user agent to another controller:</p>
+     * 
+     *<pre>public boolean irtd2Identify (Actor $) {
+     *   $.http302Redirect("/login"); 
+     *   return false; 
+     *}</pre>
+     * 
+     * <p>The simplest implementation is to pass unidentified requests 
+     * through, here to handle JSON login with a configurable password
+     * for a <code>root</code> access in the root context "/":</p>
+     * 
+     *<pre>public static boolean irtd2Identify (Actor $) {
+     *   return true;
+     *}
+     *
+     *public void jsonApplication (Actor $) {
+     *   if ( // there is an URL query string or a JSON body with a password
+     *       $.json.S("password", "").equals(
+     *           $.configuration.S("password", "less4j")
+     *           )
+     *       )
+     *       // digest a new IRTD2 cookie for user "root" with "root" role
+     *       $.identity = "root";
+     *       $.rights = "root";
+     *       $.irtd2Digest("/");
+     *       // is identified, continue the request...
+     *   else
+     *       $.jsonResponse(401); // Not Authorized
+     *       // not identified, response completed. 
+     *}</pre>
+     * 
+     * <p>...</p>
+     *  
+     * @param $ the Actor's state
+     * @return true
+     */
+    public boolean irtd2Identify (Actor $) {
+        $.httpError(401); // Not Authorized
+        return false;
+    }
+    
+    /**
+     * ...
+     *
+     * <h4>Synopsis</h4>
+     *
+     *<pre>public void httpContinue (Actor $) {
+     *    return $.httpError(400); // Bad Request
+     *}</pre>
+     *
+     * <p>...</p>
+     *
+     * @param $
+     */
+    public void httpContinue (Actor $) {
+        $.httpError(400); // Bad Request
+    }
+    
+    /**
+     * <p>Transfert a resource to identified users, by default send
+     * a <code>404 Not Found</code> error.</p>
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     *<pre>public void httpResource (Actor $) {
+     *    return $.httpError(404); // Not Found
+     *}</pre>
+     *
+     * <p>This is a method to overload in an application controller that
+     * serve resources in this servlet context to identified users.</p>
+     * 
+     * <p>Practically, for database and directory controllers there is
+     * little else to do short of implementing your own database to URI 
+     * namespace mapping for resources. Subclassing this method makes
+     * it possible, but most controller will only need a static page
+     * to act as a bootstrap for a JSON application.</p>
+     * 
+     * @param $ the Actor's state
+     */
+    public void httpResource (Actor $) {
+        $.httpError(404); // Not Found
+    }
+
+    /**
+     * 
+     * @param $
+     * @return
+     */
+    public JSONR.Type jsonRegular (Actor $) {
+        return (JSONR.Type) $.configuration.get(_jsonRegular);
+    }
+    
+    /**
+     * Control an audited interaction between an identified user and a 
+     * JSON application.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     *<pre>public void jsonApplication (Actor $) {
+     *    $.jsonResponse(400); // Bad Request
+     *}</pre>
+     *
+     * <p>...</p>
+     * 
+     * @param $ the Actor's state
+     */
+    public void jsonApplication (Actor $) {
+        $.jsonResponse(400); // Bad Request
+    }
     
     /**
      * Try to open an SQL connection using the configuration properties,
@@ -795,126 +887,4 @@ public class Controller extends HttpServlet {
         } else return false;
     }
         
-    /**
-     * Identify the requester and return true to digest a new IRTD2 Cookie 
-     * and continue the request or complete the response and return false, 
-     * by default grant no rights to a random user ID made of ten alphanumeric 
-     * characters.
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>public boolean irtd2Identify (Actor $) {
-     *    $.identity = Simple.password(10);
-     *    return true;
-     *}</pre>
-     * 
-     * <p>A simpler implementation is to reply unidentified requests
-     * with a <code>401 Not Authorized</code> response:
-     * 
-     *<pre>public boolean irtd2Identify (Actor $) {
-     *   $.httpError(401)); 
-     *   return false; 
-     *}</pre>
-     * 
-     * <p>or redirect the user agent to another controller:</p>
-     * 
-     *<pre>public boolean irtd2Identify (Actor $) {
-     *   $.http302Redirect("/login"); 
-     *   return false; 
-     *}</pre>
-     * 
-     * <p>The simplest implementation is to pass unidentified requests 
-     * through, here to handle JSON login with a configurable password
-     * for a <code>root</code> access in the root context "/":</p>
-     * 
-     *<pre>public static boolean irtd2Identify (Actor $) {
-     *   return true;
-     *}
-     *
-     *public void jsonApplication (Actor $) {
-     *   if ( // there is an URL query string or a JSON body with a password
-     *       $.json.S("password", "").equals(
-     *           $.configuration.S("password", "less4j")
-     *           )
-     *       )
-     *       // digest a new IRTD2 cookie for user "root" with "root" role
-     *       $.identity = "root";
-     *       $.rights = "root";
-     *       $.irtd2Digest("/");
-     *       // is identified, continue the request...
-     *   else
-     *       $.httpError(401); // Not Authorized
-     *       // not identified, response completed. 
-     *}</pre>
-     * 
-     * <p>...</p>
-     *  
-     * @param $ the Actor's state
-     * @return true
-     */
-    public boolean irtd2Identify (Actor $) {
-        $.identity = Simple.password(10);
-        return true;
-    }
-    
-    /**
-     * ...
-     *
-     * <h4>Synopsis</h4>
-     *
-     *<pre>public void httpContinue (Actor $) {
-     *    return $.httpError(400); // Bad Request
-     *}</pre>
-     *
-     * <p>...</p>
-     *
-     * @param $
-     */
-    public void httpContinue (Actor $) {
-        $.httpError(400); // Bad Request
-    }
-    
-    /**
-     * <p>Transfert a resource to identified users, by default send
-     * a <code>404 Not Found</code> error.</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public void httpResource (Actor $) {
-     *    return $.httpError(404); // Not Found
-     *}</pre>
-     *
-     * <p>This is a method to overload in an application controller that
-     * serve resources in this servlet context to identified users.</p>
-     * 
-     * <p>Practically, for database and directory controllers there is
-     * little else to do short of implementing your own database to URI 
-     * namespace mapping for resources. Subclassing this method makes
-     * it possible, but most controller will only need a static page
-     * to act as a bootstrap for a JSON application.</p>
-     * 
-     * @param $ the Actor's state
-     */
-    public void httpResource (Actor $) {
-        $.httpError(404); // Not Found
-    }
-
-    /**
-     * Control an audited interaction between an identified user and a 
-     * JSON application.
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public void jsonApplication (Actor $) {
-     *    $.jsonResponse(200);
-     *}</pre>
-     *
-     * <p>...</p>
-     * 
-     * @param $ the Actor's state
-     */
-    public void jsonApplication (Actor $) {
-        $.jsonResponse(200, $.toString());
-    }
-    
 } // That's all folks.
