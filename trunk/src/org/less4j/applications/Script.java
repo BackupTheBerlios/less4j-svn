@@ -9,10 +9,14 @@ import org.less4j.Simple;
 import org.mozilla.javascript.*; // More JavaScript Applications!
 
 /**
- * The <code>org.less4j.Script</code> servlet delivers "More JavaScript 
- * Applications", from development to production.
+ * <p>This application of less4j provides a Web 2.0 interface to Mozilla's 
+ * JavaScript interpreter and allow developers to script a practical server
+ * API in the same language as the one use to program the client's user
+ * interface.</p>
  * 
  * <h3>Synopsis</h3>
+ * 
+ * <p>To apply org.less4j.Script</p>
  * 
  * <pre>importPackage(org.less4j);
  * 
@@ -79,6 +83,7 @@ public class Script extends Controller {
     private static final String _scriptScope = "scriptScope";
     
     /**
+     * Load the scripts configured from the servlet's context, 
      * 
      * @param $
      * @return
@@ -88,7 +93,7 @@ public class Script extends Controller {
         ScriptableObject scope;
         Context cx = Context.enter();
         try {
-            scope = new ImporterTopLevel(cx, true); // sealed
+            scope = new ImporterTopLevel(cx, !$.test); // sealed in production!
             JSON.Array scripts = $.configuration.A(_scripts);
             String name, source;
             for (int i=0, L=scripts.size(); i<L; i++) {
