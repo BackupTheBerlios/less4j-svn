@@ -169,7 +169,7 @@ public class JSONR extends JSON {
      *}</pre>
      * </blockquote>
      * 
-     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Error extends JSON.Error {
         
@@ -252,7 +252,7 @@ public class JSONR extends JSON {
      * 
      * into the appropriate <code>java.util.Date</code> instance.</p>
      * 
-     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static interface Type {
         /**

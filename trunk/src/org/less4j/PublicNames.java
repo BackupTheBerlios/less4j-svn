@@ -27,8 +27,6 @@ import java.util.Iterator;
  * the semantic chaos of network application interfaces names).</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
- * 
- * @version 0.30
  */
 public class PublicNames {
     

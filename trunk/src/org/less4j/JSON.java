@@ -216,9 +216,7 @@ public class JSON {
      *    System.out.println(e.jstr());
      *}</pre>
      * 
-     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
-     * 
-     * @version 0.30
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Error extends Exception {
         
@@ -405,9 +403,7 @@ public class JSON {
      * type. Not having to break the chain for "manual" type casting
      * helps a lot and make the whole a lot clearer to read and debug.</p> 
      * 
-     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
-     * 
-     * @version 0.30
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Object extends HashMap {
         static final long serialVersionUID = 0L; // TODO: regenerate
@@ -497,9 +493,7 @@ public class JSON {
      * 
      * ...</p>
      * 
-     * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
-     * 
-     * @version 0.30
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Array extends ArrayList {
         static final long serialVersionUID = 0L; // TODO: regenerate

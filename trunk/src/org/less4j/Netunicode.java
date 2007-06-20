@@ -25,8 +25,6 @@ import java.util.NoSuchElementException;
  * (see netstrings, the 8-bit byte original).
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
- * 
- * @version 0.30
  */
 public class Netunicode {
     
