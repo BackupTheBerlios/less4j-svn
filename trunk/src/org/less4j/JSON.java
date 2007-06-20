@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 Laurent A.V. Szyster
+/* Copyright (C) 2006-2007 Laurent A.V. Szyster
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
@@ -1309,31 +1309,3 @@ public class JSON {
     }
 
 }
-
-/* Note about this implementation
-
-If you read the sources, you should have noticed the high density of final
-classes, members and methods. This is not an interface and besides the
-error and interpreter classes, there is little to extend.
-
-JSON is an application protocol, this is a final implementation in Java,
-an API to use more and extend less.
-
-Remember? 
-
-It's all about less java for more application.
-
-That why I used short names, to do the simplest:
-
-    Object value = JSON.eval("null");
-    
-and the complex
-
-    BigDecimal d = JSON.object(
-        "{\"test\":[null,true,1,2.3,56789e-4]}", 2, 6
-        ).arry("test").deci(4);
-
-in one readable line, raising a practical JSON.Error that identify an
-error in the instanciation and typed access to a network object model.
-  
-*/

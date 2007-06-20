@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 Laurent A.V. Szyster
+/* Copyright (C) 2006-2007 Laurent A.V. Szyster
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
@@ -143,7 +143,7 @@ import java.text.StringCharacterIterator;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.30
+ * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  */
 public class JSONR extends JSON {
     
@@ -170,8 +170,6 @@ public class JSONR extends JSON {
      * </blockquote>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
-     * 
-     * @version 0.30
      */
     public static class Error extends JSON.Error {
         
@@ -255,8 +253,6 @@ public class JSONR extends JSON {
      * into the appropriate <code>java.util.Date</code> instance.</p>
      * 
      * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
-     * 
-     * @version 0.30
      */
     public static interface Type {
         /**
@@ -1197,21 +1193,3 @@ public class JSONR extends JSON {
     }
     
 }
-
-/* Note about this implementation
-
-JSONR could be developped much further, for instance to collect all type
-and value error from a valid JSON string or to support a wider range of
-extension types.
-
-However, the simplicity of the protocol is what guarantees that a all
-implementations are practically within the reach of any JSON capable
-environment. 
-
-The value of JSON is more than what it can bring to a java web controller
-in terms of input validation, because it can also as easely be implemented 
-for other applications of an object model definition. In JavaScript, the
-obvious candidate, that would be input screen HTML generation from a model,
-complete with interactive input validation.
-
-*/

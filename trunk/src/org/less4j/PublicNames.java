@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 Laurent A.V. Szyster
+/* Copyright (C) 2006-2007 Laurent A.V. Szyster
 
 This library is free software; you can redistribute it and/or modify
 it under the terms of version 2 of the GNU General Public License as
@@ -28,7 +28,7 @@ import java.util.Iterator;
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
- * @version 0.20
+ * @version 0.30
  */
 public class PublicNames {
     

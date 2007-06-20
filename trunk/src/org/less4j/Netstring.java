@@ -57,7 +57,7 @@ import java.nio.ByteBuffer;
  * <p>This class is a lazy implementation of an netstring stream
  * collector, just enough to support netstring protocols.</p>
  * 
- * @version 0.10
+ * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  */
 public class Netstring {
     

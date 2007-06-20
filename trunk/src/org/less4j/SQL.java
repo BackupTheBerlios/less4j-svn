@@ -39,8 +39,7 @@ import java.util.Iterator;
  * <p>Also, note that this implementation depends on less4j's 
  * <code>JSON</code> and makes little sense out of a web controller.</p>
  * 
- * @author Laurent Szyster
- * @version 0.30
+ * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  */
 public class SQL {
     
@@ -82,8 +81,7 @@ public class SQL {
      * update one or more database with indexes and statistics about those
      * objects.</p>
      * 
-     * @author Laurent Szyster
-     * @version 0.30
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static interface ORM {
         /**
