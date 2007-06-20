@@ -309,8 +309,7 @@ public class Script extends Controller {
                 scriptCall($, cx, scriptScope, function);
             } catch (Exception e) {
                 $.logError(e);
-                $.json.put("exception", e.getMessage());
-                $.jsonResponse(500); // Server Error
+                $.jsonResponse(500, e.getMessage()); // Server Error
             }
         } finally {
             Context.exit();
