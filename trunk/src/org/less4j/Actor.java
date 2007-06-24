@@ -1,16 +1,16 @@
 /* Copyright (C) 2006-2007 Laurent A.V. Szyster
 
 This library is free software; you can redistribute it and/or modify
-it under the terms of version 2 of the GNU General Public License as
+it under the terms of version 2 of the GNU Lesser General Public License as
 published by the Free Software Foundation.
 
-   http://www.gnu.org/copyleft/gpl.html
+   http://www.gnu.org/copyleft/lesser.html
 
 This library is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
@@ -50,9 +50,10 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
 
 /**
- * <p>The <code>Actor</code> provides a rich state and a flat "full-stack" 
- * API to develop complex entreprise Web 2.0 controllers of SQL databases 
- * and LDAP directories.</p>
+ * <p>A rich state and a flat "full-stack" API to develop complex entreprise 
+ * Web 2.0 controllers of SQL databases and LDAP directories, with a 
+ * comprehensive audit of identified and authorized actions in time and 
+ * sequence.</p>
  * 
  * <h3>Table of Content</h3>
  * 
@@ -60,13 +61,13 @@ import javax.servlet.http.Cookie;
  * applications as follow:</p>
  * 
  * <dl>
- * <di><dt>Environment:
+ * <di><dt>System Environment:
  * <code>test</code>, 
  * <code>configuration</code>, 
  * <code>logOut</code>, 
  * <code>logInfo</code>, 
- * <code>logError</code>.
- * <code>logAudit</code>, 
+ * <code>logError</code>,
+ * <code>logAudit</code>. 
  * </dt><dd>
  * Test or production environment, standard output and error. No fancy 
  * logging formats and long stack traces, the bare minimum for all actor: 
@@ -81,7 +82,7 @@ import javax.servlet.http.Cookie;
  * <code>digest</code>,
  * <code>digested</code>,
  * <code>irtd2Digest</code>, 
- * <code>irtd2Digested</code>, 
+ * <code>irtd2Digested</code>. 
  * </dt><dd>
  * Identification, authorization and audit of the user agent, without
  * the woes of <code>HttpServletSession</code>. A practical implementation
@@ -98,19 +99,23 @@ import javax.servlet.http.Cookie;
  * <code>request</code>,
  * <code>response</code>,
  * <code>httpError</code>,
- * <code>http200Ok</code>, 
- * <code>http302Redirect</code>,
+ * <code>httpResponse</code>, 
+ * <code>http302Redirect</code>.
  * </dt><dd>
- * ...
+ * A few conveniences to dispatch an HTTP request and reply with a single
+ * error code, or a minimal response body or a redirect to another location. 
  * </dd></di>
  * <di><dt>Regular JSON:
  * <code>json</code>,
  * <code>jsonGET</code>,
  * <code>jsonPOST</code>,
  * <code>jsonDigest</code>,
- * <code>jsonResponse</code>,
+ * <code>jsonDigested</code>,
+ * <code>jsonResponse</code>.
  * </dt><dd>
- * ...
+ * Each actor's request and response state is represented by a JSON object 
+ * that can be transfered by a GET or POST request and of which portions
+ * can be digested to allow safe transfer of untampered application states.
  * </dd></di>
  * <di><dt>SQL:
  * <code>sql</code>,
@@ -136,9 +141,10 @@ import javax.servlet.http.Cookie;
  * <code>ldapClose</code>,
  * <code>ldapResolve</code>, 
  * <code>ldapUpdate</code>, 
- * <code>ldapCreate</code>
+ * <code>ldapCreate</code>.
  * </dt><dd>
- * ...
+ * Simple LDAP conveniences to resolve, update or create contexts in a
+ * directory.
  * </dd></di>
  * </dl>
  * 
@@ -274,6 +280,8 @@ public class Actor {
         JSON.strb(sb, url);
         sb.append(",\"context\":");
         JSON.strb(sb, context);
+        sb.append(",\"about\":");
+        JSON.strb(sb, about);
         sb.append(",\"json\":");
         JSON.strb(sb, json);
         sb.append('}');
@@ -367,10 +375,14 @@ public class Actor {
      *     
      */
     public void logOut (String message) {
-        System.out.println(message);
+        StringBuffer sb = new StringBuffer();
+        sb.append(digested);
+        sb.append(' ');
+        sb.append(message);
+        System.out.println(sb.toString());
     }
     
-    private static final String logInfoDelimiter = ": "; 
+    private static final String _logInfoDelimiter = ": "; 
     
     /**
      * <p>Write a categorized message to STDERR, as:</p>
@@ -399,15 +411,19 @@ public class Actor {
     public void logInfo (String message, String category) {
         StringBuffer sb = new StringBuffer();
         sb.append(category);
-        sb.append(logInfoDelimiter);
+        sb.append(_logInfoDelimiter);
+        sb.append(digested);
+        sb.append(' ');
         sb.append(message);
         System.err.println(sb.toString());
     }
 
-    // private static final String stackTraceCategory = "StackTrace: ";
+    private static final String _stackTrace = "JAVA: ";
     
     /**
-     * <p>Write a stack trace to STDERR.</p>
+     * <p>Write a full stack trace to STDERR in test mode or just one line
+     * in production, prefix both with "JAVA: " and the IRTD2 digest, 
+     * allowing to link every errors back to their audit trail.</p>
      * 
      * <h4>Synopsis</h4>
      * 
@@ -416,44 +432,52 @@ public class Actor {
      * @param error the throwable instance catched
      */
     public void logError (Throwable error) {
-//        StackTraceElement[] stacktrace = error.getStackTrace();
-//        StackTraceElement catcher, thrower;
-//        int i = 0;
-//        do {
-//            thrower = stacktrace[i++];
-//        } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
-//        catcher = stacktrace[i];
-//        StringBuffer sb = new StringBuffer();
-//        sb.append(stackTraceCategory);
-//        sb.append(error.getMessage());
-//        sb.append(' ');
-//        sb.append(thrower.getLineNumber());
-//        sb.append('|');
-//        sb.append(thrower.getClassName());
-//        sb.append('.');
-//        sb.append(thrower.getMethodName());
-//        sb.append(' ');
-//        sb.append(catcher.getLineNumber());
-//        sb.append('|');
-//        sb.append(catcher.getClassName());
-//        sb.append('.');
-//        sb.append(catcher.getMethodName());
-//        if (!test && json != null) {
-//            sb.append(' ');
-//            JSON.strb(sb, json);
-//        }
-//        System.err.println(sb.toString());
-        error.printStackTrace(System.err);
+        if (test) {
+            System.err.print(_stackTrace);
+            System.err.print(digested);
+            System.err.print(' ');
+            error.printStackTrace(System.err);
+        } else {
+            StackTraceElement[] stacktrace = error.getStackTrace();
+            StackTraceElement thrower;
+            int i = 0;
+            do {
+                thrower = stacktrace[i++];
+            } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
+            StringBuffer sb = new StringBuffer();
+            sb.append(_stackTrace);
+            sb.append(digested);
+            sb.append(' ');
+            sb.append(error.getMessage());
+            sb.append(' ');
+            sb.append(thrower.getLineNumber());
+            sb.append('|');
+            sb.append(thrower.getClassName());
+            sb.append('.');
+            sb.append(thrower.getMethodName());
+            System.err.println(sb.toString());
+        }
     }
     
     protected static String logLESS4J = "LESS4J: ";
     
     /** 
-     * Log an audit of this HTTP request and response in one line. 
+     * Log an complete audit of this Actor's JSON application in one line.
+     * 
+     * <h4>Synopsis</h3>
+     * 
+     * <p>There's no need to call this method, it will be called by the
+     * httpError, httpResponse, http302Redirect and jsonResponse.</p>
+     * 
+     * <h4>Applications</h4>
+     * 
+     * <p>The audit log of less4j is designed to be applied outside of
+     * its J2EE host. Each line is formated as a sequence of 11 byte
+     * strings separated by a space.</p>
      * 
      * <p>For instance:</p>
      * 
-     * <pre>LESS4J: identity roles time digested digest GET url HTTP/1.1 200</pre>
+     * <pre>LESS4J: identity roles time digested digest GET /url HTTP/1.1 200 null</pre>
      *
      * <p>...</p>
      * 
@@ -464,17 +488,18 @@ public class Actor {
         sb.append(request.getMethod());
         sb.append(' ');
         sb.append(request.getRequestURI());
-        String query = request.getQueryString();
-        if (query != null) {
-            sb.append('?');
-            sb.append(query);
-            }
         sb.append(' ');
         sb.append(request.getProtocol());
         sb.append(' ');
         sb.append(status);
         sb.append(' ');
         sb.append(irtd2);
+        sb.append(' ');
+        if (test) {
+            JSON.repr(sb, json, JSON._crlf);
+        } else {
+            JSON.strb(sb, json);
+        }
         logOut(sb.toString());
     }
     
@@ -518,59 +543,52 @@ public class Actor {
      * @return true if the request failed to be authenticated
      */
     public boolean irtd2Digested (int timeout) {
-        try {
-            int i; 
-            /* get the request's IRTD2 authorization cookies ... */
-            Cookie irtd2Cookie = null; 
-            Cookie[] cookies = request.getCookies();
-            if (cookies != null) for (i = 0; i < cookies.length; i++) {
-                if (cookies[i].getName().equals(irtd2Name)) {
-                    irtd2Cookie = cookies[i]; break;
-                }
+        int i; 
+        /* get the request's IRTD2 authorization cookies ... */
+        Cookie irtd2Cookie = null; 
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) for (i = 0; i < cookies.length; i++) {
+            if (cookies[i].getName().equals(irtd2Name)) {
+                irtd2Cookie = cookies[i]; break;
             }
-            if (irtd2Cookie == null) {
-                if (test) logInfo("Not Found", "IRTD2");
-                return false;  
-            }
-            /* unpack the IRTD2 Cookie */
-            irtd2 = irtd2Cookie.getValue();
-            Iterator tokens = Simple.split(irtd2, ' ');
-            identity = (String) tokens.next();
-            rights = (String) tokens.next();
-            String lastTime = (String) tokens.next();
-            digest = (String) tokens.next();
-            digested = (String) tokens.next();
-            int t = Integer.parseInt(lastTime);
-            int interval = (time - t);
-            if (interval > timeout) {
-                if (test) logInfo(
-                    "Timeout " + t + ", " + interval + " > " + timeout, "IRTD2"
-                    );
-                return false; 
-            } 
-            /* get the IRTD 8-bit bytes from the IRTD2 UNICODE string */
-            byte[] irtd = irtd2.substring(
-                0, identity.length() + 1 + rights.length() + 1 + 
-                lastTime.length() + 1 + digest.length()
-                ).getBytes();
-            /* digest an SHA1 hexadecimal with one of the salts or fail */
-            String d = null;
-            for (i=0; i<salts.length; i++) {
-                SHA1 md = new SHA1();
-                md.update(irtd);
-                md.update(salts[i]);
-                d = md.hexdigest();
-                if (d.equals(digested)) break;
-            }
-            if (!digested.equals(d)) {
-                if (test) logInfo("Not Digested", "IRTD2");
-            } else
-                return true; // digested in time with salt! 
-        } 
-        catch (Exception e) { // just in case ... still beta
-            logError(e);
         }
-        return false; // exception or invalid.
+        if (irtd2Cookie == null) {
+            if (test) logInfo("Not Found", "IRTD2");
+            return false;  
+        }
+        /* unpack the IRTD2 Cookie */
+        irtd2 = irtd2Cookie.getValue();
+        Iterator tokens = Simple.split(irtd2, ' ');
+        identity = (String) tokens.next();
+        rights = (String) tokens.next();
+        String lastTime = (String) tokens.next();
+        digest = (String) tokens.next();
+        digested = (String) tokens.next();
+        int t = Integer.parseInt(lastTime);
+        int interval = (time - t);
+        if (interval > timeout) {
+            if (test) logInfo(
+                "Timeout " + t + ", " + interval + " > " + timeout, "IRTD2"
+                );
+            return false; 
+        } 
+        /* get the IRTD 8-bit bytes from the IRTD2 UNICODE string */
+        byte[] irtd = irtd2.substring(
+            0, identity.length() + 1 + rights.length() + 1 + 
+            lastTime.length() + 1 + digest.length()
+            ).getBytes();
+        /* digest an SHA1 hexadecimal with one of the salts or fail */
+        String d = null;
+        for (i=0; i<salts.length; i++) {
+            SHA1 md = new SHA1();
+            md.update(irtd);
+            md.update(salts[i]);
+            d = md.hexdigest();
+            if (d.equals(digested)) 
+                return true; // digested in time with salt!
+        }
+        if (test) logInfo("Not Digested", "IRTD2");
+        return false;
     }
     
     /**
@@ -871,34 +889,38 @@ public class Actor {
      * @param iterations
      * @return
      */
-    public boolean jsonGET(int containers, int iterations) {
+    public boolean jsonGET(JSON interpreter) {
         json = new JSON.Object();
         Map query = request.getParameterMap();
         String name;
         String[] strings;
         Iterator iter = query.keySet().iterator();
-        containers--;
-        while (containers > 0 && iterations > 0 && iter.hasNext()) {
+        interpreter.containers--;
+        while (
+            interpreter.containers > 0 && 
+            interpreter.iterations > 0 && 
+            iter.hasNext()
+            ) {
             name = (String) iter.next();
             strings = (String[]) query.get(name);
             if (strings != null)
                 if (strings.length > 1) { 
-                    containers--;
+                    interpreter.containers--;
                     JSON.Array list = new JSON.Array();
                     for (int i=0; i < strings.length; i++) { 
-                        list.add(strings[i]); iterations--;
+                        list.add(strings[i]); 
+                        interpreter.iterations--;
                     }
                     json.put(name, list);
                 } else if (strings.length > 0)
                     json.put(name, strings[0]);
                 else
                     json.put(name, null);
-            iterations--;
+            interpreter.iterations--;
         }
         String xjson = request.getHeader(jsonXJSON);
         if (xjson != null) {
-            JSON parse = new JSON(containers, iterations);
-            JSON.Error e = parse.update(json, xjson); 
+            JSON.Error e = interpreter.update(json, xjson); 
             if (e != null) {logError(e); return false;}
         }
         return true;
@@ -911,40 +933,58 @@ public class Actor {
      * @param type
      * @return
      */
-    public boolean jsonGET(int containers, int iterations, JSONR.Type type) {
+    public boolean jsonGET(JSONR interpreter) {
         json = new JSON.Object();
         Map query = request.getParameterMap();
-        HashMap namespace = ((JSONR.TypeNamespace) type).namespace;
+        HashMap namespace = (
+            (JSONR.TypeNamespace) interpreter.type
+            ).namespace;
         JSONR.Type pattern;
         String name;
         String[] strings;
         Iterator iter = query.keySet().iterator();
-        containers--;
-        while (containers > 0 && iterations > 0 && iter.hasNext()) try {
+        interpreter.containers--;
+        while (
+            interpreter.containers > 0 && 
+            interpreter.iterations > 0 && 
+            iter.hasNext()
+            ) try {
             name = (String) iter.next();
             pattern = (JSONR.Type) namespace.get(name);
             strings = (String[]) query.get(name);
             if (pattern != null && strings != null) 
                 if (strings.length > 1) { 
-                    containers--;
+                    interpreter.containers--;
                     JSON.Array list = new JSON.Array();
                     for (int i=0; i < strings.length; i++) { 
-                        list.add(pattern.eval(strings[i])); iterations--;
+                        list.add(pattern.eval(strings[i])); 
+                        interpreter.iterations--;
                     }
                     json.put(name, list);
                 } else if (strings.length > 0)
                     json.put(name, pattern.eval(strings[0]));
                 else
                     json.put(name, null);
-            iterations--;
+            interpreter.iterations--;
         } catch (JSON.Error e) {logError(e); return false;}
         String xjson = request.getHeader(jsonXJSON);
         if (xjson != null) {
-            JSONR validate = new JSONR(type, containers, iterations);  
-            JSON.Error e = validate.update(json, xjson); 
+            JSON.Error e = interpreter.update(json, xjson); 
             if (e != null) {logError(e); return false;}
         }
         return true;
+    }
+    
+    /**
+     * 
+     * @param interpreter
+     * @return
+     */
+    public boolean jsonGET(Object interpreter) {
+        if (interpreter instanceof JSON)
+            return jsonGET((JSON) interpreter);
+        else
+            return jsonGET((JSONR) interpreter);
     }
     
     /**
@@ -952,6 +992,10 @@ public class Actor {
      * contains a content of type <code>application/json</code> encoded
      * in UTF-8 and fitting in a limited buffer. Return true on success or 
      * log an error and return false.</p>
+     * 
+     * <h4>Synopsis</h3>
+     * 
+     * <h4>Applications</h4>
      * 
      * <p>This is a controller's actor and less4j is a framework for 
      * entreprise web interfaces: there is no reason to accept JSON objects 
@@ -962,46 +1006,34 @@ public class Actor {
      * per request. Here's a good place to do it once for all JSON
      * applications.</p>
      * 
+     * @param interpreter
      * @return true if successfull, false otherwise
      */
-    public boolean jsonPOST (int limit, int containers, int iterations) {
-        /*
-         * Instead of parsing a JSON of any size as it is streamed,
-         * fill a buffer and instanciate objects only if it is 
-         * complete and not overflowed.
-         * */
+    public boolean jsonPOST(int limit, Object interpreter) {
         byte[] body = httpPOST(limit);
-        if (body == null) return false; else try {
-            // parse JSON when the buffer is filled but not overflowed
-            json = (new JSON(containers, iterations)).object(
-                new String(body, _UTF_8)
-                );
-            return (json != null);
-        } catch (Exception e) {
-            logError(e);
-            return false;
-        }
-    }
-    
-    /**
-     * 
-     * @param limit
-     * @param containers
-     * @param iterations
-     * @param type
-     * @return
-     */
-    public boolean jsonPOST (
-        int limit, int containers, int iterations, JSONR.Type type
-        ) {
-        byte[] body = httpPOST(limit);
-        if (body == null) return false; else try {
-            json = (
-                new JSONR(type, containers, iterations)
-                ).object(new String(body, _UTF_8));
-            return true;
-        } catch (Exception e) {
-            logError(e);
+        if (body == null) 
+            return false; 
+        if (interpreter instanceof JSON) {
+            JSON intr = (JSON) interpreter;
+            try {
+                // parse JSON when the buffer is filled but not overflowed
+                json = intr.object(new String(body, _UTF_8));
+                return (json != null);
+            } catch (Exception e) {
+                logError(e);
+                return false;
+            }
+        } else if (interpreter instanceof JSONR) {
+            JSONR intr = (JSONR) interpreter;
+            try {
+                json = intr.object(new String(body, _UTF_8));
+                return true;
+            } catch (Exception e) {
+                logError(e);
+                return false;
+            }
+        } else {
+            logError(new Exception("Not a JSON or JSONR interpreter"));
             return false;
         }
     }
@@ -1102,6 +1134,30 @@ public class Actor {
             return false;
         }
         if (test) logInfo("connected to J2EE datasource", less4j);
+        try {
+            sql.setAutoCommit(false);
+        } catch (SQLException e) {
+            logError(e);
+            try {sql.close();} catch (SQLException ae) {logError(e);}
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Try to open a JDBC connection from its URL, disable AutoCommit. Allways 
+     * log error, log success only in test mode.
+     * 
+     * @return true if the connection was successfull, false otherwise
+     */
+    public boolean sqlOpenJDBC (String dburl) {
+        try {
+            sql = DriverManager.getConnection(dburl);
+        } catch (Exception e) {
+            logError(e);
+            return false;
+        }
+        if (test) logInfo("connected to JDBC database", less4j);
         try {
             sql.setAutoCommit(false);
         } catch (SQLException e) {
@@ -1526,12 +1582,12 @@ public class Actor {
      * about the specialized types and the API details of JNDI. Instead they 
      * can use <code>Map</code>, <code>List</code> and <code>String</code>.</p>
      * 
-     * <p>Note that if the <code>Base</code> instance's <code>test</code> is 
+     * <p>Note that if the <code>Actor</code> instance's <code>test</code> is 
      * true, then values of the attributes resolved will be logged as one 
      * information message.</p>
      * 
      * @param dn the distinguished name to resolve
-     * @param map the Map to update
+     * @param object the <code>JSON.Object</code> to update
      * @param names of the attribute values to get
      * @return true if the name was resolved, false otherwise
      */
@@ -1575,7 +1631,7 @@ public class Actor {
      * was created, false otherwise.
      * 
      * @param dn the distinguished name of the context created
-     * @param object the JSON.O object from which to set the attribute values
+     * @param object containing the attribute values to create
      * @param names of the attributes to create
      * @return true, false
      */
@@ -1610,8 +1666,8 @@ public class Actor {
     
     /**
      * 
-     * @param dn the distinguished name of the context created
-     * @param object the JSON.O object from which to set the attribute values
+     * @param dn the distinguished name of the context updated
+     * @param object containing the attribute values to update
      * @param names of the attributes to update
      * @return true, false
      */

@@ -1,16 +1,16 @@
 /* Copyright (C) 2006-2007 Laurent A.V. Szyster
 
 This library is free software; you can redistribute it and/or modify
-it under the terms of version 2 of the GNU General Public License as
+it under the terms of version 2 of the GNU Lesser General Public License as
 published by the Free Software Foundation.
 
-   http://www.gnu.org/copyleft/gpl.html
+   http://www.gnu.org/copyleft/lesser.html
 
 This library is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
@@ -24,23 +24,15 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.util.HashMap;
+import java.util.Iterator;
+
 /**
- * <p>The one - and preferrably only - obvious way to do REST right
- * with J2EE as it is since version 1.4.2: stateless, bended like PHP with a
- * healthy dose of JSON dynamism, more SQL and LDAP, less Java and no XML.</p>
+ * <p>One obvious way to do REST right with J2EE as it is since version 1.4.2: 
+ * stateless, bended like PHP with a healthy dose of JSON dynamism, more 
+ * protocols, less Java and no XML.</p>
  * 
- * <h3>Synopsis</h3>
- * 
- * <p>In most case, developping a new Web 2.0 service with less4j translates
- * into a simple subclass of <code>Controller</code>, with only one overriden
- * method for a single JSON application state.</p>
- * 
- * <blockquote>
- * <pre>class HelloWorld extends Controller {
- *     public void jsonApplication(Actor $) {
- *         $.jsonResponse(200)
- *     }
- *}</pre></blockquote>
+ * <h3>Interface</h3>
  * 
  * <p>This class implements <code>HttpServlet.service</code> providing: 
  * a request/response state configuration, test and instanciation, user 
@@ -52,7 +44,7 @@ import javax.servlet.http.HttpServletResponse;
  * part of the job as the implementation of a single static property:</p>
  * 
  * <blockquote>
- * <pre>configurationPattern</pre>
+ * <pre>configurationPattern()</pre>
  * </blockquote>
  * 
  * <p>and one of more of the six methods:</p>
@@ -60,10 +52,10 @@ import javax.servlet.http.HttpServletResponse;
  * <blockquote>
  *<pre>less4jConfigure(Actor)
  *irtd2Identify(Actor)
- *jsonRegular(Actor)
- *jsonApplication(Actor)
  *httpResource(Actor)
- *httpContinue(Actor)</pre>
+ *httpContinue(Actor)
+ *jsonRegular(Actor)
+ *jsonApplication(Actor)</pre>
  * </blockquote>
  * 
  * <p>In many use case, <code>jsonApplication</code> may be the only method
@@ -72,6 +64,14 @@ import javax.servlet.http.HttpServletResponse;
  * conveniences for entreprise web 2.0 applications (ie: for HTTP, JSON, SQL 
  * and LDAP).</p>
  * 
+ * <h3>Implementation</h3>
+ * 
+ * <p>One common use case of a web controller is to aggregate functions
+ * on a set of resource like file folders, an SQL database or an LDAP
+ * direcory. This implementation supports dispatching of an HTTP requests 
+ * to a configured <code>Function</code> based on the request URL's
+ * <code>PATH_INFO</code>.</p>
+ * 
  * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  * 
  */
@@ -79,15 +79,25 @@ public class Controller extends HttpServlet {
     
     static final long serialVersionUID = 0L; // TODO: regenerate
     
+    /**
+     * ...
+     */
+    public HashMap functions = null;
+    
+    /**
+     * 
+     */
+    public String jsonRegulars = "null";
+    
     protected static final String less4j = "less4j";
 
     protected static final String _test = "test";
     protected static final String _irtd2Salts = "irtd2Salts";
     protected static final String _irtd2Timeout = "irtd2Timeout"; 
+    protected static final String _postBytes = "postBytes";
     protected static final String _jsonContainers = "jsonContainers";
     protected static final String _jsonIterations = "jsonIterations";
     protected static final String _jsonRegular = "jsonRegular";
-    protected static final String _jsonBytes = "jsonBytes";
     protected static final String _jdbcDriver = "jdbcDriver";
     protected static final String _jdbcURL = "jdbcURL";
     protected static final String _jdbcUsername = "jdbcUsername";
@@ -109,10 +119,10 @@ public class Controller extends HttpServlet {
     
     private static String _configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
+        "\"functions\": {\"/.*\": \".+\"}," + 
         "\"irtd2Salts\": [\"^...........*$\"]," + 
-        "\"irtd2Service\": null," +
         "\"irtd2Timeout\": null," +
-        "\"jsonBytes\": null," +
+        "\"postBytes\": null," +
         "\"jsonContainers\": null," +
         "\"jsonIterations\": null," +
         "\"jsonRegular\": null," +
@@ -145,7 +155,7 @@ public class Controller extends HttpServlet {
      *    "test": false, // default to production
      *    "irtd2Salts": [".........+"],
      *    "irtd2Timeout": 3600, // one hour maximum
-     *    "jsonBytes": 4096, // relatively small passwords
+     *    "postBytes": 4096, // relatively small passwords
      *    "jsonContainers": 1, // one object
      *    "jsonIterations": 2, // two values
      *    "jsonRegular": {
@@ -169,6 +179,21 @@ public class Controller extends HttpServlet {
      * ServletException if the configuration is incomplete and fails
      * the Actor's tests.
      *  
+     * <h4>Synopsis</h4>
+     * 
+     * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
+     * method is called with a new <code>Actor</code> instance (represented
+     * throughout less4j by the <code>$</code> symbol).</p>
+     * 
+     * <p>The <code>Actor</code> passed has a <code>configuration</code> 
+     * property decoded from the <code>less4j</code> parameter found in the 
+     * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
+     * deployement configuration medium with a J2EE interface).</p>
+     * 
+     * <p>By convention, this method is expected to test the servlet's named
+     * parameters found in the <code>$.configuration</code> JSON object.</p>
+     * 
+     * <p></p>
      * @param config the Servlet configuration <code>Map</code>
      */
     public void init (ServletConfig config) throws ServletException {
@@ -223,7 +248,7 @@ public class Controller extends HttpServlet {
             if (method.equals(_GET))
                 if ($.request.getQueryString() == null)
                     httpResource($);
-                else if (jsonGET($))
+                else if ($.jsonGET(jsonRegular($)))
                     jsonApplication($);
                 else
                     httpContinue($);
@@ -232,7 +257,9 @@ public class Controller extends HttpServlet {
                 $.request.getContentType().equals(_application_json) &&
                 $.request.getCharacterEncoding().equals(Actor._UTF_8)
                 )
-                if (jsonPOST($))
+                if ($.jsonPOST($.configuration.intValue(
+                    _postBytes, Simple.netBufferSize
+                    ), jsonRegular($)))
                     jsonApplication($); // valid JSON request
                 else
                     httpContinue($);
@@ -240,72 +267,112 @@ public class Controller extends HttpServlet {
                 httpContinue($);
         }
     }
-    
+
     // private static final int jdbcTimeout = 15;
+    
+    private static final String _functions = "functions";
+    private static final String _singleton = "singleton";
     
     /**
      * <p>Test wether this controller's configuration actually supports 
-     * this Actor class at runtime.</p>
+     * this Actor class at runtime, supply a random IRTD2 salt if missing
+     * and return false if the configured SQL or LDAP resources are not
+     * available.</p>
      * 
-     * <p>This implementation test wether:</p> 
+     * <h3>Synopsis</h3>
      * 
-     * <ol>
-     * <li>the actor instances has salt to digest a cookie and audit of
-     * identification, authorizations, time and the response digested
-     * previously</li>
-     * <li>the configured JDBC driver or DataSource is available.</li>
-     * <li>the LDAP server is also accessible, if one is configured.</li>
-     * </ol>
+     * <p>Application developers that extend the namespace of less4j's 
+     * configuration and the Actor class must overload this method.</p>
+     * 
+     * <pre>public boolean less4jConfigure (Actor $) {
+     *    if (super.less4jConfigure($)) {
+     *        // configure your extension here
+     *        return true;
+     *    } else
+     *        return false;
+     *}</pre>
      * 
      * <p>By definition a servlet configuration is a runtime environment
      * variable, something that cannot be relied upon without testing
      * it each time the J2EE container initialize it.</p>
      * 
-     * <p>Application developers that extend the namespace of less4j's 
-     * configuration and the Actor class must overload this method.</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
-     * method is called with a new <code>Actor</code> instance (represented
-     * throughout less4j by the <code>$</code> symbol).</p>
-     * 
-     * <p>The <code>Actor</code> passed has a <code>configuration</code> 
-     * property decoded from the <code>less4j</code> parameter found in the 
-     * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
-     * deployement configuration medium with a J2EE interface).</p>
-     * 
-     * <p>By convention, this method is expected to test the servlet's named
-     * parameters found in the <code>$.configuration</code> JSON object.</p>
-     * 
      * @return true if the test was successfull, false otherwise
      */
     public boolean less4jConfigure (Actor $) {
-        try {
-            if ($.configuration.A(_irtd2Salts).size() < 1)
-                throw new Exception ();
-        } catch (Exception e) {
-            $.logInfo("add salt(s) to digest cookies!", less4j);
-            return false;
+        JSON.Array salts = $.configuration.A(_irtd2Salts, null);
+        if (salts == null || salts.size() < 1) {
+            salts = new JSON.Array();
+            salts.add(Simple.password(20));
+            $.configuration.put(_irtd2Salts, salts);
         }
-        try {
-            if ($.configuration.containsKey(_jdbcDriver)) {
+        if ($.configuration.containsKey(_jdbcDriver)) {
+            try {
                 Class.forName($.configuration.S(_jdbcDriver));
-                //if (DriverManager.getLogWriter() != null)
-                //    DriverManager.setLogWriter(null);
-                //if (DriverManager.getLoginTimeout() < jdbcTimeout)
-                //    DriverManager.setLoginTimeout(jdbcTimeout);
-                if (sqlOpen($)) $.sqlClose(); else return false;
-            } else if ($.configuration.containsKey(_j2eeDataSource))
-                if (sqlOpen($)) $.sqlClose(); else return false;
-        } catch (Exception e) {
-            $.logError(e); return false;
+            } catch (Exception de) {
+                $.logError(de); return false;
+            }
+            if (sqlOpen($)) 
+                $.sqlClose(); 
+            else 
+                return false;
+        } else if ($.configuration.containsKey(_j2eeDataSource))
+            if (sqlOpen($)) 
+                $.sqlClose(); 
+            else 
+                return false;
+        if ($.configuration.containsKey(_functions)) try {
+            JSON.Object classes = $.configuration.O(_functions);
+            functions = new HashMap();
+            Iterator paths = classes.keySet().iterator();
+            if (paths.hasNext()) {
+                StringBuffer sb = new StringBuffer();
+                sb.append('{');
+                String path = (String) paths.next();
+                JSON.strb(sb, path);
+                sb.append(':');
+                Object fun =  Class.forName(
+                    classes.S(path)
+                    ).getDeclaredField(_singleton);
+                Function function = ((Function) fun);
+                functions.put(path, fun);
+                JSON.strb(sb, (function).jsonr());
+                try {
+                    function.jsonrType = JSONR.compile(function.jsonr());
+                } catch (JSONR.Error e) {
+                    $.logError(e);
+                    return false;
+                }
+                while (paths.hasNext()) {
+                    sb.append(',');
+                    path = (String) paths.next();
+                    JSON.strb(sb, path);
+                    sb.append(':');
+                    fun =  Class.forName(
+                        classes.S(path)
+                        ).getDeclaredField(_singleton);
+                    function = ((Function) fun);
+                    functions.put(path, fun);
+                    JSON.strb(sb, (function).jsonr());
+                    try {
+                        function.jsonrType = JSONR.compile(function.jsonr());
+                    } catch (JSONR.Error e) {
+                        $.logError(e);
+                        return false;
+                    }
+                }
+                sb.append('}');
+                jsonRegulars = sb.toString();
+            }
+        } catch (Exception fe) {
+            $.logError(fe); return false;
         }
         if ($.configuration.containsKey(_jsonRegular)) try {
             $.configuration.put(_jsonRegular, JSONR.compile(
                 $.configuration.O(_jsonRegular), JSONR.TYPES
             ));
-        } catch (JSON.Error e) {$.logError(e); return false;}
+        } catch (JSON.Error e) {
+            $.logError(e); return false;
+            }
         if ($.test) $.logInfo("configuration ok", less4j);
         return true;
     }
@@ -314,79 +381,6 @@ public class Controller extends HttpServlet {
     private static final String _POST = "POST";
     private static final String _application_json = "application/json";
 
-    /**
-     * Parse the request query string in the Actor's <code>json</code> state
-     * enforce the configured constraints on containers and iterations
-     * and eventualy apply a configured JSONR model, return <code>true</code>
-     * if a valid JSON object was successfully updated.  
-     * 
-     * <h4>Synospis</h3>
-     * 
-     * <p>This method is applied by <code>doGet</h3> to discriminate 
-     * requests that will be passed to <code>jsonApplication</code>,
-     * providing one way to instanciate the JSON state of an action.</p>
-     * 
-     * <p>Practically, there's little else to do: query strings are too 
-     * short to go crazy about more than what less4j allready provides.</p>
-     * 
-     * @param $ the Actor state
-     * @return true if a valid JSON expression was found in a GET request
-     */
-    protected boolean jsonGET (Actor $) {
-        JSONR.Type model = jsonRegular($);
-        if (model == null)
-            return $.jsonGET(
-                    $.configuration.intValue(_jsonContainers, 65355),
-                    $.configuration.intValue(_jsonIterations, 65355)
-                    );
-        else 
-            return $.jsonGET(
-                    $.configuration.intValue(_jsonContainers, 65355),
-                    $.configuration.intValue(_jsonIterations, 65355),
-                    model
-                    );
-        }
-    
-    /**
-     * Parse the request posted JSON string in the Actor's state, enforce the 
-     * configured constraints on POSTed bytes, containers and iterations,
-     * eventualy apply a configured JSONR model, return <code>true</code>
-     * if a valid JSON object was successfully updated.  
-     * 
-     * <h4>Synospis</h3>
-     * 
-     * <p>This method is applied by <code>doPost</h3> to discriminate 
-     * requests that will be passed to <code>jsonApplication</code>,
-     * providing one way to instanciate the JSON state of an action.</p>
-     * 
-     * <p>By default it enforces a strict 16KB limit on POSTed JSON data
-     * and allows for up to 65355 containers and iterations.</p>
-     * 
-     * <p>Again, there's little else to do, but you can still decide to
-     * handle POSTed JSON data in a completely different way and yet 
-     * let <code>doPost</code> work as expected by <code>jsonApplication</code>
-     * developed with this implementation.</p>
-     * 
-     * @param $ the Actor state
-     * @return true if a valid JSON expression was found in a POST request
-     */
-    protected boolean jsonPOST (Actor $) {
-        JSONR.Type model = jsonRegular($);
-        if (model == null)
-            return $.jsonPOST(
-                    $.configuration.intValue(_jsonBytes, 16384), 
-                    $.configuration.intValue(_jsonContainers, 65355),
-                    $.configuration.intValue(_jsonIterations, 65355)
-                    );
-        else 
-            return $.jsonPOST(
-                    $.configuration.intValue(_jsonBytes, 16384), 
-                    $.configuration.intValue(_jsonContainers, 65355),
-                    $.configuration.intValue(_jsonIterations, 65355),
-                    model
-                    );
-        }
-    
     /**
      * Identify the requester and return true to digest a new IRTD2 Cookie 
      * and continue the request or complete the response and return false, 
@@ -496,8 +490,12 @@ public class Controller extends HttpServlet {
      * @param $
      * @return
      */
-    public JSONR.Type jsonRegular (Actor $) {
-        return (JSONR.Type) $.configuration.get(_jsonRegular);
+    public Object jsonRegular (Actor $) {
+        Function function = (Function) functions.get($.about);
+        if (function == null)
+            return Function.singleton.jsonRegular($);
+        else
+            return function.jsonRegular($);
     }
     
     /**
@@ -515,7 +513,16 @@ public class Controller extends HttpServlet {
      * @param $ the Actor's state
      */
     public void jsonApplication (Actor $) {
-        $.jsonResponse(400); // Bad Request
+        try {
+            Function function = (Function) functions.get($.about);
+            if (function == null)
+                $.jsonResponse(Function.singleton.jsonApplication($));
+            else
+                $.jsonResponse(function.jsonApplication($));
+        } catch (Throwable e) {
+            $.logError(e);
+            $.jsonResponse(500);
+        }
     }
     
     /**
@@ -558,17 +565,28 @@ public class Controller extends HttpServlet {
      */
     public static boolean sqlOpen (Actor $) {
         if ($.configuration.containsKey(_jdbcDriver))
-            return $.sqlOpenJDBC(
-                $.configuration.S(
-                    _jdbcURL, "jdbc:mysql://127.0.0.1:3306/"
-                    ),
-                $.configuration.S(_jdbcUsername, less4j),
-                $.configuration.S(_jdbcPassword, "")
-                );
-        else 
+            if ($.configuration.containsKey(_jdbcUsername))
+                return $.sqlOpenJDBC(
+                    $.configuration.S(
+                        _jdbcURL, "jdbc:mysql://127.0.0.1:3306/"
+                        ),
+                    $.configuration.S(_jdbcUsername, less4j),
+                    $.configuration.S(_jdbcPassword, "")
+                    );
+            else
+                return $.sqlOpenJDBC($.configuration.S(
+                    _jdbcURL, "jdbc:sqlite:memory"
+                    ));
+        else if ($.configuration.containsKey(_j2eeDataSource))
             return $.sqlOpenJ2EE(
                 $.configuration.S(_j2eeDataSource, less4j)
                 );
+        else {
+            $.logError(new Exception(
+                "No JDBC or J2EE datasource configured"
+                ));
+            return false;
+        }
     }
 
     /**
@@ -883,6 +901,81 @@ public class Controller extends HttpServlet {
         } finally {
             $.ldapClose();
         } else return false;
+    }
+    
+    /**
+     * ...
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>import org.less4j.*;
+     * 
+     *class HelloWorld extends Controller.Function {
+     *    public String jsonr () {
+     *        return "{\"hello\":\"world!\"}";
+     *    }
+     *    public Object jsonRegular (Actor $) {
+     *        return new JSONR (jsonrType, 1, 2);
+     *    }
+     *    public int jsonApplication (Actor $) {
+     *        return 200;
+     *    }
+     *}</pre>
+     * 
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     *
+     */
+    public static class Function {
+        
+        /**
+         * ...
+         * 
+         */
+        public static Function singleton = new Function();
+        
+        /**
+         * 
+         */
+        public JSONR.Type jsonrType = null;
+        
+        /**
+         * ...
+         * 
+         * @param $
+         * @return
+         */
+        public String jsonr () {return "null";}
+        
+        /**
+         * 
+         * @param $
+         * @return
+         */
+        public Object jsonRegular (Actor $) {
+            JSONR.Type model = (JSONR.Type) $.configuration.get(_jsonRegular);
+            if (model == null) {
+                return new JSON(
+                    $.configuration.intValue(_jsonContainers, 65355),
+                    $.configuration.intValue(_jsonIterations, 65355)
+                    );
+            } else {
+                return new JSONR(
+                    model,
+                    $.configuration.intValue(_jsonContainers, 65355),
+                    $.configuration.intValue(_jsonIterations, 65355)
+                    );
+            }
+        }
+        
+        /**
+         * ...
+         * 
+         * @param $
+         * @return
+         */
+        public int jsonApplication (Actor $) throws Throwable {
+            return 400;
+        }
     }
         
 } // That's all folks.
