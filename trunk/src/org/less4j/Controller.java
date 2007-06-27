@@ -32,6 +32,17 @@ import java.util.Iterator;
  * stateless, bended like PHP with a healthy dose of JSON dynamism, more 
  * protocols, less Java and no XML.</p>
  * 
+ * <h3>Synopsis</h3>
+ * 
+ * <p>
+ * This class can be used as-is, with configured functions only and
+ * no other HTTP resources than a dictionary of JSONR interfaces. 
+ * Application developpers may also derive from <code>Controller</code>
+ * to implement ad-hoc servlets. The <code>Script</code> controller
+ * included in less4j provides a JavaScript interpreter to prototype 
+ * new <code>Function</code> and <code>Controller</code> classes.
+ * </p>
+ * 
  * <h3>Interface</h3>
  * 
  * <p>This class implements <code>HttpServlet.service</code> providing: 
@@ -245,6 +256,7 @@ public class Controller extends HttpServlet {
             if ($.digested != null) 
                 $.irtd2Digest();
             String method = $.request.getMethod();
+            String contentType = $.request.getContentType();
             if (method.equals(_GET))
                 if ($.request.getQueryString() == null)
                     httpResource($);
@@ -252,12 +264,10 @@ public class Controller extends HttpServlet {
                     jsonApplication($);
                 else
                     httpContinue($);
-            else if (
-                method.equals(_POST) && 
-                $.request.getContentType().equals(_application_json) &&
-                $.request.getCharacterEncoding().equals(Actor._UTF_8)
-                )
-                if ($.jsonPOST($.configuration.intValue(
+            else if (method.equals(_POST) && contentType != null)
+                if (
+                    contentType.startsWith(_application_json) &&
+                    $.jsonPOST($.configuration.intValue(
                     _postBytes, Simple.netBufferSize
                     ), jsonRegular($)))
                     jsonApplication($); // valid JSON request
@@ -320,6 +330,7 @@ public class Controller extends HttpServlet {
                 $.sqlClose(); 
             else 
                 return false;
+        functions = new HashMap();
         if ($.configuration.containsKey(_functions)) try {
             JSON.Object classes = $.configuration.O(_functions);
             functions = new HashMap();
@@ -565,18 +576,13 @@ public class Controller extends HttpServlet {
      */
     public static boolean sqlOpen (Actor $) {
         if ($.configuration.containsKey(_jdbcDriver))
-            if ($.configuration.containsKey(_jdbcUsername))
-                return $.sqlOpenJDBC(
-                    $.configuration.S(
-                        _jdbcURL, "jdbc:mysql://127.0.0.1:3306/"
-                        ),
-                    $.configuration.S(_jdbcUsername, less4j),
-                    $.configuration.S(_jdbcPassword, "")
-                    );
-            else
-                return $.sqlOpenJDBC($.configuration.S(
-                    _jdbcURL, "jdbc:sqlite:memory"
-                    ));
+            return $.sqlOpenJDBC(
+                $.configuration.S(
+                    _jdbcURL, "jdbc:mysql://127.0.0.1:3306/"
+                    ),
+                $.configuration.S(_jdbcUsername, less4j),
+                $.configuration.S(_jdbcPassword, "")
+                );
         else if ($.configuration.containsKey(_j2eeDataSource))
             return $.sqlOpenJ2EE(
                 $.configuration.S(_j2eeDataSource, less4j)
@@ -585,8 +591,8 @@ public class Controller extends HttpServlet {
             $.logError(new Exception(
                 "No JDBC or J2EE datasource configured"
                 ));
-            return false;
         }
+        return false;
     }
 
     /**
