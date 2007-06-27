@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title>less4j/script</title>
+    <script type="text/javascript" src="protocols.js"></script>
+    <script type="text/javascript">
+      
+JSON.errors[500] = function (url, request, response) {
+    HTML.update($('exception'), response);
+};
+      
+function show_script () {
+    HTML.classAdd($('evaluate'), ['hidden'])
+    HTML.classRemove($('execute'), ['hidden'])
+};
+      
+function do_script () {
+    HTML.update($('exception'), '');
+    JSON.submit($('execute'), 'script');
+};
+            
+function show_evaluate () {
+    HTML.classAdd($('execute'), ['hidden'])
+    HTML.classRemove($('evaluate'), ['hidden'])
+};
+
+function do_evaluate () {
+    HTML.update($('exception'), '');
+    JSON.submit($('evaluate'), 'script');
+};
+            
+    </script>
+    <link href="less4j.css" type="text/css" rel="stylesheet"></link>
+  </head>
+  <body>
+    <div class="context">
+      <h1>less4j/script</h1>
+    </div>
+    <form 
+      id="evaluate"
+      action="javascript:do_evaluate();" 
+      class="default tab"
+      >
+      <input
+        name="expression" 
+        type="text"
+        size="80" 
+        class="fitwidth"
+        value="$.test"
+        />
+      <div class="options">
+        <a href="javascript:show_script();">more</a>
+      </div>
+    </form>
+    <div 
+      id="execute"
+      class="hidden function tab"
+      >
+      <textarea
+        name="script" 
+        type="text"
+        rows="8" cols="80" 
+        class="fitwidth"
+        value="$.test"
+        >functions[&quot;hello&quot;] = function ($) ($) {
+    $.json.put("hello", $.json.S("who", "World") + "!");
+    return 200;
+}</textarea>
+      <div class="options">
+        <a href="javascript:do_script();"
+          >execute</a>
+        <a href="#" onclick="show_evaluate();">less</a>
+      </div>
+    </div>
+    <div id="exception"></div>
+    <div id="result">
+      <h2>Introduction</h2>
+      <p>
+        This is a JavaScript console to develop application of less4j
+        rapidely. Write, test and debug in one tight loop through the
+        network, from the browser to the controller, to the database or 
+        directory beyond and then back to the user.
+      </p>
+    </div>
+  </body>
+</html>
