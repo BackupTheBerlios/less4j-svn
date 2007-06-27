@@ -331,20 +331,20 @@ public class JSONR extends JSON {
 
     protected static final class TypeInteger implements Type {
         protected static final String BIGINTEGER_VALUE_ERROR = 
-            "BigInteger value error";
+            "Integer value error";
         public static final TypeInteger singleton = new TypeInteger();
         public final java.lang.Object value (java.lang.Object instance) 
         throws Error {
-            if (instance instanceof BigInteger)
+            if (instance instanceof Integer)
                 return instance;
             else
-                throw new Error(JSON.BIGINTEGER_TYPE_ERROR);
+                throw new Error(JSON.INTEGER_TYPE_ERROR);
         }
         public final java.lang.Object eval (String string) 
         throws JSON.Error {
             if (string != null) {
                 try {
-                    return new BigInteger(string);
+                    return new Integer(string);
                 } catch (Exception e) {
                     throw new Error(BIGINTEGER_VALUE_ERROR);
                 }
@@ -629,9 +629,9 @@ public class JSONR extends JSON {
             "positive integer overflow";
         private static final String NEGATIVE_INTEGER = 
             "negative integer";
-        BigInteger limit;
-        public TypeIntegerAbsolute (BigInteger gt) {this.limit = gt;}
-        protected final java.lang.Object test (BigInteger i) throws Error {
+        Integer limit;
+        public TypeIntegerAbsolute (Integer gt) {this.limit = gt;}
+        protected final java.lang.Object test (Integer i) throws Error {
             if (i.compareTo(BigInteger.ZERO) < 0)
                 throw new Error(NEGATIVE_INTEGER);
             else if (i.compareTo(limit) <= 0)
@@ -641,10 +641,10 @@ public class JSONR extends JSON {
         } 
         public final java.lang.Object value (java.lang.Object instance) 
         throws Error {
-            return test((BigInteger) INTEGER.value(instance));
+            return test((Integer) INTEGER.value(instance));
         }
         public final java.lang.Object eval (String string) throws JSON.Error {
-            return test((BigInteger) INTEGER.eval(string));
+            return test((Integer) INTEGER.eval(string));
         }
         public final Type copy() {return new TypeIntegerAbsolute(limit);}
     }
@@ -652,24 +652,28 @@ public class JSONR extends JSON {
     protected static final class TypeIntegerRelative implements Type {
         private static final String INTEGER_OVERFLOW = 
             "integer overflow";
-        BigInteger limit;
-        public TypeIntegerRelative (BigInteger gt) {this.limit = gt.abs();}
-        protected final java.lang.Object test (BigInteger i) 
+        int limit;
+        public TypeIntegerRelative (Integer gt) {
+            this.limit = Math.abs(gt.intValue());
+        }
+        protected final java.lang.Object test (Integer i) 
         throws Error {
-            if (i.abs().compareTo(limit) < 0)
+            if (Math.abs(i.intValue()) < limit)
                 return i;
             else
                 throw new Error(INTEGER_OVERFLOW);
         } 
         public final java.lang.Object value (java.lang.Object instance) 
         throws Error {
-            return test((BigInteger) INTEGER.value(instance));
+            return test((Integer) INTEGER.value(instance));
         }
         public final java.lang.Object eval (String string) 
         throws JSON.Error {
-            return test((BigInteger) INTEGER.eval(string));
+            return test((Integer) INTEGER.eval(string));
         }
-        public final Type copy() {return new TypeIntegerRelative(limit);}
+        public final Type copy() {
+            return new TypeIntegerRelative(new Integer(limit));
+        }
     }
 
     private static final Double _double_zero = new Double(0.0);
@@ -807,8 +811,8 @@ public class JSONR extends JSON {
                 type = new TypeRegular(s);
             else
                 type = STRING;
-        } else if (regular instanceof BigInteger) {
-            BigInteger i = (BigInteger) regular;
+        } else if (regular instanceof Integer) {
+            Integer i = (Integer) regular;
             int cmpr = i.compareTo(BigInteger.ZERO); 
             if (cmpr == 0)
                 type = INTEGER;
@@ -1074,10 +1078,10 @@ public class JSONR extends JSON {
             return value(type);
         } catch (Error e) {
             e.jsonIndex = it.getIndex();
-            e.jsonPath.add(0, BigInteger.valueOf(index));
+            e.jsonPath.add(0, new Integer(index));
             throw e;
         } catch (JSON.Error e) {
-            e.jsonPath.add(0, BigInteger.valueOf(index));
+            e.jsonPath.add(0, new Integer(index));
             throw e;
         }
     }

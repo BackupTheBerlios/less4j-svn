@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 
@@ -55,7 +54,7 @@ import java.text.StringCharacterIterator;
  * <blockquote>
  * <pre>try {
  *    if (map.bool("pass"))
- *        BigInteger i = list.intg(2);
+ *        Integer i = list.intg(2);
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
@@ -138,7 +137,7 @@ import java.text.StringCharacterIterator;
  * <code>String</code>, 
  * <code>Double</code>, 
  * <code>BigDecimal</code>, 
- * <code>BigInteger</code>, 
+ * <code>Integer</code>, 
  * <code>Boolean</code>,
  * </blockquote>
  *
@@ -147,7 +146,7 @@ import java.text.StringCharacterIterator;
  * 
  * <p>Note that the additional distinction between JSON number types is made 
  * by considering numbers with an exponent as Doubles, the ones with decimals 
- * as BigDecimal and the others as BigInteger.</p>
+ * as BigDecimal and the others as Integer.</p>
  * 
  * <h4>Safety Limits</h4>
  * 
@@ -325,16 +324,16 @@ public class JSON {
         "Double type error";
     protected static final String BIGDECIMAL_TYPE_ERROR = 
         "BigDecimal type error";
-    protected static final String BIGINTEGER_TYPE_ERROR = 
-        "BigInteger type error";
+    protected static final String INTEGER_TYPE_ERROR = 
+        "Integer type error";
     protected static final String NULL_JSON_STRING = 
         "null JSON string";
     
     protected static final char _done = CharacterIterator.DONE;
     
-    protected static final BigInteger I (java.lang.Object value) throws Error {
-        if (value instanceof BigInteger) {return (BigInteger) value;} 
-        else throw new Error(BIGINTEGER_TYPE_ERROR);
+    protected static final Integer I (java.lang.Object value) throws Error {
+        if (value instanceof Integer) {return (Integer) value;} 
+        else throw new Error(INTEGER_TYPE_ERROR);
     }   
     protected static final BigDecimal D(java.lang.Object value) throws Error {
         if (value instanceof BigDecimal) {return (BigDecimal) value;}
@@ -382,7 +381,7 @@ public class JSON {
      *        "\"another map\": {}" +
      *        "}");
      *    Boolean b = map.B("test");
-     *    BigInteger i = map.I("a big integer");
+     *    Integer i = map.I("a big integer");
      *    BigDecimal d = map.D("a big decimal");
      *    Double r = map.F("a double float");
      *    String s = map.S("unicode string");
@@ -407,7 +406,7 @@ public class JSON {
      */
     public static class Object extends HashMap {
         static final long serialVersionUID = 0L; // TODO: regenerate
-        public final BigInteger I(String name) throws Error {
+        public final Integer I(String name) throws Error {
             return JSON.I(get(name));
         }
         public final int intValue(String name, int def) {
@@ -480,7 +479,7 @@ public class JSON {
      *    );
      *    Object o = list.get(0); 
      *    Boolean b = list.B(1);
-     *    BigInteger i = list.I(2);
+     *    Integer i = list.I(2);
      *    BigDecimal d = list.D(3);
      *    Double r = list.F(4);
      *    JSON.Array a = list.A(5);
@@ -497,7 +496,7 @@ public class JSON {
      */
     public static class Array extends ArrayList {
         static final long serialVersionUID = 0L; // TODO: regenerate
-        public final BigInteger I(int index) throws Error {
+        public final Integer I(int index) throws Error {
             return (JSON.I(get(index)));
         }
         public final int intValue(int index, int def) {
@@ -973,7 +972,7 @@ public class JSON {
      * <code>JSON.Array</code>, 
      * <code>String</code>,
      * <code>BigDecimal</code>, 
-     * <code>BigInteger</code>, 
+     * <code>Integer</code>, 
      * <code>Double</code>,
      * <code>Boolean</code>,
      * <code>null</code> or throws a <code>JSON.Error</code> if a syntax 
@@ -1156,7 +1155,7 @@ public class JSON {
         try {
             return value();
         } catch (JSON.Error e) {
-            e.jsonPath.add(0, BigInteger.valueOf(index));
+            e.jsonPath.add(0, new Integer(index));
             throw e;
         }
     }
@@ -1240,7 +1239,7 @@ public class JSON {
             digits();
             return new Double(buf.toString());
         } else {
-            return new BigInteger(buf.toString());
+            return new Integer(buf.toString());
         }
     }
     
