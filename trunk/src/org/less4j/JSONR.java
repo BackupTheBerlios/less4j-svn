@@ -39,37 +39,20 @@ import java.text.StringCharacterIterator;
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>A safe JSONR intepreter to evaluate and validate a UNICODE string 
- * as a limited tree of Java instances that matches a regular pattern
- * of types and values.</p> 
- *
- * <p>To compile a JSONR pattern with the default set of extension types,
- * for instance a dummy constant model:
- * 
- * <blockquote>
- * <pre>JSONR pattern = new JSONR("["my model", "is a constant"]");</pre>
- * </blockquote>
- * 
- * that validates only the first JSON array evaluated:</p>
- * 
- * <blockquote>
- * <pre>try {
+ * <pre>JSONR pattern = new JSONR("["my model", "is a constant"]");
+ *try {
  *    Object value = pattern.eval("[\"my model\", \"is a constant\"]);
  *    Object value = pattern.eval("[\"will this fail?\", true]);
  *} catch (JSONR.Error e) {
  *    System.out.println(e.str());
  *}</pre>
- * </blockquote>
- * 
- * but will raise a <code>JSONR.Error</code> for the second.</p>
  * 
  * <h4>JSON Regular Evaluation</h4>
  * 
  * <p>The <code>JSONR</code> class provides similar interfaces than 
  * <code>JSON</code> in the form of instance methods to evaluate and
- * validate any JSON values:
+ * validate any JSON values:</p>
  * 
- * <blockquote>
  * <pre>Object map;
  *try {
  *    JSONR pattern = new JSONR("{\"pass\": null}");
@@ -82,11 +65,9 @@ import java.text.StringCharacterIterator;
  *} catch (JSONR.Error e) {
  *    System.out.println(e.str());
  *}</pre>
- * </blockquote>
  * 
- * extend arrays
+ * <p>But also extend arrays:</p>
  * 
- * <blockquote>
  * <pre>JSONR pattern = new JSONR("[\".+\"]");
  *JSON.Array list = new JSON.Array(); 
  *JSONR.Error e = pattern.extend(
@@ -94,11 +75,9 @@ import java.text.StringCharacterIterator;
  *    );
  *if (e != null)    
  *    System.out.println(e.str());</pre>
- * </blockquote>
  * 
- * or update maps
+ * <p>Or update maps:</p>
  *  
- * <blockquote>
  * <pre>JSONR pattern = new JSONR("[\".+\"]");
  *JSON.Object map = new JSON.Object();
  *JSONR.Error e = pattern.update(
@@ -106,11 +85,10 @@ import java.text.StringCharacterIterator;
  *    );
  *if (e != null)    
  *    System.out.println(e.str());</pre>
- * </blockquote>
  * 
- * eventually with safety limits
+ * <p>And do it eventually with lower safety limits than the maximums on
+ * the number of containers (JSON.Array or JSON.Object) and iterations.</p>
  * 
- * <blockquote>
  * <pre>JSONR.Error e;
  *JSON.Array list = new JSON.Array();
  *JSONR pattern = new JSONR("[0]", 1, 7);
@@ -120,9 +98,10 @@ import java.text.StringCharacterIterator;
  *e = pattern.extend(list, "[1,2,3,4,5,6,7,8,9,0]");
  *if (e != null)
  *    System.out.println(e.str());</pre>
- * </blockquote>
  * 
- * or throw a <code>JSONR.Error</code> and stop the evaluation.</p>
+ * <p>Note that the first errors allways stops the evaluation, adding
+ * effective safety limits on the memory allocated to requests by a
+ * JSON service.</p>
  * 
  * <h4>Extension Types</h4>
  * 
@@ -138,7 +117,7 @@ import java.text.StringCharacterIterator;
  * </tr>
  * </table>
  * 
- * As a decent implementation of JSONR, this one is extensible and provides
+ * <p>As a decent implementation of JSONR, this one is extensible and provides
  * a Java interface and enough singleton to do so easely.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>

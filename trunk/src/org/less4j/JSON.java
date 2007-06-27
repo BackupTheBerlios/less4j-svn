@@ -83,9 +83,9 @@ import java.text.StringCharacterIterator;
  * strings under the same global constraints on their cumulated numbers 
  * of containers and iterations.</p>
  * 
- * <p>It's practical to evaluate distinct JSON values:</p>
+ * <p>With limits set to their maximum it is practical to evaluate distinct 
+ * JSON values:</p>
  * 
- * <blockquote>
  * <pre>JSON json = new JSON();
  *try {
  *    Object one = json.eval("{\"size\": 0}");
@@ -96,12 +96,10 @@ import java.text.StringCharacterIterator;
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage());
  *}</pre>
- * </blockquote>
  * 
  * <p>To update any instance of <code>Map</code> with the members of many 
  * JSON objects:</p>
  * 
- * <blockquote>
  * <pre>JSON.Error e;
  *JSON json = new JSON();
  *HashMap map = new HashMap(); 
@@ -111,12 +109,10 @@ import java.text.StringCharacterIterator;
  *e = json.update(map, "{\"pass\": 1, fail: true}");
  *if (e != null)
  *    System.out.println(e.str());</pre>
- * </blockquote>
  * 
  * <p>To extend any <code>List</code> with the collection of many 
  * JSON arrays:</p>
  * 
- * <blockquote>
  * <pre>JSON json = new JSON();
  *ArrayList list = new ArrayList(); 
  *e = json.extend(list, "[1,2,3]");
@@ -125,7 +121,6 @@ import java.text.StringCharacterIterator;
  *e = json.extend(list, "[null, true, 1.0]");
  *if (e != null)
  *    System.out.println(e.str());</pre>
- * </blockquote>
  * 
  * <h4>JSON Types</h4>
  * 
@@ -154,13 +149,11 @@ import java.text.StringCharacterIterator;
  * number of objects and arrays and the count of values, for containers
  * and iterations:
  * 
- * <blockquote>
  * <pre>try {
  *    JSON.Array list = (new JSON(1, 4)).array("[1,2,3,4,5]");
  *} catch (JSON.Error e) {
  *    System.out.println(e.getMessage())
  *}</pre>
- * </blockquote>
  * 
  * making JSON evaluation safe for public interfaces.</p>
  * 
@@ -168,7 +161,6 @@ import java.text.StringCharacterIterator;
  * 
  * <p>To append distinct values into a <code>StringBuffer</code>
  * 
- * <blockquote>
  * <pre>StringBuffer sb = new StringBuffer();
  *sb.append("{\"size\":");
  *JSON.strb(sb, value);
@@ -178,7 +170,6 @@ import java.text.StringCharacterIterator;
  *JSON.strb(sb, list.iterator());
  *sb.append("}");
  *System.out.println(sb.toString());</pre>
- *</blockquote>
  *
  * using templates for constants.</p> 
  * 
@@ -186,13 +177,11 @@ import java.text.StringCharacterIterator;
  * 
  * <p>To pretty print an indented representation of a java instance in JSON:
  * 
- * <blockquote>
  * <pre>System.out.println(JSON.repr(value));
  *System.out.println(JSON.repr(map));
  *System.out.println(JSON.repr(list));</pre>
- * </blockquote>
  * 
- * ...</p>
+ * <p>...</p>
  * 
  * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
  * 
@@ -255,9 +244,6 @@ public class JSON {
          * 
          * <h4>Synopsis</h4>
          * 
-         * <p>...
-         * 
-         * <blockquote>
          *<pre>StringBuffer sb = new StringBuffer();
          *try {
          *    String model = (new JSON()).eval("{fail}");
@@ -265,9 +251,8 @@ public class JSON {
          *    e.jsonError(sb);
          *}</pre>
          *System.out.println(sb.toString());
-         *</blockquote>
          *
-         * ...</p>
+         * <p>...</p>
          * 
          * @return the updated StringBuffer
          */
@@ -289,13 +274,9 @@ public class JSON {
          * 
          * <h4>Synopsis</h4>
          * 
-         * <p>...
-         * 
-         * <blockquote>
          * <pre>["error message", 23, ["list", 2]]</pre> 
-         * </blockquote>
          *   
-         * ...</p>
+         * <p>...</p>
          * 
          * @return a JSON string
          */
@@ -366,14 +347,11 @@ public class JSON {
      * 
      * <h3>Synopsis</h3>
      * 
-     * <p>...
-     * 
-     * </blockquote>
      * <pre>try {
      *    JSON.Object map = (new JSON()).object("{" +
      *        "\"nothing\": null," +
      *        "\"a boolean\": true," +
-     *        "\"a big integer\": 2," +
+     *        "\"an integer\": 2," +
      *        "\"a big decimal\": +1234567.89," +
      *        "\"a double float\": -123456789e-4," +
      *        "\"unicode string"\: \"hello world!\", "+
@@ -381,7 +359,7 @@ public class JSON {
      *        "\"another map\": {}" +
      *        "}");
      *    Boolean b = map.B("test");
-     *    Integer i = map.I("a big integer");
+     *    Integer i = map.I("an integer");
      *    BigDecimal d = map.D("a big decimal");
      *    Double r = map.F("a double float");
      *    String s = map.S("unicode string");
@@ -390,7 +368,6 @@ public class JSON {
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
-     * </blockquote>
      * 
      * The convenience is double. At runtime it distinguishes a JSON
      * type value error from other type casting allow programs to be
@@ -475,9 +452,6 @@ public class JSON {
      * 
      * <h3>Synopsis</h3>
      * 
-     * <p>...
-     * 
-     * </blockquote>
      * <pre>try {
      *    JSON.Array list = (new JSON()).array(
      *        "[true, 1, 3.0, 1234e-2, \"test\", [], {}]"
@@ -493,9 +467,8 @@ public class JSON {
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}</pre>
-     * </blockquote>
      * 
-     * ...</p>
+     * <p>...</p>
      * 
      * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
