@@ -414,6 +414,11 @@ public class JSON {
             try {return JSON.I(get(name)).intValue();} 
             catch (Error e) {return def;}
         }
+        public final long longValue(String name, long def) {
+            if (!containsKey(name)) return def;
+            try {return JSON.I(get(name)).longValue();} 
+            catch (Error e) {return def;}
+        }
         public final BigDecimal D(String name) throws Error {
             return JSON.D(get(name));
         }
@@ -502,6 +507,11 @@ public class JSON {
         public final int intValue(int index, int def) {
             if (index >= size()) return def;
             try {return JSON.I(get(index)).intValue();} 
+            catch (Error e) {return def;}
+        }
+        public final long longValue(int index, long def) {
+            if (index >= size()) return def;
+            try {return JSON.I(get(index)).longValue();} 
             catch (Error e) {return def;}
         }
         public final BigDecimal D(int index) throws Error {
