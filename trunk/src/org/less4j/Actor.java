@@ -500,7 +500,7 @@ public class Actor {
         } else {
             JSON.strb(sb, json);
         }
-        logOut(sb.toString());
+        System.out.println(sb.toString());
     }
     
     protected static final String irtd2Name = "IRTD2";
