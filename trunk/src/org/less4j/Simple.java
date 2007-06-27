@@ -124,6 +124,20 @@ public class Simple {
     }
 
     /**
+     * Try to read a complete InputStream into a String.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>String resource = Simple.read(System.in);</pre>
+     *     
+     * @param url to read from
+     * @return a <code>String</code> or <code>null</code>
+     */
+    static public String read (InputStream is) throws IOException {
+        return read (new BufferedReader(new InputStreamReader(is)));
+     }
+        
+    /**
      * Try to read a complete file into a String.
      * 
      * <h4>Synopsis</h4>
@@ -139,9 +153,7 @@ public class Simple {
      */
     static public String read (URL url) {
         try {
-            return read (new BufferedReader(
-                new InputStreamReader(url.openStream())
-                ));
+            return read (url.openStream());
         } catch (IOException e) {
             return null;
         }
