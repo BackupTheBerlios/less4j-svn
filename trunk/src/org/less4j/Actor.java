@@ -1115,7 +1115,10 @@ public class Actor {
      * or log an error.</p>
      */
     public void jsonResponse (int code) {
-        jsonResponse(code, JSON.encode(json));
+        if (test)
+            jsonResponse(code, JSON.repr(json));
+        else
+            jsonResponse(code, JSON.encode(json));
     }
     /**
      * Try to open a J2EE datasource and disable AutoCommit, return 
