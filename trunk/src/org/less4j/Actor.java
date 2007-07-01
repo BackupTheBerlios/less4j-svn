@@ -730,7 +730,7 @@ public class Actor {
      * <pre>...</pre>
      * 
      * @param limit
-     * @return
+     * @return a <code>byte[]</code> buffer
      */
     public byte[] httpPOST(int limit) {
         int contentLength = request.getContentLength(); 
@@ -884,10 +884,10 @@ public class Actor {
     protected static final String jsonXJSON = "X-JSON";
     
     /**
+     * ...
      * 
-     * @param containers
-     * @param iterations
-     * @return
+     * @param interpreter
+     * @return true if a valid JSON request was transfered
      */
     public boolean jsonGET(JSON interpreter) {
         json = new JSON.Object();
@@ -928,10 +928,8 @@ public class Actor {
     
     /**
      * 
-     * @param containers
-     * @param iterations
-     * @param type
-     * @return
+     * @param interpreter
+     * @return true if a regular JSON request was transfered
      */
     public boolean jsonGET(JSONR interpreter) {
         json = new JSON.Object();
@@ -976,9 +974,10 @@ public class Actor {
     }
     
     /**
+     * ...
      * 
      * @param interpreter
-     * @return
+     * @return true if a valid JSON request was GET or POSTed 
      */
     public boolean jsonGET(Object interpreter) {
         if (interpreter instanceof JSON)
@@ -1052,21 +1051,22 @@ public class Actor {
     }
     
     /**
+     * ...
      * 
-     * @param digestedName
-     * @param digestName
-     * @return
+     * @param signed
+     * @param signature
+     * @return true if the given JSON object matches the signature
      */
-    public boolean jsonDigested(String digestedName, String digestName) {
-        String sign = json.S(digestName, "");
-        byte[] buff = JSON.encode(json.get(digestedName)).getBytes();
+    public boolean jsonDigested(String signed, String signature) {
+        String digest = json.S(signature, "");
+        byte[] buff = JSON.encode(json.get(signed)).getBytes();
         String d = null;
         for (int i=0; i<salts.length; i++) {
             SHA1 md = new SHA1();
             md.update(buff);
             md.update(salts[i]);
             d = md.hexdigest();
-            if (d.equals(sign)) return true;
+            if (d.equals(digest)) return true;
         }
         return false;
     }
@@ -1532,7 +1532,7 @@ public class Actor {
      * @return true if the connection was successfull, false otherwise
      */
     public boolean 
-    ldapOpen (String url, Object principal, Object credentials) {
+    ldapOpen (String url, String principal, String credentials) {
         Hashtable env = new Hashtable();
         env.put(Context.INITIAL_CONTEXT_FACTORY, ldapCtxFactory);
         env.put(Context.PROVIDER_URL, url);

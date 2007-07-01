@@ -24,31 +24,42 @@ import org.mozilla.javascript.*; // More JavaScript Applications!
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>A typical greenfield development configuration for a <code>Script</code> 
- * servlet is:</p>
+ * <pre>&lt;servlet&gt;
+ *  &lt;servlet-name&gt;less4jscript&lt;/servlet-name&gt;
+ *  &lt;servlet-class&gt;org.less4j.Controller&lt;/servlet-class&gt;
+ *  &lt;init-param&gt;
+ *    &lt;param-name&gt;less4j&lt;/param-name&gt;
+ *    &lt;param-value&gt;&lt;![CDATA[
+ *    {
+ *      "test": false,
+ *      "scripts": [
+ *        "functions.js", 
+ *        "hello-world.js"
+ *        ] 
+ *      }
+ *    ]]&gt;&lt;/param-value&gt;
+ *  &lt;/init-param&gt;
+ *&lt;/servlet&gt;</pre>
  * 
- * <pre>{"test": true, "scripts": ["functions.js", "hello-world.js"]}</pre>
+ * <p>... <code>hello-world.js</code> ...</p>
  * 
- * <p>Scripts loaded by servlets of this controller class can supply their
- * own JavaScript implementation of the <code>Controller</code> interfaces.
- * The purpose is to prototype new Java controller in JavaScript first, 
- * possibly directly from a web prompt.</p>
- * 
- * <p>The less4j framework comes with a <code>functions.js</code> script
- * that emulates the functional <code>Controller</code> dispatcher (actually
- * it prototyped it).</p>
- *  
- * <p>And here is the usual suspect first application:</p>
- * 
- * <pre>functions["/hello-world"] = jsonRegularFunction (
- *    function ($) {
- *        return 200;
+ * <pre>functions["/hello-world"] = less4jFunction (
+ *    function application ($) {
+ *        $.jsonResponse(200);
  *    }, 
- *    '{"hello": "world!"}', 1, 2
+ *    null, '{"hello": "world!"}', 1, 2
  *    );</pre>
  * 
- * <p>...</p>
+ * <p>Scripts loaded by servlets of this controller class can supply their
+ * own JavaScript implementation of the <code>Controller</code>'s
+ * <code>Function</code> interfaces. The purpose is to prototype new Java 
+ * controller and functions in JavaScript first and from a web prompt.</p>
  * 
+ * <p>The less4j framework comes with a <code>functions.js</code> script
+ * that dispatches requests for which there are no <code>Functions</code>
+ * configured to the JavaScript prototypes declared by other scripts and
+ * registered in the scripted <code>functions</code> mapping.</p>
+ *  
  * <h3>Applications</h3>
  * 
  * <p>This controller can be used in two different ways to cover a wide
@@ -77,11 +88,10 @@ import org.mozilla.javascript.*; // More JavaScript Applications!
  */
 public class Script extends Controller {
 
-    static final long serialVersionUID = 0L; // TODO: regenerate
-
     private static String _configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
         "\"scripts\": [\"^.+?[.]js$\"]," +
+        "\"functions\": {\"\\/.*\": \".+\"}," +
         "\"irtd2Salts\": [\"^...........*$\"]," + 
         "\"irtd2Timeout\": null," +
         "\"postBytes\": null," +
@@ -114,6 +124,7 @@ public class Script extends Controller {
      * <pre>{
      *    "test": false, 
      *    "scripts": ["^.+?[.]js$"],
+     *    "functions": {"^\/.*$": ""},
      *    "irtd2Salts": ["^...........*$"], 
      *    "irtd2Timeout": null,
      *    "postBytes": null,
@@ -357,6 +368,7 @@ public class Script extends Controller {
      * <p>In one of the configured scripts, define:</p>
      * 
      * <pre>importPackage(org.less4j);
+     * 
      *var model = JSONR.compile ('{"hello": "world!"}');
      *function jsonRegular ($) {
      *    return new JSONR(19, 1, 1, model); // strictly!

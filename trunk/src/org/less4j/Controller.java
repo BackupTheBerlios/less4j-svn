@@ -34,71 +34,51 @@ import java.util.Iterator;
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>
- * This class can be used as-is, with configured functions only and
- * no other HTTP resources than a dictionary of JSONR interfaces. 
- * Application developpers may also derive from <code>Controller</code>
+ * <pre>&lt;servlet&gt;
+ *  &lt;servlet-name&gt;less4jscript&lt;/servlet-name&gt;
+ *  &lt;servlet-class&gt;org.less4j.Controller&lt;/servlet-class&gt;
+ *  &lt;init-param&gt;
+ *    &lt;param-name&gt;less4j&lt;/param-name&gt;
+ *    &lt;param-value&gt;&lt;![CDATA[
+ *    {
+ *      "test": false, 
+ *      "functions": {
+ *        "\/hello-world", "org.less4j.tests.HelloWorld"
+ *        }
+ *      }
+ *    ]]&gt;&lt;/param-value&gt;
+ *  &lt;/init-param&gt;
+ *&lt;/servlet&gt;</pre>
+ * 
+ * <p>This class can be used as-is, with configured functions only and
+ * no other HTTP resources than a dictionary of JSONR interfaces.</p> 
+ * 
+ * <p>It fits the common use case of a web controller that aggregates 
+ * functions on a set of resource like file folders, an SQL database or 
+ * an LDAP direcory. This implementation supports dispatching of an HTTP 
+ * requests to a configured <code>Function</code> based on the request URL's
+ * <code>PATH_INFO</code>.</p>
+ * 
+ * <p>Application developpers can also derive from <code>Controller</code>
  * to implement ad-hoc servlets. The <code>Script</code> controller
  * included in less4j provides a JavaScript interpreter to prototype 
- * new <code>Function</code> and <code>Controller</code> classes.
- * </p>
- * 
- * <h3>Interface</h3>
- * 
- * <p>This class implements <code>HttpServlet.service</code> providing: 
- * a request/response state configuration, test and instanciation, user 
- * identification, requests authorization, input validation and application 
- * audit trail.</p>
- * 
- * <p>By default, each implementation of its interfaces does The Right Thing 
- * for its applications, leaving to developpers the profitable and creative 
- * part of the job as the implementation of a single static property:</p>
- * 
- * <blockquote>
- * <pre>configurationPattern()</pre>
- * </blockquote>
- * 
- * <p>and one of more of the six methods:</p>
- * 
- * <blockquote>
- *<pre>less4jConfigure(Actor)
- *irtd2Identify(Actor)
- *httpResource(Actor)
- *httpContinue(Actor)
- *jsonRegular(Actor)
- *jsonApplication(Actor)</pre>
- * </blockquote>
- * 
- * <p>In many use case, <code>jsonApplication</code> may be the only method
- * to override. And they may be deceptively simple because this 
- * <code>Controller</code> also provides a full stack of configurable 
- * conveniences for entreprise web 2.0 applications (ie: for HTTP, JSON, SQL 
- * and LDAP).</p>
- * 
- * <h3>Implementation</h3>
- * 
- * <p>One common use case of a web controller is to aggregate functions
- * on a set of resource like file folders, an SQL database or an LDAP
- * direcory. This implementation supports dispatching of an HTTP requests 
- * to a configured <code>Function</code> based on the request URL's
- * <code>PATH_INFO</code>.</p>
+ * new <code>Function</code> and <code>Controller</code> classes.</p>
  * 
  * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  * 
  */
-public class Controller extends HttpServlet {
-    
-    static final long serialVersionUID = 0L; // TODO: regenerate
+public class Controller extends HttpServlet implements Function {
     
     /**
-     * ...
+     * A <code>HashMap</code> of URL <code>PATH_INFO</code> keys to less4j
+     * <code>Function</code>.
      */
     public HashMap functions = null;
     
     /**
-     * 
+     * A JSON string that represents the configured functions' interfaces.
      */
-    public String jsonRegulars = "null";
+    public String interfaces = "null";
     
     protected static final String less4j = "less4j";
 
@@ -118,19 +98,19 @@ public class Controller extends HttpServlet {
     protected static final String _ldapUsername = "ldapUsername";
     protected static final String _ldapPassword = "ldapPassword";
     
-    private JSON.Object configuration = new JSON.Object ();
+    private JSON.Object _configuration = new JSON.Object ();
     
     protected JSON.Object getConfiguration() {
-        synchronized (configuration) {return configuration;}
+        synchronized (_configuration) {return _configuration;}
     }
     
     protected void setConfiguration(JSON.Object object) {
-        synchronized (configuration) {configuration = object;}
+        synchronized (_configuration) {_configuration = object;}
     }
     
     private static String _configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
-        "\"functions\": {\"/.*\": \".+\"}," + 
+        "\"functions\": {\"\\/.*\": \".+\"}," + 
         "\"irtd2Salts\": [\"^...........*$\"]," + 
         "\"irtd2Timeout\": null," +
         "\"postBytes\": null," +
@@ -164,7 +144,6 @@ public class Controller extends HttpServlet {
      * 
      * <pre>{
      *    "test": false, // default to production
-     *    "irtd2Salts": [".........+"],
      *    "irtd2Timeout": 3600, // one hour maximum
      *    "postBytes": 4096, // relatively small passwords
      *    "jsonContainers": 1, // one object
@@ -204,7 +183,6 @@ public class Controller extends HttpServlet {
      * <p>By convention, this method is expected to test the servlet's named
      * parameters found in the <code>$.configuration</code> JSON object.</p>
      * 
-     * <p></p>
      * @param config the Servlet configuration <code>Map</code>
      */
     public void init (ServletConfig config) throws ServletException {
@@ -241,43 +219,6 @@ public class Controller extends HttpServlet {
         setConfiguration(object);
     }
  
-    /**
-     * ...
-     */
-    public void service (ServletRequest req, ServletResponse res) {
-        Actor $ = new Actor (
-            getConfiguration(), 
-            (HttpServletRequest) req, 
-            (HttpServletResponse) res
-            );
-        if ($.irtd2Digested(
-                $.configuration.intValue(_irtd2Timeout, 3600)
-                ) || irtd2Identify($)) {
-            if ($.digested != null) 
-                $.irtd2Digest();
-            String method = $.request.getMethod();
-            String contentType = $.request.getContentType();
-            if (method.equals(_GET))
-                if ($.request.getQueryString() == null)
-                    httpResource($);
-                else if ($.jsonGET(jsonRegular($)))
-                    jsonApplication($);
-                else
-                    httpContinue($);
-            else if (method.equals(_POST) && contentType != null)
-                if (
-                    contentType.startsWith(_application_json) &&
-                    $.jsonPOST($.configuration.intValue(
-                    _postBytes, Simple.netBufferSize
-                    ), jsonRegular($)))
-                    jsonApplication($); // valid JSON request
-                else
-                    httpContinue($);
-            else
-                httpContinue($);
-        }
-    }
-
     // private static final int jdbcTimeout = 15;
     
     private static final String _functions = "functions";
@@ -289,7 +230,7 @@ public class Controller extends HttpServlet {
      * and return false if the configured SQL or LDAP resources are not
      * available.</p>
      * 
-     * <h3>Synopsis</h3>
+     * <h4>Synopsis</h4>
      * 
      * <p>Application developers that extend the namespace of less4j's 
      * configuration and the Actor class must overload this method.</p>
@@ -306,30 +247,49 @@ public class Controller extends HttpServlet {
      * variable, something that cannot be relied upon without testing
      * it each time the J2EE container initialize it.</p>
      * 
-     * @return true if the test was successfull, false otherwise
+     * @return true if the configuration was successfull, false otherwise
      */
     public boolean less4jConfigure (Actor $) {
+        // Configure the controller's IRTD2, JSONR, SQL and LDAP first ...
         JSON.Array salts = $.configuration.A(_irtd2Salts, null);
         if (salts == null || salts.size() < 1) {
             salts = new JSON.Array();
             salts.add(Simple.password(20));
             $.configuration.put(_irtd2Salts, salts);
         }
+        if ($.configuration.containsKey(_jsonRegular)) try {
+            $.configuration.put(_jsonRegular, JSONR.compile(
+                $.configuration.O(_jsonRegular), JSONR.TYPES
+            ));
+        } catch (JSON.Error e) {
+            $.logError(e); 
+            return false;
+            }
         if ($.configuration.containsKey(_jdbcDriver)) {
             try {
                 Class.forName($.configuration.S(_jdbcDriver));
             } catch (Exception de) {
-                $.logError(de); return false;
+                $.logError(de); 
+                return false;
             }
             if (sqlOpen($)) 
                 $.sqlClose(); 
             else 
                 return false;
+            
         } else if ($.configuration.containsKey(_j2eeDataSource))
             if (sqlOpen($)) 
                 $.sqlClose(); 
             else 
                 return false;
+        
+        if ($.configuration.containsKey(_ldapURL)) {
+            if (ldapOpen($)) 
+                $.ldapClose();
+            else
+                return false;
+        }
+        // ... then configure the functions and compile JSONR interfaces.
         functions = new HashMap();
         if ($.configuration.containsKey(_functions)) try {
             JSON.Object classes = $.configuration.O(_functions);
@@ -345,14 +305,11 @@ public class Controller extends HttpServlet {
                     classes.S(path)
                     ).getDeclaredField(_singleton);
                 Function function = ((Function) fun);
-                functions.put(path, fun);
-                JSON.strb(sb, (function).jsonr());
-                try {
-                    function.jsonrType = JSONR.compile(function.jsonr());
-                } catch (JSONR.Error e) {
-                    $.logError(e);
+                if (!function.less4jConfigure($) && !$.test)
                     return false;
-                }
+                
+                functions.put(path, function);
+                JSON.strb(sb, (function).jsonInterface($));
                 while (paths.hasNext()) {
                     sb.append(',');
                     path = (String) paths.next();
@@ -362,28 +319,19 @@ public class Controller extends HttpServlet {
                         classes.S(path)
                         ).getDeclaredField(_singleton);
                     function = ((Function) fun);
-                    functions.put(path, fun);
-                    JSON.strb(sb, (function).jsonr());
-                    try {
-                        function.jsonrType = JSONR.compile(function.jsonr());
-                    } catch (JSONR.Error e) {
-                        $.logError(e);
+                    if (!function.less4jConfigure($) && !$.test)
                         return false;
-                    }
+                    
+                    functions.put(path, function);
+                    JSON.strb(sb, (function).jsonInterface($));
                 }
                 sb.append('}');
-                jsonRegulars = sb.toString();
+                interfaces = sb.toString();
             }
         } catch (Exception fe) {
-            $.logError(fe); return false;
+            $.logError(fe); 
+            return false;
         }
-        if ($.configuration.containsKey(_jsonRegular)) try {
-            $.configuration.put(_jsonRegular, JSONR.compile(
-                $.configuration.O(_jsonRegular), JSONR.TYPES
-            ));
-        } catch (JSON.Error e) {
-            $.logError(e); return false;
-            }
         if ($.test) $.logInfo("configuration ok", less4j);
         return true;
     }
@@ -393,102 +341,85 @@ public class Controller extends HttpServlet {
     private static final String _application_json = "application/json";
 
     /**
-     * Identify the requester and return true to digest a new IRTD2 Cookie 
-     * and continue the request or complete the response and return false, 
-     * by default grant no rights to a random user ID made of ten alphanumeric 
-     * characters.
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>public boolean irtd2Identify (Actor $) {
-     *    $.identity = Simple.password(10);
-     *    return true;
-     *}</pre>
-     * 
-     * <p>A simpler implementation is to reply unidentified requests
-     * with a <code>401 Not Authorized</code> response:
-     * 
-     *<pre>public boolean irtd2Identify (Actor $) {
-     *   $.httpError(401)); 
-     *   return false; 
-     *}</pre>
-     * 
-     * <p>or redirect the user agent to another controller:</p>
-     * 
-     *<pre>public boolean irtd2Identify (Actor $) {
-     *   $.http302Redirect("/login"); 
-     *   return false; 
-     *}</pre>
-     * 
-     * <p>The simplest implementation is to pass unidentified requests 
-     * through, here to handle JSON login with a configurable password
-     * for a <code>root</code> access in the root context "/":</p>
-     * 
-     *<pre>public static boolean irtd2Identify (Actor $) {
-     *   return true;
-     *}
-     *
-     *public void jsonApplication (Actor $) {
-     *   if ( // there is an URL query string or a JSON body with a password
-     *       $.json.S("password", "").equals(
-     *           $.configuration.S("password", "less4j")
-     *           )
-     *       )
-     *       // digest a new IRTD2 cookie for user "root" with "root" role
-     *       $.identity = "root";
-     *       $.rights = "root";
-     *       $.irtd2Digest("/");
-     *       // is identified, continue the request...
-     *   else
-     *       $.jsonResponse(401); // Not Authorized
-     *       // not identified, response completed. 
-     *}</pre>
-     * 
-     * <p>...</p>
+     * Returns a JSON string mapping the URL path of the <code>Function</code>
+     * configured to their JSONR pattern. 
+     */
+    public String jsonInterface (Actor $) {
+        return interfaces;
+    }
+
+    /**
+     * Dispatch IRTD2 identified requests to one of the interfaces of either 
+     * a configured <code>Function</code> or this <code>Controller</code>.
+     */
+    public void service (ServletRequest req, ServletResponse res) {
+        Actor $ = new Actor (
+            getConfiguration(), 
+            (HttpServletRequest) req, 
+            (HttpServletResponse) res
+            );
+        Function function;
+        if ($.about == null || !functions.containsKey($.about))
+            function = this;
+        else {
+            function = (Function) functions.get($.about);
+        } 
+        if ($.irtd2Digested(
+                $.configuration.intValue(_irtd2Timeout, 3600)
+                ) || function.irtd2Identify($)) {
+            if ($.digested != null) 
+                $.irtd2Digest();
+            String method = $.request.getMethod();
+            String contentType = $.request.getContentType();
+            if (method.equals(_GET))
+                if ($.request.getQueryString() == null)
+                    function.httpResource($);
+                else if ($.jsonGET(jsonRegular($)))
+                    function.jsonApplication($);
+                else
+                    function.httpContinue($);
+            else if (method.equals(_POST) && contentType != null)
+                if (
+                    contentType.startsWith(_application_json) &&
+                    $.jsonPOST($.configuration.intValue(
+                    _postBytes, Simple.netBufferSize
+                    ), function.jsonRegular($)))
+                    function.jsonApplication($); // valid JSON request
+                else
+                    function.httpContinue($);
+            else
+                function.httpContinue($);
+        }
+    }
+    
+    /**
+     * Set the request IRTD2 with a random identity, no rights and 
+     * allways return true.
      *  
      * @param $ the Actor's state
      * @return true
      */
     public boolean irtd2Identify (Actor $) {
-        $.httpError(401); // Not Authorized
-        return false;
+        $.identity = Simple.password(10);
+        $.rights = "";
+        return true;
     }
     
     /**
-     * ...
+     * Reply with an HTTP <code>400</code> error to requests not handled by 
+     * this controller's or a function's <code>httpResource</code> and 
+     * <code>jsonApplication</code> methods. 
      *
-     * <h4>Synopsis</h4>
-     *
-     *<pre>public void httpContinue (Actor $) {
-     *    return $.httpError(400); // Bad Request
-     *}</pre>
-     *
-     * <p>...</p>
-     *
-     * @param $
+     * @param $ the Actor's state
      */
     public void httpContinue (Actor $) {
         $.httpError(400); // Bad Request
     }
     
     /**
-     * <p>Transfert a resource to identified users, by default send
-     * a <code>404 Not Found</code> error.</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public void httpResource (Actor $) {
-     *    return $.httpError(404); // Not Found
-     *}</pre>
-     *
-     * <p>This is a method to overload in an application controller that
-     * serve resources in this servlet context to identified users.</p>
-     * 
-     * <p>Practically, for database and directory controllers there is
-     * little else to do short of implementing your own database to URI 
-     * namespace mapping for resources. Subclassing this method makes
-     * it possible, but most controller will only need a static page
-     * to act as a bootstrap for a JSON application.</p>
+     * <p>Reply to idempotent HTTP requests not handled by a configured
+     * <code>Function</code> or this controller with a <code>404 Not 
+     * Found</code> error.</p>
      * 
      * @param $ the Actor's state
      */
@@ -497,43 +428,37 @@ public class Controller extends HttpServlet {
     }
 
     /**
+     * <p>Returns the configured <code>JSON</code> or <code>JSONR</code> 
+     * interpreter to validate a GET request's query string or a POSTed 
+     * JSON request body.</p> 
      * 
-     * @param $
-     * @return
+     * @param $ the Actor's state
+     * @return a <code>JSON</code> or <code>JSONR</code> interpreter
      */
     public Object jsonRegular (Actor $) {
-        Function function = (Function) functions.get($.about);
-        if (function == null)
-            return Function.singleton.jsonRegular($);
-        else
-            return function.jsonRegular($);
+        JSONR.Type model = (JSONR.Type) $.configuration.get(_jsonRegular);
+        if (model == null) {
+            return new JSON(
+                $.configuration.intValue(_jsonContainers, 65355),
+                $.configuration.intValue(_jsonIterations, 65355)
+                );
+        } else {
+            return new JSONR(
+                model,
+                $.configuration.intValue(_jsonContainers, 65355),
+                $.configuration.intValue(_jsonIterations, 65355)
+                );
+        }
     }
     
     /**
-     * Control an audited interaction between an identified user and a 
-     * JSON application.
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public void jsonApplication (Actor $) {
-     *    $.jsonResponse(400); // Bad Request
-     *}</pre>
-     *
-     * <p>...</p>
+     * Reply with an HTTP error 501 to JSON application requests not handled
+     * by the configured <code>Function</code>s.
      * 
      * @param $ the Actor's state
      */
     public void jsonApplication (Actor $) {
-        try {
-            Function function = (Function) functions.get($.about);
-            if (function == null)
-                $.jsonResponse(Function.singleton.jsonApplication($));
-            else
-                $.jsonResponse(function.jsonApplication($));
-        } catch (Throwable e) {
-            $.logError(e);
-            $.jsonResponse(500);
-        }
+        $.jsonResponse(501);
     }
     
     /**
@@ -612,23 +537,24 @@ public class Controller extends HttpServlet {
     }
     
     /**
+     * ...
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlQuery (
-        Actor $, String result, String statement, String[] arguments, 
+        Actor $, String name, String statement, String[] arguments, 
         int fetch, SQL.ORM model
         ) {
         if (sqlOpen($)) try {
             Object object = $.sqlQuery(
                 statement, Simple.iter($.json, arguments), fetch, model
                 );
-            $.json.put(result, object);
+            $.json.put(name, object);
             return (object == null);
         } catch (Exception e) {
             $.json.put("exception", e.getMessage());
@@ -640,38 +566,39 @@ public class Controller extends HttpServlet {
     }
     
     /**
+     * ...
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlTable (
-        Actor $, String result, String statement, String[] arguments, 
+        Actor $, String name, String statement, String[] arguments, 
         int fetch
         ) {
         return sqlQuery(
-            $, result, statement, arguments, fetch, SQL.table
+            $, name, statement, arguments, fetch, SQL.table
             );
     }
        
     /**
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlRelations (
-        Actor $, String result, String statement, String[] arguments, 
+        Actor $, String name, String statement, String[] arguments, 
         int fetch
         ) {
         return sqlQuery(
-            $, result, statement, arguments, fetch, SQL.relations
+            $, name, statement, arguments, fetch, SQL.relations
             );
     }
         
@@ -692,53 +619,53 @@ public class Controller extends HttpServlet {
      *    ; // exception or null result set, handle the error ...</pre>
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */ 
     public static boolean sqlCollection (
-        Actor $, String result, String statement, String[] arguments, 
+        Actor $, String name, String statement, String[] arguments, 
         int fetch
         ) {
         return sqlQuery(
-            $, result, statement, arguments, fetch, SQL.collection
+            $, name, statement, arguments, fetch, SQL.collection
             );
     }
        
     /**
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlDictionary (
-        Actor $, String result, String statement, String[] arguments,
+        Actor $, String name, String statement, String[] arguments,
         int fetch
         ) {
         return sqlQuery(
-            $, result, statement, arguments, fetch, SQL.dictionary
+            $, name, statement, arguments, fetch, SQL.dictionary
             );
     }
            
     /**
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */
     public static boolean sqlObjects (
-        Actor $, String result, String statement, String[] arguments,
+        Actor $, String name, String statement, String[] arguments,
         int fetch
         ) {
-        return sqlQuery($, result, statement, arguments, fetch, SQL.objects);
+        return sqlQuery($, name, statement, arguments, fetch, SQL.objects);
     }
            
     /**
@@ -758,32 +685,32 @@ public class Controller extends HttpServlet {
      *    ; // exception or null result set, handle the error ...</pre>
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL query to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
-     * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */ 
     public static boolean sqlObject (
-        Actor $, String result, String statement, String[] arguments
+        Actor $, String name, String statement, String[] arguments
         ) {
-        return sqlQuery($, result, statement, arguments, 1, SQL.object);
+        return sqlQuery($, name, statement, arguments, 1, SQL.object);
     }
        
     /**
+     * ...
      * 
      * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL update to execute 
      * @param arguments the names of the arguments in <code>$.json</code>
      * @return true if nothing was throwed
      */
     public static boolean sqlUpdate (
-        Actor $, String result, String statement, String[] arguments
+        Actor $, String name, String statement, String[] arguments
         ) {
         boolean success = false;
         if (sqlOpen($)) try {
-            $.json.put(result, $.sqlUpdate(
+            $.json.put(name, $.sqlUpdate(
                 statement, Simple.iter($.json, arguments)
                 ));
             success = true;
@@ -792,9 +719,10 @@ public class Controller extends HttpServlet {
     }
     
     /**
+     * ...
      * 
-     * @param $ the actor at play
-     * @param result the name of the result to put in <code>$.json</code>
+     * @param $ the Actor at play
+     * @param name of the result to put in <code>$.json</code>
      * @param statement the SQL update to execute 
      * @param relations a JSON.Array of JSON.Array with the update arguments
      * @return true if nothing was throwed
@@ -847,6 +775,7 @@ public class Controller extends HttpServlet {
      *
      * <p>...</p>
      * 
+     * @param $ the Actor at play
      * @return true if the connection was successfull, false otherwise
      */
     public static boolean ldapOpen (Actor $) {
@@ -863,125 +792,64 @@ public class Controller extends HttpServlet {
     }
     
     /**
-     * Try to update the Actor's JSON with the attributes of an LDAP context, 
-     * return true if the context's name was resolved, false otherwise.
-     * Attributes not named in the original JSON object are filtered out.
+     * Try to open the configured LDAP connection to to update the Actor's 
+     * JSON with the named attributes of a context, return true if the 
+     * context's distinguished name was resolved, false otherwise.
      * 
-     * @param $
-     * @param dn the distinguished name to resolve
-     * @param attributes names of the properties to update
-     * @return true if the name was resolve, false otherwise
-     * @throws JSON.Error
+     * @param $ the Actor at play
+     * @param dn the distinguished name of the context to resolve
+     * @param attributes names of the context properties to resolve
+     * @return true if the context was resolved, false otherwise
      */
     public static boolean ldapResolve (
-        Actor $, String dn, String attributes
-        ) 
-    throws JSON.Error {
+        Actor $, String dn, String[] attributes
+        ) {
         if (ldapOpen($)) try {
-            JSON.Object object = $.json.O(attributes);
-            return $.ldapResolve(
-                $.json.S(dn), object, object.keySet().iterator()
-                );
+            return $.ldapResolve(dn, $.json, Simple.iter(attributes));
+        } finally {
+            $.ldapClose();
+        } else 
+            return false;
+    }
+    
+    /**
+     * Try to open the configured LDAP connection to to update a context with 
+     * the named attributes of the Actor's JSON state, return true if the 
+     * context was updated, false otherwise.
+     * 
+     * @param $ the Actor at play
+     * @param dn the distinguished name of the context to update
+     * @param attributes names of the properties to update
+     * @return true if the context was updated, false otherwise
+     */
+    public static boolean ldapUpdate (
+        Actor $, String dn, String[] attributes
+        ) {
+        if (ldapOpen($)) try {
+            return $.ldapUpdate(dn, $.json, Simple.iter(attributes));
         } finally {
             $.ldapClose();
         } else return false;
     }
     
     /**
+     * Try to open the configured LDAP connection to create a context with 
+     * the named attributes of the Actor's JSON state, return true if the 
+     * context was created, false otherwise.
      * 
-     * @param $
-     * @param dn the distinguished name to resolve
+     * @param $ the Actor at play
+     * @param dn the distinguished name of the context to create
      * @param attributes names of the properties to create
      * @return true if the context was created, false otherwise
-     * @throws JSON.Error
      */
     public static boolean ldapCreate (
-        Actor $, String dn, String attributes
-        ) 
-    throws JSON.Error {
+        Actor $, String dn, String[] attributes
+        ) {
         if (ldapOpen($)) try {
-            JSON.Object object = $.json.O(attributes);
-            return $.ldapCreate(
-                $.json.S(dn), object, object.keySet().iterator()
-                );
+            return $.ldapCreate(dn, $.json, Simple.iter(attributes));
         } finally {
             $.ldapClose();
         } else return false;
     }
     
-    /**
-     * ...
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <pre>import org.less4j.*;
-     * 
-     *class HelloWorld extends Controller.Function {
-     *    public String jsonr () {
-     *        return "{\"hello\":\"world!\"}";
-     *    }
-     *    public Object jsonRegular (Actor $) {
-     *        return new JSONR (jsonrType, 1, 2);
-     *    }
-     *    public int jsonApplication (Actor $) {
-     *        return 200;
-     *    }
-     *}</pre>
-     * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
-     *
-     */
-    public static class Function {
-        
-        /**
-         * ...
-         * 
-         */
-        public static Function singleton = new Function();
-        
-        /**
-         * 
-         */
-        public JSONR.Type jsonrType = null;
-        
-        /**
-         * ...
-         * 
-         * @param $
-         * @return
-         */
-        public String jsonr () {return "null";}
-        
-        /**
-         * 
-         * @param $
-         * @return
-         */
-        public Object jsonRegular (Actor $) {
-            JSONR.Type model = (JSONR.Type) $.configuration.get(_jsonRegular);
-            if (model == null) {
-                return new JSON(
-                    $.configuration.intValue(_jsonContainers, 65355),
-                    $.configuration.intValue(_jsonIterations, 65355)
-                    );
-            } else {
-                return new JSONR(
-                    model,
-                    $.configuration.intValue(_jsonContainers, 65355),
-                    $.configuration.intValue(_jsonIterations, 65355)
-                    );
-            }
-        }
-        
-        /**
-         * ...
-         * 
-         * @param $
-         * @return
-         */
-        public int jsonApplication (Actor $) throws Throwable {
-            return 400;
-        }
-    }
-        
 } // That's all folks.
