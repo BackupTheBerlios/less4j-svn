@@ -350,11 +350,12 @@ public class SQL {
     }
     
     /**
+     * ...
      * 
      * @param sql
      * @param statement
      * @param params
-     * @return
+     * @return an <code>Integer</code>
      * @throws SQLException
      */
     public static Integer batch (

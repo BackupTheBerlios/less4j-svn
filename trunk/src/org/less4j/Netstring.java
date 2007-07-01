@@ -147,7 +147,7 @@ public class Netstring {
      *    conn.close();
      *}</pre>
      * 
-     * @param os the socket's <code>OutputStream</code> to send to
+     * @param conn the <code>Socket</code> connection to send to
      * @param buffer the <code>byte</code> from which to send data
      * @param off position of the first byte to send in <code>buffer</code>
      * @param len the number of bytes to send
@@ -183,7 +183,7 @@ public class Netstring {
      *    conn.close();
      *}</pre>
      * 
-     * @param os the socket's <code>OutputStream</code> to send to
+     * @param conn the <code>Socket</code> connection to send to
      * @param buffer the <code>byte</code> from which to send data
      * @throws IOException
      */
@@ -208,7 +208,7 @@ public class Netstring {
      *    conn.close();
      *}</pre>
      * 
-     * @param os the socket's <code>OutputStream</code> to send to
+     * @param conn the <code>Socket</code> connection to send to
      * @param string to encoded as 8-bit bytes and send
      * @param encoding the character set encoding (eg: "UTF-8") 
      * @throws IOException
@@ -471,7 +471,7 @@ public class Netstring {
      *
      * @param buffer a <code>byte</code> array
      * @param encoding
-     * @return
+     * @return an <code>Iterator</code> of <code>String</code>
      */
     public static Iterator decode (byte[] buffer, String encoding) {
         return new NetstringIterator(buffer, encoding);
