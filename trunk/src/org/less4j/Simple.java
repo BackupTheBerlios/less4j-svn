@@ -130,7 +130,7 @@ public class Simple {
      * 
      * <pre>String resource = Simple.read(System.in);</pre>
      *     
-     * @param url to read from
+     * @param is <code>InputStream</code> to read from
      * @return a <code>String</code> or <code>null</code>
      */
     static public String read (InputStream is) throws IOException {
