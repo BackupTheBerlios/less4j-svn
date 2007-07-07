@@ -897,8 +897,8 @@ public class Actor {
         Iterator iter = query.keySet().iterator();
         interpreter.containers--;
         while (
-            interpreter.containers > 0 && 
-            interpreter.iterations > 0 && 
+            interpreter.containers > -1 && 
+            interpreter.iterations > -1 && 
             iter.hasNext()
             ) {
             name = (String) iter.next();
@@ -943,8 +943,8 @@ public class Actor {
         Iterator iter = query.keySet().iterator();
         interpreter.containers--;
         while (
-            interpreter.containers > 0 && 
-            interpreter.iterations > 0 && 
+            interpreter.containers > -1 && 
+            interpreter.iterations > -1 && 
             iter.hasNext()
             ) try {
             name = (String) iter.next();

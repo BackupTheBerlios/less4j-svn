@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.math.BigDecimal;
@@ -201,7 +202,7 @@ public class JSON {
      *try {
      *    Object value = (new JSON()).eval(string)
      *} catch (JSON.Error e) {
-     *    System.out.println(e.jstr());
+     *    System.out.println(e.toString());
      *}</pre>
      * 
      * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
@@ -262,26 +263,9 @@ public class JSON {
             sb.append(',');
             sb.append(jsonIndex);
             sb.append(',');
-            JSON.strb(sb, jsonPath);
+            JSON.strb(sb, jsonPath, new HashSet());
             sb.append(']');
             return sb;
-        }
-        
-        /**
-         * <p>Represents a JSON error as a JSON array with three elements:
-         * the error message, the character index where the error occurred
-         * and the path in the object model.
-         * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>["error message", 23, ["list", 2]]</pre> 
-         *   
-         * <p>...</p>
-         * 
-         * @return a JSON string
-         */
-        public String toJSONString() {
-            return strb(new StringBuffer()).toString();
         }
         
         public String toString() {
@@ -454,7 +438,7 @@ public class JSON {
      * 
      * <pre>try {
      *    JSON.Array list = (new JSON()).array(
-     *        "[true, 1, 3.0, 1234e-2, \"test\", [], {}]"
+     *        "[null, true, 1, 3.0, 1234e-2, \"test\", [], {}]"
      *    );
      *    Object o = list.get(0); 
      *    Boolean b = list.B(1);
@@ -536,6 +520,35 @@ public class JSON {
             catch (Error e) {return def;}
         }
     }
+
+    /**
+     * Try to reflect all public fields of <code>value</code> as a 
+     * <code>JSON.Object </code>, <code>null</code> or a <code>String</code>.
+     * 
+     * @param value to reflect
+     * @return a <code>JSON.Object</code>, <code>null</code> 
+     *         or a <code>String</code>
+     */
+    public static final java.lang.Object reflect(java.lang.Object value) {
+        Class type = null;
+        try {type = value.getClass();} catch (Throwable e) {;}
+        if (type == null)
+            return value.toString();
+        else {
+            JSON.Object proxy = new JSON.Object();
+            java.lang.Object property;
+            java.lang.reflect.Field[] fields = type.getFields();
+            for (int i = 0; i < fields.length; i++) {
+                try {
+                    property = fields[i].get(value);
+                } catch (Exception e) {
+                    continue;
+                }
+                proxy.put(fields[i].getName(), property);
+            }
+            return proxy;
+        }
+    }
     
     protected static final String _quote = "\\\"";
     protected static final String _back = "\\\\";
@@ -592,8 +605,16 @@ public class JSON {
     protected static final String _true = "true";
     protected static final String _false = "false";
     
-    public static final 
-    StringBuffer strb(StringBuffer sb, Map map, Iterator it) {
+    private static final String _get = "get";
+    
+    public static final StringBuffer strb(
+        StringBuffer sb, Map map, Iterator it, HashSet coll
+        ) {
+        if (coll.contains(map)) {
+            sb.append(_null);
+            return sb;
+        }
+        coll.add(map);
         java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
@@ -601,61 +622,76 @@ public class JSON {
         }
         sb.append('{');
         key = it.next();
-        strb(sb, key);
+        strb(sb, key, coll);
         sb.append(':');
-        strb(sb, map.get(key));
+        strb(sb, map.get(key), coll);
         while (it.hasNext()) {
             sb.append(',');
             key = it.next();
-            strb(sb, key);
+            strb(sb, key, coll);
             sb.append(':');
-            strb(sb, map.get(key));
+            strb(sb, map.get(key), coll);
         }
         sb.append('}');
         return sb;
     }
     
-    public static final 
-    StringBuffer strb(StringBuffer sb, Map map, java.lang.Object[] names) {
+    public static final StringBuffer strb(
+        StringBuffer sb, Map map, java.lang.Object[] names, HashSet coll
+        ) {
+        if (coll.contains(map)) {
+            sb.append(_null);
+            return sb;
+        }
+        coll.add(map);
         java.lang.Object key; 
         if (names.length == 0)
             sb.append(_object);
         else {
             sb.append('{');
             key = names[0];
-            strb(sb, key);
+            strb(sb, key, coll);
             sb.append(':');
-            strb(sb, map.get(key));
+            strb(sb, map.get(key), coll);
             for (int i = 1; i < names.length; i++) {
                 sb.append(',');
                 key = names[i];
-                strb(sb, key);
+                strb(sb, key, coll);
                 sb.append(':');
-                strb(sb, map.get(key));
+                strb(sb, map.get(key), coll);
             }
             sb.append('}');
         }
         return sb;
     }
     
-    public static final 
-    StringBuffer strb(StringBuffer sb, Iterator it) {
+    public static final StringBuffer strb(
+        StringBuffer sb, Iterator it, HashSet coll
+        ) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;
         }
         sb.append('[');
-        strb(sb, it.next());
+        strb(sb, it.next(), coll);
         while (it.hasNext()) {
             sb.append(',');
-            strb(sb, it.next());
+            strb(sb, it.next(), coll);
         }
         sb.append(']');
         return sb;
     }
     
-    public static final 
-    StringBuffer strb(StringBuffer sb, java.lang.Object value) {
+    /**
+     * 
+     * @param sb
+     * @param value
+     * @param coll
+     * @return
+     */
+    public static final StringBuffer strb(
+        StringBuffer sb, java.lang.Object value, HashSet coll
+        ) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -670,18 +706,29 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            strb(sb, object, names);
-            // strb(sb, object, Simple.iterator(names));
-        } else if (value instanceof List) 
-            strb(sb, ((List) value).iterator());
-        else if (value instanceof Iterator) 
-            strb(sb, (Iterator) value);
-        else if (value instanceof java.lang.Object[])
-            strb(sb, Simple.iter((java.lang.Object[]) value));
-        else if (value instanceof Error) 
-            ((Error) value).strb(sb);
-        else 
-            strb(sb, value.toString());
+            strb(sb, object, names, coll);
+        } else if (value instanceof List) {
+            if (coll.contains(value))
+                sb.append(_null);
+            else {
+                coll.add(value);
+                strb(sb, ((List) value).iterator(), coll);
+            }
+        } else if (value instanceof Iterator) 
+            strb(sb, (Iterator) value, coll);
+        else if (value instanceof java.lang.Object[]) {
+            if (coll.contains(value))
+                sb.append(_null);
+            else {
+                coll.add(value);
+                strb(sb, Simple.iter((java.lang.Object[]) value), coll);
+            }
+        } else if (coll.contains(value))
+            sb.append(_null);
+        else {
+            coll.add(value);
+            strb(sb, reflect(value), coll);
+        }
         return sb;
     }
     
@@ -693,7 +740,7 @@ public class JSON {
      * @return a JSON <code>String</code>
      */
     public static final String encode(java.lang.Object value) {
-        return strb(new StringBuffer(), value).toString();
+        return strb(new StringBuffer(), value, new HashSet()).toString();
     }
     
     protected static final StringBuffer xjson(StringBuffer sb, String s) {
@@ -720,8 +767,14 @@ public class JSON {
         return sb;
     }
     
-    protected static final 
-    StringBuffer xjson(StringBuffer sb, Map map, Iterator it) {
+    protected static final StringBuffer xjson(
+        StringBuffer sb, Map map, Iterator it, HashSet coll
+    ) {
+        if (coll.contains(map)) {
+            sb.append(_null);
+            return sb;
+        }
+        coll.add(map);
         java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
@@ -729,38 +782,40 @@ public class JSON {
         }
         sb.append('{');
         key = it.next();
-        xjson(sb, key);
+        xjson(sb, key, coll);
         sb.append(':');
-        xjson(sb, map.get(key));
+        xjson(sb, map.get(key), coll);
         while (it.hasNext()) {
             sb.append(',');
             key = it.next();
-            xjson(sb, key);
+            xjson(sb, key, coll);
             sb.append(':');
-            xjson(sb, map.get(key));
+            xjson(sb, map.get(key), coll);
         }
         sb.append('}');
         return sb;
     }
     
     protected static final 
-    StringBuffer xjson(StringBuffer sb, Iterator it) {
+    StringBuffer xjson(StringBuffer sb, Iterator it, HashSet coll) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;
         }
         sb.append('[');
-        xjson(sb, it.next());
+        xjson(sb, it.next(), coll);
         while (it.hasNext()) {
             sb.append(',');
-            xjson(sb, it.next());
+            xjson(sb, it.next(), coll);
         }
         sb.append(']');
         return sb;
     }
     
     protected static final 
-    StringBuffer xjson(StringBuffer sb, java.lang.Object value) {
+    StringBuffer xjson(
+        StringBuffer sb, java.lang.Object value, HashSet coll
+        ) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -775,15 +830,28 @@ public class JSON {
             Map object = (Map) value;
             String[] names = (String[]) object.keySet().toArray();
             Arrays.sort(names);
-            strb(sb, object, object.keySet().iterator());
-        } else if (value instanceof List) 
-            xjson(sb, ((List) value).iterator());
-        else if (value instanceof java.lang.Object[]) 
-            xjson(sb, Simple.iter((java.lang.Object[]) value));
-        else if (value instanceof Error) 
-            ((Error) value).strb(sb);
-        else 
-            xjson(sb, value.toString());
+            strb(sb, object, object.keySet().iterator(), coll);
+        } else if (value instanceof List) {
+            if (!coll.contains(value)) {
+                coll.add(value);
+                xjson(sb, ((List) value).iterator(), coll);
+            } else
+                sb.append(_null);
+        } else if (value instanceof Iterator) 
+            xjson(sb, (Iterator) value, coll);
+        else if (value instanceof java.lang.Object[]) {
+            if (coll.contains(value))
+                sb.append(_null);
+            else {
+                coll.add(value);
+                xjson(sb, Simple.iter((java.lang.Object[]) value), coll);
+            }
+        } else if (coll.contains(value))
+            sb.append(_null);
+        else {
+            coll.add(value);
+            xjson(sb, reflect(value), coll);
+        }
         return sb;
     }
     
@@ -795,14 +863,22 @@ public class JSON {
      * @return an X-JSON <code>String</code>
      */
     public static final String xjson(java.lang.Object value) {
-        return xjson(new StringBuffer(), value).toString();
+        HashSet coll = new HashSet();
+        coll.add(value);
+        return xjson(new StringBuffer(), value, coll).toString();
     }
     
     protected static final String _crlf = "\r\n";
     protected static final String _indent = "  ";
     
-    protected static final 
-    StringBuffer repr(StringBuffer sb, Map map, Iterator it, String indent) {
+    protected static final StringBuffer repr(
+        StringBuffer sb, Map map, Iterator it, HashSet coll, String indent
+        ) {
+        if (coll.contains(map)) {
+            sb.append(_null);
+            return sb;
+        }
+        coll.add(map);
         java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append("{}");
@@ -812,24 +888,25 @@ public class JSON {
         sb.append('{');
         sb.append(indent);
         key = it.next();
-        repr(sb, key, indent);
+        repr(sb, key, coll, indent);
         sb.append(": ");
-        repr(sb, map.get(key), indent);
+        repr(sb, map.get(key), coll, indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
             key = it.next();
-            repr(sb, key, indent);
+            repr(sb, key, coll, indent);
             sb.append(": ");
-            repr(sb, map.get(key), indent);
+            repr(sb, map.get(key), coll, indent);
         }
         sb.append(indent);
         sb.append('}');
         return sb;
     }
     
-    protected static final 
-    StringBuffer repr(StringBuffer sb, Iterator it, String indent) {
+    protected static final StringBuffer repr(
+        StringBuffer sb, Iterator it, HashSet coll, String indent
+        ) {
         if (!it.hasNext()) {
             sb.append("[]");
             return sb;
@@ -837,19 +914,20 @@ public class JSON {
         sb.append('[');
         indent += _indent;
         sb.append(indent);
-        repr(sb, it.next(), indent);
+        repr(sb, it.next(), coll, indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
-            repr(sb, it.next(), indent);
+            repr(sb, it.next(), coll, indent);
         }
         sb.append(indent);
         sb.append(']');
         return sb;
     }
     
-    protected static final 
-    StringBuffer repr(StringBuffer sb, java.lang.Object value, String indent) {
+    protected static final StringBuffer repr(
+        StringBuffer sb, java.lang.Object value, HashSet coll, String indent
+    ) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -866,15 +944,29 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            repr(sb, object, Simple.iter(names), indent);
-        } else if (value instanceof List) 
-            repr(sb, ((List) value).iterator(), indent);
-        else if (value instanceof Iterator) 
-            repr(sb, ((Iterator) value), indent);
-        else if (value instanceof Error) 
-            ((Error) value).strb(sb);
-        else 
-            strb(sb, value.toString());
+            repr(sb, object, Simple.iter(names), coll, indent);
+        } else if (value instanceof List) {
+            if (coll.contains(value))
+                sb.append(_null);
+            else {
+                coll.add(value);
+                repr(sb, ((List) value).iterator(), coll, indent);
+            }
+        } else if (value instanceof Iterator) 
+            repr(sb, ((Iterator) value), coll, indent);
+        else if (value instanceof java.lang.Object[]) {
+            if (coll.contains(value))
+                sb.append(_null);
+            else {
+                coll.add(value);
+                repr(sb, Simple.iter((java.lang.Object[]) value), coll, indent);
+            }
+        } else if (coll.contains(value))
+            sb.append(_null);
+        else {
+            coll.add(value);
+            repr(sb, reflect(value), coll, indent);
+        }
         return sb;
     }
     
@@ -887,7 +979,9 @@ public class JSON {
      * @return an X-JSON <code>String</code>
      */
     public static final String repr(java.lang.Object value) {
-        return repr(new StringBuffer(), value, _crlf).toString();
+        return repr(
+            new StringBuffer(), value, new HashSet(), _crlf
+            ).toString();
     }
     
     // The Interpreter

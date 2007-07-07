@@ -28,7 +28,26 @@ import java.util.NoSuchElementException;
  */
 public class Netunicode {
     
-    public static void encode (String[] strings, StringBuffer sb) {
+    /**
+     * Encode an array of <code>String</code> as netunicodes into a
+     * <code>StringBuffer</code>.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>System.out.println(
+     *    Netunicode.encode(
+     *        new String[]{"A", "BC", "DEF"}, new StringBuffer();
+     *        ).toString();
+     *    );</pre>
+     * 
+     * <p>Prints the following to STDOUT:</p>
+     * 
+     * <pre>1:A,2:BC,3:DEF,</pre>
+     * 
+     * @param strings to encode
+     * @param sb the <code>StringBuffer</code> to fill
+     */
+    public static StringBuffer encode (String[] strings, StringBuffer sb) {
         String string;
         for (int i = 0; i < strings.length; i++) {
             string = strings[i];
@@ -37,14 +56,30 @@ public class Netunicode {
             sb.append(string);
             sb.append(',');
         }
+        return sb;
     }
 
+    /**
+     * Encode an array of <code>String</code> as netunicodes.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>System.out.println(
+     *    Netunicode.encode(new String[]{"A", "BC", "DEF"};
+     *    );</pre>
+     * 
+     * @param strings to encode
+     * @return a <code>String</code> of netunicodes 
+     */
     public static String encode (String[] strings) {
-        StringBuffer sb = new StringBuffer();
-        encode(strings, sb);
-        return sb.toString();
+        return encode(strings, new StringBuffer()).toString();
     }
     
+    /**
+     * 
+     * @param iter
+     * @param sb
+     */
     public static void encode (Iterator iter, StringBuffer sb) {
         Object item;
         String s;
@@ -65,6 +100,11 @@ public class Netunicode {
         }
     }
 
+    /**
+     * 
+     * @param iter
+     * @return
+     */
     public static String encode (Iterator iter) {
         StringBuffer sb = new StringBuffer();
         encode(iter, sb);
@@ -122,7 +162,13 @@ public class Netunicode {
         
     }
     
-    public static Iterator iterator(String encoded) {
+    /**
+     * ...
+     * 
+     * @param encoded
+     * @return
+     */
+    public static Iterator iter(String encoded) {
         return new Netiterator(encoded, true);
     }
     

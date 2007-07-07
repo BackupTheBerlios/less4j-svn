@@ -30,10 +30,18 @@ import java.util.Iterator;
  */
 public class PublicNames {
     
+    /**
+     * ...
+     * 
+     * @param encoded
+     * @param field
+     * @param horizon
+     * @return
+     */
     public static String validate (
         String encoded, HashSet field, int horizon
         ) {
-        Iterator names = Netunicode.iterator(encoded);
+        Iterator names = Netunicode.iter(encoded);
         if (!names.hasNext()) {
             if (field.contains(encoded)) return null;
             field.add(encoded); return encoded;
@@ -54,10 +62,18 @@ public class PublicNames {
         }
     }
         
+    /**
+     * 
+     * @param encoded
+     * @param field
+     * @param horizon
+     * @param tree
+     * @return
+     */
     public static String validate (
         String encoded, HashSet field, int horizon, ArrayList tree
         ) {
-        Iterator names = Netunicode.iterator(encoded);
+        Iterator names = Netunicode.iter(encoded);
         if (!names.hasNext()) {
             if (field.contains(encoded)) return null;
             field.add(encoded); return encoded;
@@ -83,6 +99,13 @@ public class PublicNames {
         }
     }
     
+    /**
+     * 
+     * @param articulated
+     * @param field
+     * @param horizon
+     * @return
+     */
     public static String validate (
         ArrayList articulated, HashSet field, int horizon
         ) {
@@ -113,33 +136,70 @@ public class PublicNames {
             return null;
         }
     }
-        
+       
+    /**
+     * ...
+     */
     public String encoded;
+    /**
+     * ...
+     */
     public ArrayList articulated;
+    /**
+     * ...
+     */
     public HashSet field = new HashSet();
     
+    /**
+     * ...
+     * 
+     * @param encoded
+     * @param horizon
+     */
     public PublicNames(String encoded, int horizon) {
         articulated = new ArrayList();
         this.encoded = validate(encoded, field, horizon, articulated);
     }
     
+    /**
+     * ...
+     * 
+     * @param articulated
+     * @param horizon
+     */
     public PublicNames(ArrayList articulated, int horizon) {
         this.articulated = articulated;
         this.encoded = validate(articulated, field, horizon);
     }
     
+    /**
+     * ...
+     */
     public static final int HORIZON = 126;
     
+    /**
+     * ...
+     * 
+     * @param encoded
+     */
     public PublicNames(String encoded) {
         articulated = new ArrayList();
         this.encoded = validate(encoded, field, HORIZON, articulated);
     }
     
+    /**
+     * ...
+     * 
+     * @param articulated
+     */
     public PublicNames(ArrayList articulated) {
         this.articulated = articulated;
         encoded = validate(articulated, field, HORIZON);
     }
     
+    /**
+     * ...
+     */
     public String toString() {return encoded;}
     
 } // that's all folks.

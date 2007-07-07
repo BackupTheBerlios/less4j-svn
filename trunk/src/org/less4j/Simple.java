@@ -23,6 +23,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
@@ -212,6 +214,22 @@ public class Simple {
 		public void remove () {/* optional interface? what else now ...*/}
 	}
 
+    /**
+     * A convenience to build an ArrayList from an array of Objects
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>ArrayList list = Simple.list({"a", "b", "c"});</pre>
+     * 
+     * @param objects
+     * @return
+     */
+    public static ArrayList list (Object[] objects) {
+        ArrayList result = new ArrayList();
+        for (int i=0; i<objects.length; i++)
+            result.add(objects[i]);
+        return result;
+    }
 	/**
 	 * A convenience to iterate around a "primitive" array. 
 	 * 

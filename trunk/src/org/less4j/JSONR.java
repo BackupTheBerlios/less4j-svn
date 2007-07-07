@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.regex.Pattern;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.text.StringCharacterIterator;
 
@@ -136,17 +135,13 @@ public class JSONR extends JSON {
      * a syntax and a regular error, allowing the interpreter to recover
      * valid JSON from an invalid JSONR (ie: to do error handling).
      * 
-     * <blockquote>
-     * <pre>String model = "[[true , \"[a-z]+\", null]]";
-     * String string = "[[false, \"test\", 1.0][true, \"ERROR\" {}]]";
+     * <pre>String model = "[[true, \"[a-z]+\", null]]";
+     * String string = "[[false, \"test\", 1.0][true, \"ERROR\", {}]]";
      * try {
-     *    Object json = JSONR(model).eval(string)
+     *    Object json = (new JSONR(model)).eval(string)
      *} catch (JSONR.Error e) {
-     *    System.out.println(e.jstr())
-     *} catch (JSON.Error e) {
-     *    System.out.println(e.jstr())
+     *    System.out.println(e.toString())
      *}</pre>
-     * </blockquote>
      * 
      * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
@@ -611,7 +606,7 @@ public class JSONR extends JSON {
         Integer limit;
         public TypeIntegerAbsolute (Integer gt) {this.limit = gt;}
         protected final java.lang.Object test (Integer i) throws Error {
-            if (i.compareTo(BigInteger.ZERO) < 0)
+            if (i.intValue() < 0)
                 throw new Error(NEGATIVE_INTEGER);
             else if (i.compareTo(limit) <= 0)
                 return i;
@@ -792,7 +787,7 @@ public class JSONR extends JSON {
                 type = STRING;
         } else if (regular instanceof Integer) {
             Integer i = (Integer) regular;
-            int cmpr = i.compareTo(BigInteger.ZERO); 
+            int cmpr = i.intValue(); 
             if (cmpr == 0)
                 type = INTEGER;
             else if (cmpr > 0)
