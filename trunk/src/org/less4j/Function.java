@@ -10,23 +10,24 @@ package org.less4j;
  * <p>... <code>HelloWorld.java</code> ...</p>
  *
  * <pre>package org.less4j.tests;
+ * 
  *import org.less4j.*;
  * 
  *class HelloWorld implements Function {
  *    public Function singleton = new HelloWorld ();
  *    private JSONR.Type _interface;
- *    public String jsonInterface ($) {
- *        return "{\"hello\":\"world[!]\"}"
- *    };
- *    public less4jConfigure (Actor $) {
+ *    public String jsonInterface (Actor $) {
+ *        return "{\"hello\":\"world[!]\"}";
+ *    }
+ *    public boolean less4jConfigure (Actor $) {
  *        try {
  *            _interface = JSONR.compile(jsonInterface($)); 
  *            return true;
- *        } catch (JSONR.Error e) {
+ *        } catch (JSON.Error e) {
  *            $.logError(e);
  *            return false;
  *        }
- *    };
+ *    }
  *    public boolean irtd2Identify (Actor $) {
  *        $.identity = Simple.password(10);
  *        $.rights = "";
@@ -40,6 +41,9 @@ package org.less4j;
  *    }
  *    public void httpResource (Actor $) {
  *        $.jsonResponse(200, "{\"hello\": \"world!\"}");
+ *    }
+ *    public void httpContinue (Actor $) {
+ *        $.httpResponse(400);
  *    }
  *}</pre>
  *
