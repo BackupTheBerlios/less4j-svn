@@ -4,7 +4,7 @@ import org.less4j.Netstring;
 
 import java.net.Socket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
+
 import java.util.Iterator;
 
 
@@ -109,5 +109,5 @@ public class TestNetstring {
         t = System.currentTimeMillis() - t;
         System.out.print((new Long(t)).doubleValue()/N);
         System.out.println(" ms per sequential request/response.");
-}
+    }
 }
