@@ -230,6 +230,24 @@ public class Simple {
             result.add(objects[i]);
         return result;
     }
+    
+    /**
+     * A convenience to build a HashSet from an array of Objects
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>HashSet set = Simple.set({"a", "b", "c"});</pre>
+     * 
+     * @param objects
+     * @return a <code>HashSet</code>
+     */
+    public static HashSet set (Object[] objects) {
+        HashSet result = new HashSet();
+        for (int i=0; i<objects.length; i++)
+            result.add(objects[i]);
+        return result;
+    }
+    
 	/**
 	 * A convenience to iterate around a "primitive" array. 
 	 * 

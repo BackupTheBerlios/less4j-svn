@@ -19,7 +19,7 @@ package org.less4j; // less java for more applications
 // import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Hashtable;
-// import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -283,7 +283,7 @@ public class Actor {
         sb.append(",\"about\":");
         JSON.strb(sb, about);
         sb.append(",\"json\":");
-        JSON.strb(sb, json);
+        JSON.strb(sb, json, new HashSet());
         sb.append('}');
         return sb;
     }
@@ -496,9 +496,9 @@ public class Actor {
         sb.append(irtd2);
         sb.append(' ');
         if (test) {
-            JSON.repr(sb, json, JSON._crlf);
+            JSON.repr(sb, json, new HashSet(), JSON._crlf);
         } else {
-            JSON.strb(sb, json);
+            JSON.strb(sb, json, new HashSet());
         }
         System.out.println(sb.toString());
     }
@@ -1597,7 +1597,7 @@ public class Actor {
     public boolean ldapResolve (
         String dn, JSON.Object object, Iterator names
         ) {
-        if (test) logInfo ("request dn=" + dn, "LDAP");
+        if (test) logInfo (dn, "LDAP resolve");
         Attributes attributes;
         try {
             attributes = ldap.getAttributes(dn);
@@ -1624,7 +1624,7 @@ public class Actor {
             logError(e);
             return false;
         }
-        if (test) logInfo(JSON.encode(object), "LDAP");
+        if (test) logInfo(JSON.encode(object), "LDAP resolved");
         return true;
     }
     
