@@ -263,7 +263,7 @@ public class JSON {
             sb.append(',');
             sb.append(jsonIndex);
             sb.append(',');
-            JSON.strb(sb, jsonPath, new HashSet());
+            JSON.strb(sb, jsonPath);
             sb.append(']');
             return sb;
         }
@@ -429,9 +429,7 @@ public class JSON {
             catch (Error e) {return def;}
         }
         public final String toString() {
-            return JSON.strb(
-                new StringBuffer(), this, new HashSet()
-                ).toString();
+            return JSON.strb(new StringBuffer(), this).toString();
         }
 
     }
@@ -526,9 +524,7 @@ public class JSON {
             catch (Error e) {return def;}
         }
         public final String toString() {
-            return JSON.strb(
-                new StringBuffer(), this, new HashSet()
-                ).toString();
+            return JSON.strb(new StringBuffer(), this).toString();
         }
     }
 
@@ -773,7 +769,7 @@ public class JSON {
     }
     
     public static final StringBuffer strb(
-        StringBuffer sb, Map map, Iterator it, HashSet coll
+        StringBuffer sb, Map map, Iterator it
         ) {
         java.lang.Object key; 
         if (!it.hasNext()) {
@@ -782,22 +778,22 @@ public class JSON {
         }
         sb.append('{');
         key = it.next();
-        strb(sb, key, coll);
+        strb(sb, key);
         sb.append(':');
-        strb(sb, map.get(key), coll);
+        strb(sb, map.get(key));
         while (it.hasNext()) {
             sb.append(',');
             key = it.next();
-            strb(sb, key, coll);
+            strb(sb, key);
             sb.append(':');
-            strb(sb, map.get(key), coll);
+            strb(sb, map.get(key));
         }
         sb.append('}');
         return sb;
     }
     
     protected static final StringBuffer strb(
-        StringBuffer sb, Map map, java.lang.Object[] names, HashSet coll
+        StringBuffer sb, Map map, java.lang.Object[] names
         ) {
         java.lang.Object key; 
         if (names.length == 0)
@@ -805,33 +801,31 @@ public class JSON {
         else {
             sb.append('{');
             key = names[0];
-            strb(sb, key, coll);
+            strb(sb, key);
             sb.append(':');
-            strb(sb, map.get(key), coll);
+            strb(sb, map.get(key));
             for (int i = 1; i < names.length; i++) {
                 sb.append(',');
                 key = names[i];
-                strb(sb, key, coll);
+                strb(sb, key);
                 sb.append(':');
-                strb(sb, map.get(key), coll);
+                strb(sb, map.get(key));
             }
             sb.append('}');
         }
         return sb;
     }
     
-    public static final StringBuffer strb(
-        StringBuffer sb, Iterator it, HashSet coll
-        ) {
+    public static final StringBuffer strb(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;
         }
         sb.append('[');
-        strb(sb, it.next(), coll);
+        strb(sb, it.next());
         while (it.hasNext()) {
             sb.append(',');
-            strb(sb, it.next(), coll);
+            strb(sb, it.next());
         }
         sb.append(']');
         return sb;
@@ -845,7 +839,7 @@ public class JSON {
      * @return
      */
     public static final StringBuffer strb(
-        StringBuffer sb, java.lang.Object value, HashSet coll
+        StringBuffer sb, java.lang.Object value
         ) {
         if (value == null) 
             sb.append(_null);
@@ -858,41 +852,29 @@ public class JSON {
         else if (value instanceof Character) 
             strb(sb, ((Character) value).toString());
         else if (value instanceof Iterator) 
-            strb(sb, (Iterator) value, coll);
-        else if (coll.contains(value))
-            sb.append(_null);
+            strb(sb, (Iterator) value);
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            java.lang.Object[] names = object.keySet().toArray();
+            Arrays.sort(names);
+            strb(sb, object, Simple.iter(names));
+        } else if (value instanceof List)
+            strb(sb, ((List) value).iterator());
+        else if (value instanceof Object[])
+            strb(sb, Simple.iter((java.lang.Object[]) value));
         else {
-            if (value instanceof Map) {
-                coll.add(value);
-                Map object = (Map) value;
-                java.lang.Object[] names = object.keySet().toArray();
-                Arrays.sort(names);
-                strb(sb, object, names, coll);
-            } else if (value instanceof List) {
-                coll.add(value);
-                strb(sb, ((List) value).iterator(), coll);
-            } else if (value instanceof Object[]) {
-                coll.add(value);
-                strb(sb, Simple.iter((java.lang.Object[]) value), coll);
-            } else {
-                Class type = null;
-                try {type = value.getClass();} catch (Throwable e) {;}
-                if (type == null)
-                    sb.append(value);
-                else if (type.isArray()) {
-                    coll.add(value);
-                    Class component = type.getComponentType();
-                    if (component.isPrimitive())
-                        strb(sb, value, component);
-                    else
-                        strb(sb, Simple.iter(
-                            (java.lang.Object[]) value
-                            ), coll);
-                } else {
-                    coll.add(value);
-                    strb (sb, reflect(value, type), coll);
-                }
-            }
+            Class type = null;
+            try {type = value.getClass();} catch (Throwable e) {;}
+            if (type == null)
+                sb.append(value);
+            else if (type.isArray()) {
+                Class component = type.getComponentType();
+                if (component.isPrimitive())
+                    strb(sb, value, component);
+                else
+                    strb(sb, Simple.iter((java.lang.Object[]) value));
+            } else
+                strb(sb, value.toString());
         }
         return sb;
     }
@@ -905,7 +887,7 @@ public class JSON {
      * @return a JSON <code>String</code>
      */
     public static final String encode(java.lang.Object value) {
-        return strb(new StringBuffer(), value, new HashSet()).toString();
+        return strb(new StringBuffer(), value).toString();
     }
     
     protected static final StringBuffer xjson(StringBuffer sb, String s) {
@@ -933,8 +915,8 @@ public class JSON {
     }
     
     protected static final StringBuffer xjson(
-        StringBuffer sb, Map map, Iterator it, HashSet coll
-    ) {
+        StringBuffer sb, Map map, Iterator it
+        ) {
         java.lang.Object key; 
         if (!it.hasNext()) {
             sb.append(_object);
@@ -942,39 +924,39 @@ public class JSON {
         }
         sb.append('{');
         key = it.next();
-        xjson(sb, key, coll);
+        xjson(sb, key);
         sb.append(':');
-        xjson(sb, map.get(key), coll);
+        xjson(sb, map.get(key));
         while (it.hasNext()) {
             sb.append(',');
             key = it.next();
-            xjson(sb, key, coll);
+            xjson(sb, key);
             sb.append(':');
-            xjson(sb, map.get(key), coll);
+            xjson(sb, map.get(key));
         }
         sb.append('}');
         return sb;
     }
     
-    protected static final 
-    StringBuffer xjson(StringBuffer sb, Iterator it, HashSet coll) {
+    protected static final StringBuffer xjson(
+        StringBuffer sb, Iterator it
+        ) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;
         }
         sb.append('[');
-        xjson(sb, it.next(), coll);
+        xjson(sb, it.next());
         while (it.hasNext()) {
             sb.append(',');
-            xjson(sb, it.next(), coll);
+            xjson(sb, it.next());
         }
         sb.append(']');
         return sb;
     }
     
-    protected static final 
-    StringBuffer xjson(
-        StringBuffer sb, java.lang.Object value, HashSet coll
+    protected static final StringBuffer xjson(
+        StringBuffer sb, java.lang.Object value
         ) {
         if (value == null) 
             sb.append(_null);
@@ -986,40 +968,30 @@ public class JSON {
             xjson(sb, (String) value);
         else if (value instanceof Character) 
             xjson(sb, ((Character) value).toString());
-        else if (coll.contains(value))
-            sb.append(_null);
+        else if (value instanceof Iterator) 
+            xjson(sb, (Iterator) value);
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            java.lang.Object[] names = object.keySet().toArray();
+            Arrays.sort(names);
+            xjson(sb, object, Simple.iter(names));
+        } else if (value instanceof List)
+            xjson(sb, ((List) value).iterator());
+        else if (value instanceof Object[])
+            xjson(sb, Simple.iter((java.lang.Object[]) value));
         else {
-            if (value instanceof Map) {
-                coll.add(value);
-                Map object = (Map) value;
-                java.lang.Object[] names = object.keySet().toArray();
-                Arrays.sort(names);
-                xjson(sb, object, Simple.iter(names), coll);
-            } else if (value instanceof List) {
-                coll.add(value);
-                xjson(sb, ((List) value).iterator(), coll);
-            } else if (value instanceof Object[]) {
-                coll.add(value);
-                xjson(sb, Simple.iter((java.lang.Object[]) value), coll);
-            } else {
-                Class type = null;
-                try {type = value.getClass();} catch (Throwable e) {;}
-                if (type == null)
-                    sb.append(value);
-                else if (type.isArray()) {
-                    coll.add(value);
-                    Class component = type.getComponentType();
-                    if (component.isPrimitive())
-                        strb(sb, value, component);
-                    else
-                        xjson(sb, Simple.iter(
-                            (java.lang.Object[]) value
-                            ), coll);
-                } else {
-                    coll.add(value);
-                    xjson(sb, reflect(value, type), coll);
-                }
-            }
+            Class type = null;
+            try {type = value.getClass();} catch (Throwable e) {;}
+            if (type == null)
+                sb.append(value);
+            else if (type.isArray()) {
+                Class component = type.getComponentType();
+                if (component.isPrimitive())
+                    strb(sb, value, component);
+                else
+                    xjson(sb, Simple.iter((java.lang.Object[]) value));
+            } else
+                xjson(sb, value.toString());
         }
         return sb;
     }
@@ -1032,14 +1004,14 @@ public class JSON {
      * @return an X-JSON <code>String</code>
      */
     public static final String xjson(java.lang.Object value) {
-        return xjson(new StringBuffer(), value, new HashSet()).toString();
+        return xjson(new StringBuffer(), value).toString();
     }
     
     protected static final String _crlf = "\r\n";
     protected static final String _indent = "  ";
     
     protected static final StringBuffer repr(
-        StringBuffer sb, Map map, Iterator it, HashSet coll, String indent
+        StringBuffer sb, Map map, Iterator it, String indent
         ) {
         java.lang.Object key; 
         if (!it.hasNext()) {
@@ -1050,16 +1022,16 @@ public class JSON {
         sb.append('{');
         sb.append(indent);
         key = it.next();
-        repr(sb, key, coll, indent);
+        repr(sb, key, indent);
         sb.append(": ");
-        repr(sb, map.get(key), coll, indent);
+        repr(sb, map.get(key), indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
             key = it.next();
-            repr(sb, key, coll, indent);
+            repr(sb, key, indent);
             sb.append(": ");
-            repr(sb, map.get(key), coll, indent);
+            repr(sb, map.get(key), indent);
         }
         sb.append(indent);
         sb.append('}');
@@ -1067,7 +1039,7 @@ public class JSON {
     }
     
     protected static final StringBuffer repr(
-        StringBuffer sb, Iterator it, HashSet coll, String indent
+        StringBuffer sb, Iterator it, String indent
         ) {
         if (!it.hasNext()) {
             sb.append("[]");
@@ -1076,11 +1048,11 @@ public class JSON {
         sb.append('[');
         indent += _indent;
         sb.append(indent);
-        repr(sb, it.next(), coll, indent);
+        repr(sb, it.next(), indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
-            repr(sb, it.next(), coll, indent);
+            repr(sb, it.next(), indent);
         }
         sb.append(indent);
         sb.append(']');
@@ -1088,8 +1060,8 @@ public class JSON {
     }
     
     protected static final StringBuffer repr(
-        StringBuffer sb, java.lang.Object value, HashSet coll, String indent
-    ) {
+        StringBuffer sb, java.lang.Object value, String indent
+        ) {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
@@ -1102,40 +1074,30 @@ public class JSON {
             strb(sb, (String) value);
         else if (value instanceof Character) 
             strb(sb, ((Character) value).toString());
-        else if (coll.contains(value))
-            sb.append(_null);
+        else if (value instanceof Iterator) 
+            repr(sb, (Iterator) value, indent);
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            java.lang.Object[] names = object.keySet().toArray();
+            Arrays.sort(names);
+            repr(sb, object, Simple.iter(names), indent);
+        } else if (value instanceof List)
+            repr(sb, ((List) value).iterator(), indent);
+        else if (value instanceof Object[])
+            repr(sb, Simple.iter((java.lang.Object[]) value), indent);
         else {
-            if (value instanceof Map) {
-                coll.add(value);
-                Map object = (Map) value;
-                java.lang.Object[] names = object.keySet().toArray();
-                Arrays.sort(names);
-                repr(sb, object, Simple.iter(names), coll, indent);
-            } else if (value instanceof List) {
-                coll.add(value);
-                repr(sb, ((List) value).iterator(), coll, indent);
-            } else if (value instanceof Object[]) {
-                coll.add(value);
-                repr(sb, Simple.iter((java.lang.Object[]) value), coll, indent);
-            } else {
-                Class type = null;
-                try {type = value.getClass();} catch (Throwable e) {;}
-                if (type == null)
-                    sb.append(value);
-                else if (type.isArray()) {
-                    coll.add(value);
-                    Class component = type.getComponentType();
-                    if (component.isPrimitive())
-                        strb(sb, value, component);
-                    else
-                        repr(sb, Simple.iter(
-                            (java.lang.Object[]) value
-                            ), coll, indent);
-                } else {
-                    coll.add(value);
-                    repr(sb, reflect(value, type), coll, indent);
-                }
-            }
+            Class type = null;
+            try {type = value.getClass();} catch (Throwable e) {;}
+            if (type == null)
+                sb.append(value);
+            else if (type.isArray()) {
+                Class component = type.getComponentType();
+                if (component.isPrimitive())
+                    strb(sb, value, component);
+                else
+                    repr(sb, Simple.iter((java.lang.Object[]) value), indent);
+            } else
+                repr(sb, value.toString(), indent);
         }
         return sb;
     }
@@ -1149,9 +1111,7 @@ public class JSON {
      * @return an X-JSON <code>String</code>
      */
     public static final String repr(java.lang.Object value) {
-        return repr(
-            new StringBuffer(), value, new HashSet(), _crlf
-            ).toString();
+        return repr(new StringBuffer(), value, _crlf).toString();
     }
     
     // The Interpreter

@@ -283,7 +283,7 @@ public class Actor {
         sb.append(",\"about\":");
         JSON.strb(sb, about);
         sb.append(",\"json\":");
-        JSON.strb(sb, json, new HashSet());
+        JSON.strb(sb, json);
         sb.append('}');
         return sb;
     }
@@ -496,9 +496,9 @@ public class Actor {
         sb.append(irtd2);
         sb.append(' ');
         if (test) {
-            JSON.repr(sb, json, new HashSet(), JSON._crlf);
+            JSON.repr(sb, json, JSON._crlf);
         } else {
-            JSON.strb(sb, json, new HashSet());
+            JSON.strb(sb, json);
         }
         System.out.println(sb.toString());
     }
