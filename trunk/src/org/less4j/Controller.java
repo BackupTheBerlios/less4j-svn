@@ -301,10 +301,10 @@ public class Controller extends HttpServlet implements Function {
                 String path = (String) paths.next();
                 JSON.strb(sb, path);
                 sb.append(':');
-                Object fun =  Class.forName(
-                    classes.S(path)
-                    ).getDeclaredField(_singleton);
-                Function function = ((Function) fun);
+                Class fun =  Class.forName(classes.S(path));
+                Function function = (
+                    (Function) fun.getDeclaredField(_singleton).get(fun)
+                    );
                 if (!function.less4jConfigure($) && !$.test)
                     return false;
                 
@@ -315,10 +315,10 @@ public class Controller extends HttpServlet implements Function {
                     path = (String) paths.next();
                     JSON.strb(sb, path);
                     sb.append(':');
-                    fun =  Class.forName(
-                        classes.S(path)
-                        ).getDeclaredField(_singleton);
-                    function = ((Function) fun);
+                    fun = Class.forName(classes.S(path));
+                    function = (
+                        (Function) fun.getDeclaredField(_singleton).get(fun)
+                        );
                     if (!function.less4jConfigure($) && !$.test)
                         return false;
                     
@@ -336,10 +336,6 @@ public class Controller extends HttpServlet implements Function {
         return true;
     }
 
-    private static final String _GET = "GET";
-    private static final String _POST = "POST";
-    private static final String _application_json = "application/json";
-
     /**
      * Returns a JSON string mapping the URL path of the <code>Function</code>
      * configured to their JSONR pattern. 
@@ -347,6 +343,10 @@ public class Controller extends HttpServlet implements Function {
     public String jsonInterface (Actor $) {
         return interfaces;
     }
+
+    private static final String _GET = "GET";
+    private static final String _POST = "POST";
+    private static final String _application_json = "application/json";
 
     /**
      * Dispatch IRTD2 identified requests to one of the interfaces of either 
@@ -418,13 +418,18 @@ public class Controller extends HttpServlet implements Function {
     
     /**
      * <p>Reply to idempotent HTTP requests not handled by a configured
-     * <code>Function</code> or this controller with a <code>404 Not 
+     * <code>Function</code> with the JSON interfaces description of the
+     * functions supported if the request exactly matches this servlet
+     * context path (ie: its root), or replies a <code>404 Not 
      * Found</code> error.</p>
      * 
      * @param $ the Actor's state
      */
     public void httpResource (Actor $) {
-        $.httpError(404); // Not Found
+        if ($.about == null)
+            $.jsonResponse(200, interfaces);
+        else
+            $.httpError(404); // Not Found
     }
 
     /**
@@ -528,7 +533,7 @@ public class Controller extends HttpServlet implements Function {
      * 
      * @return true if no exception was raised
      */ 
-    public static boolean sqlExecute (Actor $, String statement) {
+    public static boolean sqlNative (Actor $, String statement) {
         boolean success = false;
         if (sqlOpen($)) try {
             $.sql.nativeSQL(statement); success = true;
@@ -555,7 +560,7 @@ public class Controller extends HttpServlet implements Function {
                 statement, Simple.iter($.json, arguments), fetch, model
                 );
             $.json.put(name, object);
-            return (object == null);
+            return (object != null);
         } catch (Exception e) {
             $.json.put("exception", e.getMessage());
             $.logError(e);
@@ -579,9 +584,7 @@ public class Controller extends HttpServlet implements Function {
         Actor $, String name, String statement, String[] arguments, 
         int fetch
         ) {
-        return sqlQuery(
-            $, name, statement, arguments, fetch, SQL.table
-            );
+        return sqlQuery($, name, statement, arguments, fetch, SQL.table);
     }
        
     /**
@@ -597,9 +600,7 @@ public class Controller extends HttpServlet implements Function {
         Actor $, String name, String statement, String[] arguments, 
         int fetch
         ) {
-        return sqlQuery(
-            $, name, statement, arguments, fetch, SQL.relations
-            );
+        return sqlQuery($, name, statement, arguments, fetch, SQL.relations);
     }
         
     /**
@@ -629,9 +630,7 @@ public class Controller extends HttpServlet implements Function {
         Actor $, String name, String statement, String[] arguments, 
         int fetch
         ) {
-        return sqlQuery(
-            $, name, statement, arguments, fetch, SQL.collection
-            );
+        return sqlQuery($, name, statement, arguments, fetch, SQL.collection);
     }
        
     /**
@@ -647,9 +646,7 @@ public class Controller extends HttpServlet implements Function {
         Actor $, String name, String statement, String[] arguments,
         int fetch
         ) {
-        return sqlQuery(
-            $, name, statement, arguments, fetch, SQL.dictionary
-            );
+        return sqlQuery($, name, statement, arguments, fetch, SQL.dictionary);
     }
            
     /**

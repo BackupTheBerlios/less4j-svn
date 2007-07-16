@@ -97,6 +97,9 @@ public class SQL {
         public Object jdbc2 (ResultSet rs) throws SQLException;
     }
     
+    private static final String _rows = "rows";
+    private static final String _columns = "columns";
+    
     protected static class _Table implements ORM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object object = null;
@@ -105,11 +108,11 @@ public class SQL {
                 int i;
                 object = new JSON.Object();
                 rows = new JSON.Array();
-                object.put("rows", rows);
+                object.put(_rows, rows);
                 ResultSetMetaData mt = rs.getMetaData();
                 int L = mt.getColumnCount()+1;
                 JSON.Array columns = new JSON.Array();
-                object.put("columns", columns);
+                object.put(_columns, columns);
                 for (i=1; i<L; i++) columns.add(mt.getColumnName(i));
                 do {
                     row = new JSON.Array ();
@@ -176,10 +179,16 @@ public class SQL {
             JSON.Object dictionary = null;
             if (rs.next()) {
                 dictionary = new JSON.Object();
-                do {
+                int columns = rs.getMetaData().getColumnCount();
+                if (columns > 2) do {
+                    JSON.Array list = new JSON.Array(); 
+                    for (int i=1; i<columns; i++)
+                        list.add(rs.getObject(i+1));
+                    dictionary.put(rs.getObject(1), list);
+                } while (rs.next());
+                else do {
                     dictionary.put(rs.getObject(1), rs.getObject(2));
-                    } 
-                while (rs.next());
+                } while (rs.next());
             }
             rs.close();
             return dictionary;
@@ -319,8 +328,8 @@ public class SQL {
     
     /**
      * Try to execute a prepared UPDATE, INSERT, DELETE or DDL statement 
-     * with many arguments iterator, close the JDBC/DataSource 
-     * statement and returns the number of rows updated.
+     * with an arguments iterator, close the JDBC/DataSource statement and 
+     * returns the number of rows updated.
      * 
      * @param sql the <code>Connection</code> to update
      * @param statement the SQL statement to execute
@@ -350,7 +359,9 @@ public class SQL {
     }
     
     /**
-     * ...
+     * Try to execute a prepared database update statement with more than one
+     * set of arguments in one batch, close the JDBC/DataSource statement and 
+     * returns the number of rows updated.
      * 
      * @param sql
      * @param statement

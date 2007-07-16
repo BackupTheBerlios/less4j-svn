@@ -19,12 +19,9 @@ package org.less4j; // less java for more applications
 // import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-//import java.net.URLEncoder;
 
 import java.io.IOException;
 
@@ -43,7 +40,6 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 
-// import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -431,32 +427,32 @@ public class Actor {
      *     
      * @param error the throwable instance catched
      */
-    public void logError (Throwable error) {
+    public String logError (Throwable error) {
+        StackTraceElement[] stacktrace = error.getStackTrace();
+        StackTraceElement thrower;
+        int i = 0;
+        do {
+            thrower = stacktrace[i++];
+        } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
+        StringBuffer sb = new StringBuffer();
+        sb.append(_stackTrace);
+        sb.append(digested);
+        sb.append(' ');
+        sb.append(thrower.getClassName());
+        sb.append('.');
+        sb.append(thrower.getMethodName());
+        sb.append(' ');
+        sb.append(thrower.getLineNumber());
+        sb.append(' ');
+        sb.append(error.getClass().getName());
+        sb.append(' ');
+        sb.append(error.getMessage());
+        String line = sb.toString();
         if (test) {
-            System.err.print(_stackTrace);
-            System.err.print(digested);
-            System.err.print(' ');
             error.printStackTrace(System.err);
-        } else {
-            StackTraceElement[] stacktrace = error.getStackTrace();
-            StackTraceElement thrower;
-            int i = 0;
-            do {
-                thrower = stacktrace[i++];
-            } while (thrower.getLineNumber() == -1 && i < stacktrace.length);
-            StringBuffer sb = new StringBuffer();
-            sb.append(_stackTrace);
-            sb.append(digested);
-            sb.append(' ');
-            sb.append(error.getMessage());
-            sb.append(' ');
-            sb.append(thrower.getLineNumber());
-            sb.append('|');
-            sb.append(thrower.getClassName());
-            sb.append('.');
-            sb.append(thrower.getMethodName());
-            System.err.println(sb.toString());
-        }
+        } else
+            System.err.println(line);
+        return line;
     }
     
     protected static String logLESS4J = "LESS4J: ";
@@ -543,9 +539,9 @@ public class Actor {
      * @return true if the request failed to be authenticated
      */
     public boolean irtd2Digested (int timeout) {
-        int i; 
+        int i;
         /* get the request's IRTD2 authorization cookies ... */
-        Cookie irtd2Cookie = null; 
+        Cookie irtd2Cookie = null;
         Cookie[] cookies = request.getCookies();
         if (cookies != null) for (i = 0; i < cookies.length; i++) {
             if (cookies[i].getName().equals(irtd2Name)) {
@@ -554,7 +550,7 @@ public class Actor {
         }
         if (irtd2Cookie == null) {
             if (test) logInfo("Not Found", "IRTD2");
-            return false;  
+            return false;
         }
         /* unpack the IRTD2 Cookie */
         irtd2 = irtd2Cookie.getValue();
@@ -570,7 +566,7 @@ public class Actor {
             if (test) logInfo(
                 "Timeout " + t + ", " + interval + " > " + timeout, "IRTD2"
                 );
-            return false; 
+            return false;
         } 
         /* get the IRTD 8-bit bytes from the IRTD2 UNICODE string */
         byte[] irtd = irtd2.substring(
@@ -584,7 +580,7 @@ public class Actor {
             md.update(irtd);
             md.update(salts[i]);
             d = md.hexdigest();
-            if (d.equals(digested)) 
+            if (d.equals(digested))
                 return true; // digested in time with salt!
         }
         if (test) logInfo("Not Digested", "IRTD2");
@@ -1032,7 +1028,7 @@ public class Actor {
                 return false;
             }
         } else {
-            logError(new Exception("Not a JSON or JSONR interpreter"));
+            // logError(new Exception("Not a JSON or JSONR interpreter"));
             return false;
         }
     }

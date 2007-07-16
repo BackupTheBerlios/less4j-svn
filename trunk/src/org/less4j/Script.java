@@ -432,9 +432,8 @@ public class Script extends Controller {
                 super.jsonApplication($);
             } else try {
                 scriptCall($, cx, scriptScope, function);
-            } catch (Exception e) {
-                $.logError(e);
-                $.jsonResponse(500, e.getMessage()); // Server Error
+            } catch (Throwable e) {
+                $.jsonResponse(500, $.logError(e)); // Server Error
             }
         } finally {
             Context.exit();
