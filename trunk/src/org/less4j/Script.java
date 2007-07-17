@@ -306,7 +306,7 @@ public class Script extends Controller {
      * ...
      *
      */
-    public void httpContinue (Actor $) {
+    public void httpContinue (Actor $, String method, String contentType) {
         Scriptable scriptScope = (Scriptable) 
             $.configuration.get(_scriptScope);
         Context cx = Context.enter();
@@ -315,7 +315,7 @@ public class Script extends Controller {
                 cx, scriptScope, _httpContinue
                 );
             if (function == null) {
-                super.httpContinue($);
+                super.httpContinue($, method, contentType);
             } else try {
                 scriptCall($, cx, scriptScope, function);
             } catch (Exception e) {

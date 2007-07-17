@@ -162,7 +162,7 @@ public interface Function {
      *
      * @param $
      */
-    public void httpContinue (Actor $);
+    public void httpContinue (Actor $, String method, String contentType);
     /**
      * <p>Reply to idempotent HTTP requests not handled by a configured
      * <code>Function</code> or this controller.</p>

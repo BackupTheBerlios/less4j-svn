@@ -108,7 +108,7 @@ public class Controller extends HttpServlet implements Function {
         synchronized (_configuration) {_configuration = object;}
     }
     
-    private static String _configurationPattern = ("{" +
+    protected static String _configurationPattern = ("{" +
         "\"test\": false," + // optional boolean
         "\"functions\": {\"\\/.*\": \".+\"}," + 
         "\"irtd2Salts\": [\"^...........*$\"]," + 
@@ -221,8 +221,8 @@ public class Controller extends HttpServlet implements Function {
  
     // private static final int jdbcTimeout = 15;
     
-    private static final String _functions = "functions";
-    private static final String _singleton = "singleton";
+    protected static final String _functions = "functions";
+    protected static final String _singleton = "singleton";
     
     /**
      * <p>Test wether this controller's configuration actually supports 
@@ -344,9 +344,9 @@ public class Controller extends HttpServlet implements Function {
         return interfaces;
     }
 
-    private static final String _GET = "GET";
-    private static final String _POST = "POST";
-    private static final String _application_json = "application/json";
+    protected static final String _GET = "GET";
+    protected static final String _POST = "POST";
+    protected static final String _application_json = "application/json";
 
     /**
      * Dispatch IRTD2 identified requests to one of the interfaces of either 
@@ -371,24 +371,25 @@ public class Controller extends HttpServlet implements Function {
                 $.irtd2Digest();
             String method = $.request.getMethod();
             String contentType = $.request.getContentType();
-            if (method.equals(_GET))
+            if (method.equals(_GET)) {
                 if ($.request.getQueryString() == null)
                     function.httpResource($);
                 else if ($.jsonGET(jsonRegular($)))
                     function.jsonApplication($);
                 else
-                    function.httpContinue($);
-            else if (method.equals(_POST) && contentType != null)
-                if (
-                    contentType.startsWith(_application_json) &&
-                    $.jsonPOST($.configuration.intValue(
-                    _postBytes, Simple.netBufferSize
-                    ), function.jsonRegular($)))
-                    function.jsonApplication($); // valid JSON request
+                    function.httpContinue($, method, contentType);
+            } else if (method.equals(_POST) && contentType != null)
+                if (contentType.startsWith(_application_json))
+                    if ($.jsonPOST($.configuration.intValue(
+                        _postBytes, Simple.netBufferSize
+                        ), function.jsonRegular($)))
+                        function.jsonApplication($); // valid JSON request
+                    else
+                        $.httpError(400);
                 else
-                    function.httpContinue($);
+                    function.httpContinue($, method, contentType);
             else
-                function.httpContinue($);
+                function.httpContinue($, method, contentType);
         }
     }
     
@@ -412,7 +413,7 @@ public class Controller extends HttpServlet implements Function {
      *
      * @param $ the Actor's state
      */
-    public void httpContinue (Actor $) {
+    public void httpContinue (Actor $, String method, String contentType) {
         $.httpError(400); // Bad Request
     }
     
