@@ -1,3 +1,19 @@
+/* Copyright (C) 2006-2007 Laurent A.V. Szyster
+
+This library is free software; you can redistribute it and/or modify
+it under the terms of version 2 of the GNU Lesser General Public License as
+published by the Free Software Foundation.
+
+   http://www.gnu.org/copyleft/lesser.html
+
+This library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this library; if not, write to the Free Software Foundation, 
+Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
+
 package org.less4j;
 
 import java.net.URL;
@@ -12,6 +28,7 @@ import java.io.StringWriter;
 
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.HashSet;
@@ -113,14 +130,7 @@ public class XML {
      * <p>...</p>
      * 
      */
-    public static class Element {
-        /**
-         * This class <code>Type</code> singleton exposing this class
-         * <code>newElement</code> method. 
-         * 
-         * Java sucks.
-         */
-        public static Type TYPE = null;
+    public static class Element implements XML.Type {
         /**
          * The fully qualified name of this element, either a simple XML
          * tag or the concatenation of a namespace and a tag joined by
@@ -160,6 +170,19 @@ public class XML {
             this.name = name;
             this.attributes = attributes;
             }
+        /**
+         * 
+         */
+        public Element newElement (String name, HashMap attributes) {
+            return new Element(name, attributes);
+        }
+        /**
+         * This class <code>Type</code> singleton exposing this class
+         * <code>newElement</code> method. 
+         * 
+         * Java sucks.
+         */
+        public static Type TYPE = new Document();
         /**
          * 
          * @param child
@@ -302,8 +325,7 @@ public class XML {
         public Element newElement (String name, HashMap attributes) {
             return new Element(name, attributes);
         }
-    }
-    
+    }    
     // The Quick Parser, in Java (a "little bit" slower).
     private static final String _xml = "xml";
     private static final String _xmlns = "xmlns";
@@ -313,9 +335,9 @@ public class XML {
     _namespace_prefix_not_found = "namespace prefix not found";
     protected static class QP extends ApplicationImpl {
         protected Document doc;
-        protected HashMap types = null;
+        protected Map types = null;
         protected Element _curr = null;
-        public QP (Document doc, HashMap types) {
+        public QP (Document doc, Map types) {
             this.doc = doc;
             this.types = types;
             };
@@ -422,7 +444,7 @@ public class XML {
      * @throws IOException raised by accessing the XML file
      */
     public static final Document read(
-        InputStream is, String path, URL baseURL, HashMap types, Document doc
+        InputStream is, String path, URL baseURL, Map types, Document doc
         ) throws Error, IOException {
         QP qp = new QP(doc, types);
         try {
@@ -452,7 +474,7 @@ public class XML {
      *               extension type is broken
      * @throws IOException raised by accessing the XML file
      */
-    public static final Document read(File file, HashMap types, Document doc) 
+    public static final Document read(File file, Map types, Document doc) 
     throws Error, IOException {
         return read (
             new FileInputStream(file), file.getAbsolutePath(), file.toURL(),
@@ -471,7 +493,7 @@ public class XML {
      *               extension type is broken
      * @throws IOException raised by accessing the XML file
      */
-    public static final Document read(File file, HashMap types) 
+    public static final Document read(File file, Map types) 
     throws Error, IOException {
         return read(
             new FileInputStream(file), file.getAbsolutePath(), file.toURL(),
