@@ -36,6 +36,7 @@ import java.util.NoSuchElementException;
 
 import com.jclark.xml.parse.*;
 import com.jclark.xml.parse.base.*;
+import com.jclark.xml.output.UTF8XMLWriter;
 
 /**
  * An port of Greg Stein's <a 
@@ -78,7 +79,7 @@ import com.jclark.xml.parse.base.*;
  * ...
  * </pre>
  *  
- * @author Laurent Szyster
+ * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  *
  */
 public class XML {
@@ -355,23 +356,25 @@ public class XML {
         throws Error {
             int colon = name.indexOf(':');
             if (colon > -1) {
-                String prefix = name.substring(0,colon);
+                String prefix = name.substring(0, colon);
                 if (prefix.equals(_xml))
                     return name.substring(colon+1);
+                
                 else if (ns.containsKey(prefix))
                     return (
                         ((String)ns.get(prefix)) 
                         + ' ' + name.substring(colon+1)
                         );
-                else
-                    throw new Error(_namespace_prefix_not_found);
+                
+                throw new Error(_namespace_prefix_not_found);
+                
             } else if (ns.containsKey(_no_prefix))
                 return (
                     ((String)ns.get(_no_prefix)) 
                     + ' ' + name.substring(colon+1)
                     );
-            else
-                return name;
+            
+            return name;
         }
         public void startElement(StartElementEvent event) 
         throws Error {
@@ -522,12 +525,52 @@ public class XML {
      * @param os
      * @param element
      */
-    public static final void writeUTF8 (
-        OutputStream os, Document document, Element element
+    protected static final void writeUTF8 (
+        UTF8XMLWriter writer, HashMap ns, Element element
         )
     throws IOException {
-        ;
+        String tag;
+        int fqn = element.name.indexOf(' ');
+        if (fqn > -1) {
+            tag = (
+                (String) ns.get(element.name.substring(0, fqn)) 
+                + element.name.substring(fqn+1)
+                );
+        } else
+            tag = element.name;
+        writer.startElement(tag);
+        if (element.parent == null) { // root, declare namespaces now
+            String namespace;
+            Iterator namespaces = element.attributes.keySet().iterator();
+            while (namespaces.hasNext()) {
+                namespace = (String) namespaces.next();
+                writer.attribute(
+                    _xmlns_colon + (String) element.attributes.get(namespace), 
+                    namespace
+                    );
+            }
+        }
+        if (element.attributes != null) {
+            String name;
+            Iterator names = element.attributes.keySet().iterator();
+            while (names.hasNext()) {
+                name = (String) names.next();
+                writer.attribute(name, (String) element.attributes.get(name));
+            }
+        }
+        if (element.first != null)
+            writer.write(element.first);
+        if (element.children != null) {
+            Iterator _children = element.children.iterator();
+            while (_children.hasNext())
+                writeUTF8(writer, ns, (Element) _children.next());
+        }
+        writer.endElement(tag);
+        if (element.follow != null)
+            writer.write(element.follow);
     }
+    private static final 
+    String _XML_10_UTF8 = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>";
     /**
      * 
      * @param os
@@ -535,7 +578,10 @@ public class XML {
      */
     public static final void writeUTF8 (OutputStream os, Document document)
     throws IOException {
-        ;
+        UTF8XMLWriter writer = new UTF8XMLWriter(os);
+        writer.markup(_XML_10_UTF8);
+        // TODO: processing instructions
+        writeUTF8(writer, document.ns, document.root);
     }
     /**
      * 
@@ -546,13 +592,7 @@ public class XML {
     throws IOException {
         writeUTF8(new FileOutputStream(file), document);
     }
-    // Note that using an unbuffered OutputStream will induce the worse 
-    // possible network performances: globbing is good. The alternative
-    // however is practical to write long XML documents.
-    //
-    // Encoding 64KB chunks at once is better in most J2EE container ... 
-    // but only where there's less Java and more memory for applications ;-)
-    public static final Document decode (byte[] body) {
-        return null;
-    }
+
+    public static final String _text_xml = "text/xml";
+    
 }

@@ -16,12 +16,15 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
+import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+
+import java.nio.ByteBuffer;
 
 import java.util.HashSet;
 import java.util.ArrayList;
@@ -162,6 +165,79 @@ public class Simple {
      }
     
     /**
+     * Use a <code>ByteBuffer</code> to efficiently merge arrays
+     * of byte as one array, sacrife space to gain speed when
+     * sending one or more byte strings at once over synchronous
+     * TCP streams.
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * @param bytes
+     * @return
+     */
+    public static ByteBuffer buffer (byte[][] bytes) {
+        int i, ct = 0;
+        for (i=0; i<bytes.length; i++) ct += bytes[i].length;
+        ByteBuffer bb = ByteBuffer.allocate(ct);
+        for (i=0; i<bytes.length; i++) bb.put(bytes[i]);
+        return bb;
+    }
+
+    /**
+     * ...
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>...</pre>
+     * 
+     * <h4>Application</h4>
+     * 
+     * <p>TCP/IP is a reliable stream protocol (TCP) implemented on top
+     * of an unreliable packet protocol (IP) and this has implications
+     * when programming network peers.</p>
+     * 
+     * <p>As soon as latency between peers rise up, buffering data and sending 
+     * it in chunks that fit the common TCP windows is the only way to reach
+     * decent performances. On the contrary, unbuffered output may translate
+     * into colossal waiste of network bandwith, RAM space and CPU power.</p> 
+     * 
+     * <p>So, to avoid the worse case regardless of the runtime environment, 
+     * responses should be buffered at once and then chunked out in blocks 
+     * that try their best to fit the local operating system buffers and the
+     * usual network packets sizes.</p>
+     * 
+     * <p>Note that this is only applicable when the output is expected to
+     * allways be below or in the order of magnitude of the common TPC 
+     * window size, somewhere between 16KB and 64KB.</p>
+     * 
+     * @param os
+     * @param bb
+     * @param off
+     * @param len
+     */
+    static public void send (
+        OutputStream os, ByteBuffer bb, int off, int len
+        ) throws IOException {
+        bb.position(off);
+        byte[] bytes = new byte[netBufferSize];
+        while (len > netBufferSize) {
+            Thread.yield();
+            len -= netBufferSize;
+            bb.get(bytes);
+            os.write(bytes);
+            os.flush();
+        }
+        bb.get(bytes, 0, len);
+        os.write(bytes, 0, len);
+        os.flush();
+    }
+
+    static public void send (OutputStream os, ByteBuffer bb) 
+    throws IOException {
+        send(os, bb, 0, bb.capacity());
+    }
+
+    /**
      * Fill the <code>byte</code> buffer with data read from an 
      * <code>InputStream</code>, starting at position <code>off</code>
      * until the buffer is full or the stream is closed, then return
@@ -204,7 +280,7 @@ public class Simple {
         }
         return off;
     }
-
+    
 	protected static class ObjectIterator implements Iterator {
 		private Object[] _objects;
 		private int _index = -1;
@@ -495,5 +571,5 @@ public class Simple {
             characters[i] = ALPHANUMERIC[random.nextInt(62)];
         return String.copyValueOf(characters);
     }
-
+    
 }

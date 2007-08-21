@@ -29,15 +29,10 @@ import java.util.HashMap;
  * 
  * <h4>Request</h4>
  * 
- * <pre>try {
- *    SOAP.Document request = SOAP.read($);
- *    System.out.println(JSON.repr(request.json));
- *} catch (SOAP.Error e) {
- *    System.err.println(e);
- *}</pre> 
+ * <pre>...</pre> 
  * 
  * <p>Unobviously at first, the XML interpreter built in does not even try
- * to wax an infuckingcredible object notation. Instead it maps a simple
+ * to wax this "industy standard" object notation. Instead it maps a simple
  * object access protocol of any XML stream into the flattest and simplest
  * JSON instance possible, using types whenever a name is mapped to a
  * regular JSON type.</p>
@@ -51,21 +46,14 @@ import java.util.HashMap;
  * simply ignored, only the JSON types are supported in "plain old" SOAP 
  * and a subset of JSONR can be supported.</p>
  * 
- * <pre>try {
- *    SOAP.Document request = SOAP.read($, JSONR.compile("null"));
- *    System.out.println(JSON.repr(request.json));
- *} catch (SOAP.Error e) {
- *    System.err.println(e);
- *}</pre> 
+ * <pre>...</pre> 
  * 
  * <p>Your mileage <em>will</em> vary, this XML request decoder provides
  * its applications with a single view of all messages through a simpler
  * object access protocol. It does not try to make Sun's and Microsoft's 
  * interpretation of the standard more interroperable, instead it lets
  * you cherry-pick what you need in the whole HTTP request submitted,
- * down to the last attributes of an XML body. Or conveniently use a
- * flatter JSON object, possibly regularly typed once enough test data
- * is available.</p>
+ * down to the last attributes of an XML body.</p>
  * 
  * <h4>Response</h4>
  * 
@@ -198,7 +186,7 @@ public class SOAP {
             return new Element(name, attributes);
         }
     }
-    protected static final String _text_xml = "text/xml";
+    protected static final String _utf8 = "UTF-8";
     protected static final Map _SOAP_TYPES = Simple.dict(
         new HashMap(), new Object[]{
             "http://schemas.xmlsoap.org/soap/envelope/ Envelope",
@@ -216,26 +204,32 @@ public class SOAP {
     //       (aka "end-point") ?
     //
 
-    public class Controller extends org.less4j.Controller {
+    public static class Controller extends org.less4j.Controller {
         public void httpContinue (
             Actor $, String method, String contentType
             ) {
             if (
                 method.equals(_POST) && contentType != null &&
-                contentType.startsWith(_text_xml)
+                contentType.startsWith(XML._text_xml)
                 ) try {
-                this.soapApplication($, (Document) XML.read(
+                this.xmlApplication($, (Document) XML.read(
                     $.request.getInputStream(), $.url, null, 
-                    _SOAP_TYPES, new Document()
+                    xmlTypes($), xmlDocument($)
                     )); 
             } catch (Exception e) {
                 $.logError(e);
-                $.httpError(500);
+                fault($, e.getMessage());
             } else
                 $.httpError(400);
         }
-        public void soapApplication (Actor $, Document document) {
-            SOAP.response($, JSON.encode(document.json));
+        public Map xmlTypes (Actor $) {
+            return _SOAP_TYPES;
+        }
+        public XML.Document xmlDocument (Actor $) {
+            return (XML.Document) new Document();
+        } 
+        public void xmlApplication (Actor $, Document document) {
+            response($, JSON.encode(document.json));
         }
     }
 
@@ -243,56 +237,73 @@ public class SOAP {
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + "<SOAP-ENV:Envelope "
             + "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " 
-            + "xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" " 
             + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+            + "xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" " 
             + ">" 
             + "<SOAP-ENV:Body>" 
-                + "<less4j:response " 
-                    + "xmlns:less4j=\"http://less4j.org/\" " 
-                    + ">" 
-                    + "<result xsi:type=\"xsd:string\">",
-        "UTF-8"
+                + "<response>" 
+                    + "<result xsi:type=\"xsd:string\"><![CDATA[",
+        _utf8
         );
     protected static final byte[] _response_tail = Simple.encode(
-                    "</result>" 
-                + "</less4j:response>" 
+                    "]]></result>" 
+                + "</response>" 
             + "</SOAP-ENV:Body>" 
         + "</SOAP-ENV:Envelope>", 
-        "UTF-8"
+        _utf8
         );
+    
     /**
      * Encode a SOAP response as fast and safe as possible: made of a 
-     * single <code>String</code> encoded in UTF-8 sandwiched in a template,
-     * litterraly: 
+     * single <code>String</code> encoded in UTF-8 sandwiched in a 
+     * template head and tail.
      * 
      * <h4>Synopsis</h3>
+     * 
+     * <pre>...</pre>
      * 
      * @param response the response string
      * @return
      */
-    public static boolean response (Actor $, String text) {
-        return false;
-    }
+    public static void response (Actor $, String text) {
+        $.httpResponse(200, Simple.buffer(new byte[][]{
+            _response_head, Simple.encode(text, _utf8), _response_tail
+            }), XML._text_xml, _utf8);
+    } // isn't this one liner elegant?
     
     protected static final byte[] _fault_head = Simple.encode(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + "<SOAP-ENV:Envelope "
             + "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " 
-            + "xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" " 
             + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+            + "xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" " 
             + ">" 
             + "<SOAP-ENV:Fault>" 
-                + "<faultstring xsi:type=\"xsd:string\">",
-        "UTF-8"
+                + "<faultstring xsi:type=\"xsd:string\"><![CDATA[",
+        _utf8
         );
     protected static final byte[] _fault_tail = Simple.encode(
-                "</faultstring>" 
+                "]]></faultstring>" 
             + "</SOAP-ENV:Fault>" 
         + "</SOAP-ENV:Envelope>", 
-        "UTF-8"
+        _utf8
         );
-    public static boolean fault (Actor $, String text) {
-        return false;
+    /**
+     * Encode a SOAP fault as fast and safe as possible: made of a 
+     * single <code>String</code> encoded in UTF-8 sandwiched in a 
+     * template head and tail. 
+     * 
+     * <h4>Synopsis</h3>
+     * 
+     * <pre>...</pre>
+     * 
+     * @param $
+     * @param text
+     */
+    public static void fault (Actor $, String text) {
+        $.httpResponse(500, Simple.buffer(new byte[][]{
+            _fault_head, Simple.encode(text, _utf8), _fault_tail
+            }), XML._text_xml, _utf8);
     }
 }
 
@@ -300,5 +311,5 @@ public class SOAP {
 // Rule N°1: don't bother with broken "industry standard" invented by 
 // Microsoft, adopted by Sun and supported by IBM.
 //
-// Rule N°2: interpret them loosely and deliver a migration path.
+// Rule N°2: interpret them loosely and secure a migration path.
 //

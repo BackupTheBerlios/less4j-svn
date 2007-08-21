@@ -122,9 +122,7 @@ public class Netstring {
             bb.put(digits_buffer[1]); // encoded 8-bit byte string
             bb.put((byte)44); // ,
         }
-        OutputStream os = conn.getOutputStream();
-        os.write(bb.array());
-        os.flush();
+        Simple.send(conn.getOutputStream(), bb);
     }
     
     /**

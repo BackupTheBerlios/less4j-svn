@@ -529,18 +529,16 @@ public class JSON {
 
     /**
      * Try to reflect all public fields of <code>value</code> as a 
-     * <code>JSON.Object </code>.
+     * <code>JSON.Object</code>.
      * 
      * @param value to reflect
-     * @param type the <code>Class</code> to use
      * @return a <code>JSON.Object</code>
      */
     public static final java.lang.Object reflect(
-        java.lang.Object value, Class type
+        java.lang.Object value
         ) {
         JSON.Object proxy = new JSON.Object();
-        proxy.put("Class", type.getName());
-        java.lang.reflect.Field[] fields = type.getFields();
+        java.lang.reflect.Field[] fields = value.getClass().getFields();
         for (int i = 0; i < fields.length; i++) {
             try {
                 proxy.put(fields[i].getName(), fields[i].get(value));

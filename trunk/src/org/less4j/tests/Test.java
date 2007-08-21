@@ -16,20 +16,10 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j.tests; // less java for more applications
 
-//import org.less4j.Actor;
-//import org.less4j.Controller;
-import org.less4j.JSON;
-import org.less4j.JSONR;
-//import org.less4j.Netunicode;
-//import org.less4j.PublicNames;
-import org.less4j.SHA1;
-import org.less4j.Simple;
-//import org.less4j.SQL;
+import org.less4j.*;
 
 import java.io.File;
 import java.util.Iterator;
-//import java.util.HashMap;
-//import java.util.ArrayList;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

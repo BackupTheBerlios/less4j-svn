@@ -16,7 +16,6 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-// import java.util.HashMap;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -24,6 +23,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import java.sql.DriverManager;
 import java.sql.Connection;
@@ -40,7 +40,6 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
@@ -764,6 +763,37 @@ public class Actor {
     
     /**
      * <p>Try to send an HTTP response with the appropriate headers
+     * for an array of bytes as body, a given content type and 
+     * charset. Audit a successfull response or log an error.</p>
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>...</pre>
+     * 
+     * @param code of the HTTP response status
+     * @param body as a ByteBuffer
+     * @param type of the response body content type
+     * @param charset used to encode the body (eg: "ASCII")
+     */
+    public void httpResponse (
+        int code, ByteBuffer body, String type, String charset
+        ) {
+        response.setStatus(code);
+        if (charset != null) type += ";charset=" + charset;
+        response.setContentType(type);
+        response.setContentLength(body.capacity());
+        try {
+            response.setBufferSize(Simple.netBufferSize);
+            Simple.send(response.getOutputStream(), body);
+            response.flushBuffer();
+            logAudit(code);
+        } catch (IOException e) {
+            logError(e);
+        }
+    }
+    
+    /**
+     * <p>Try to send an HTTP response with the appropriate headers
      * for an arbitrary bytes string as body, a given content type and 
      * charset. Audit a successfull response or log an error.</p>
      * 
@@ -781,13 +811,12 @@ public class Actor {
         ) {
         response.setStatus(code);
         if (charset != null) type += ";charset=" + charset;
-        // if (charset != null) response.setCharacterEncoding(charset);
         response.setContentType(type);
         response.setContentLength(body.length);
         try {
-            ServletOutputStream os = response.getOutputStream(); 
-            os.write(body);
-            os.flush();
+            response.setBufferSize(Simple.netBufferSize);
+            response.getOutputStream().write(body);
+            response.flushBuffer();
             logAudit(code);
         } catch (IOException e) {
             logError(e);
@@ -1085,11 +1114,9 @@ public class Actor {
         response.setContentType(jsonContentType);
         response.setContentLength(body.length);
         try {
-            // response.setBufferSize(16384);
-            ServletOutputStream os = response.getOutputStream();
-            os.write(body);
-            os.flush();
-            // response.flushBuffer();
+            response.setBufferSize(Simple.netBufferSize);
+            response.getOutputStream().write(body);
+            response.flushBuffer();
             logAudit(code);
         } catch (IOException e) {
             logError(e);

@@ -7,7 +7,7 @@ import org.less4j.*;
  */
 public class Job implements Function {
 
-    public Function singleton = new Job ();
+    public static Function singleton = new Job ();
     
     private JSONR.Type _interface;
     
@@ -45,7 +45,7 @@ public class Job implements Function {
             while (System.currentTimeMillis() < sleep_to) {
                 Thread.sleep(sleep_ms); // simulate latency on I/O
                 for (int i=0; i<loop_for; i++) { // consume CPU and RAM
-                    JSON.Object dummy = new JSON.Object();
+                    new JSON.Object();
                 }
             }
             t = System.currentTimeMillis() - t;
@@ -64,7 +64,7 @@ public class Job implements Function {
             );
     }
     
-    public void httpContinue (Actor $) {
+    public void httpContinue (Actor $, String method, String contentType) {
         $.httpError(400); // Bad request
     }
     
