@@ -226,7 +226,7 @@ public class SOAP implements Function {
     public void jsonApplication(Actor $) {
         $.httpError(501); // Not implemented
     }
-    public void call (Actor $) throws JSON.Error {
+    public void call (Actor $) throws Exception {
         JSON.Object body = $.json.O("Body");
         String name = (String) body.keySet().iterator().next(); 
         response($, name + "Response", body.get(name)); 
@@ -470,13 +470,15 @@ public class SOAP implements Function {
             + "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
             + "xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" " 
             + ">" 
-            + "<SOAP-ENV:Fault>" 
-                + "<faultstring xsi:type=\"xsd:string\"><![CDATA[",
+            + "<SOAP-ENV:Body>"
+                + "<SOAP-ENV:Fault>" 
+                    + "<faultstring xsi:type=\"xsd:string\"><![CDATA[",
         _utf8
         );
     protected static final byte[] _fault_tail = Simple.encode(
-                "]]></faultstring>" 
-            + "</SOAP-ENV:Fault>" 
+                    "]]></faultstring>" 
+                + "</SOAP-ENV:Fault>" 
+            + "</SOAP-ENV:Body>"
         + "</SOAP-ENV:Envelope>", 
         _utf8
         );
