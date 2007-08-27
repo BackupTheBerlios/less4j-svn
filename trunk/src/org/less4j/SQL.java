@@ -26,8 +26,9 @@ import java.util.Iterator;
 
 /**
  * Conveniences to query and update an SQL database with a simple object 
- * relational interface to map between JDBC result sets and six JSON 
- * patterns: table, relations, collection, dictionary, one or many objects.
+ * relational interface to map between JDBC result sets and seven JSON 
+ * patterns: table, relations, collection, index, dictionary, one or many 
+ * objects.
  * 
  * <h3>Synopsis</h3>
  * 
@@ -174,6 +175,52 @@ public class SQL {
      */
     public static ORM collection = new _Collection ();
 
+    protected static class _Index implements ORM {
+        public Object jdbc2 (ResultSet rs) throws SQLException {
+            JSON.Object index = null;
+            if (rs.next()) {
+                index = new JSON.Object();
+                ResultSetMetaData mt = rs.getMetaData();
+                int columns = mt.getColumnCount();
+                if (columns > 2) do {
+                    JSON.Object object = new JSON.Object();
+                    for (int i=2, L=columns+1; i<L; i++)
+                        object.put(mt.getColumnName(i), rs.getObject(i));
+                    String key = rs.getObject(1).toString();
+                    if (index.containsKey(key))
+                        ((JSON.Array) index.get(key)).add(object);
+                    else {
+                        JSON.Array list = new JSON.Array();
+                        list.add(object);
+                        index.put(key, list);
+                    }
+                } while (rs.next());
+                else if (columns > 1) do {
+                    String key = rs.getObject(1).toString();
+                    if (index.containsKey(key))
+                        ((JSON.Array) index.get(key)).add(rs.getObject(2));
+                    else {
+                        JSON.Array list = new JSON.Array();
+                        list.add(rs.getObject(2));
+                        index.put(key, list);
+                    }
+                } while (rs.next());
+                else do {
+                    index.put(rs.getObject(1), new JSON.Array());
+                } while (rs.next());
+            }
+            rs.close();
+            return index;
+        }
+    }
+
+    /**
+     * An ORM singleton to map a JDBC ResultSet into an JSON.Object
+     * index of JSON.Array collections, using the first column as key 
+     * and the following(s) as value(s).
+     */
+    public static ORM index = new _Index ();
+    
     protected static class _Dictionary implements ORM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object dictionary = null;
@@ -186,8 +233,11 @@ public class SQL {
                         list.add(rs.getObject(i+1));
                     dictionary.put(rs.getObject(1), list);
                 } while (rs.next());
-                else do {
+                else if (columns > 1) do {
                     dictionary.put(rs.getObject(1), rs.getObject(2));
+                } while (rs.next());
+                else do {
+                    dictionary.put(rs.getObject(1), null);
                 } while (rs.next());
             }
             rs.close();
@@ -197,7 +247,7 @@ public class SQL {
 
     /**
      * An ORM singleton to map a JDBC ResultSet into an JSON.Object,
-     * using the first column as key and the following(s) as value.
+     * using the first column as key and the following(s) as value(s).
      */
     public static ORM dictionary = new _Dictionary ();
 

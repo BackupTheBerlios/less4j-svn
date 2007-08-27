@@ -546,9 +546,6 @@ public class JSONR extends JSON {
     public static final Type DOUBLE = TypeDouble.singleton;
     public static final Type DECIMAL = TypeDecimal.singleton;
     public static final Type STRING = TypeString.singleton;
-    protected static final Type ARRAY = TypeArray.singleton;
-    protected static final Type DICTIONARY = TypeDictionary.singleton;
-    protected static final Type NAMESPACE = TypeNamespace.singleton;
     
     // the built-in extension types: just JSON's DateTime, ymmv ...
     

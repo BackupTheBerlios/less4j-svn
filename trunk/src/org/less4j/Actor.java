@@ -1005,7 +1005,9 @@ public class Actor {
      * @return true if a valid JSON request was GET or POSTed 
      */
     public boolean jsonGET(Object interpreter) {
-        if (interpreter instanceof JSON)
+        if (interpreter == null)
+            return false;
+        else if (interpreter instanceof JSON)
             return jsonGET((JSON) interpreter);
         else
             return jsonGET((JSONR) interpreter);
@@ -1377,6 +1379,39 @@ public class Actor {
             );
     }
     
+    /**
+     * Try to query the <code>sql</code> JDBC connection with an SQL
+     * statement and argument names, returns a <code>JSON.Object</code> 
+     * that maps the first column of the result set <code>JSON.Array</code>
+     * of the value(s) found in the following column(s).
+     * 
+     * <h4>Synopsis</h4>
+     * 
+     * <pre>try {
+     *    $.json.put("index", ($.<strong>sqlIndex(</strong>
+     *        "select KEY, NAME, DESCRIPTION from TABLE where VALUE > ?", 
+     *        new String[]{"value"},
+     *        100
+     *        <strong>)</strong>);
+     *} catch (SQLException e) {
+     *    $.logError(e);
+     *}</pre>
+     * 
+     * @param statement to prepare and execute as a query
+     * @param arguments an array of <code>String[]</code> 
+     * @param fetch the number of rows to fetch
+     * @return a <code>JSON.Object</code> as dictionnary or <code>null</code> 
+     * @throws SQLException
+     */
+    public JSON.Object sqlIndex (
+        String statement, String[] arguments, int fetch
+        ) 
+    throws SQLException {
+        return (JSON.Object) sqlQuery (
+            statement, Simple.iter(json, arguments), fetch, SQL.index
+            );
+    }
+        
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
      * statement and argument names, returns a <code>JSON.Object</code> 
