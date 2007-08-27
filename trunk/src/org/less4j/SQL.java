@@ -282,8 +282,8 @@ public class SQL {
             if (rs.next()) {
                 object = new JSON.Object();
                 ResultSetMetaData mt = rs.getMetaData();
-                int L = mt.getColumnCount();
-                for (int i = 0; i < L; i++) 
+                int i, L = mt.getColumnCount() + 1;
+                for (i = 1; i < L; i++) 
                     object.put(mt.getColumnName(i), rs.getObject(i));
             }
             rs.close();
