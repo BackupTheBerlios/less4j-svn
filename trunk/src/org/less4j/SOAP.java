@@ -30,34 +30,14 @@ import java.util.Iterator;
  * 
  * <pre>import org.less4j.*;
  * 
- *public class PurchaseOrder extends SOAP {
- *
- *    public String jsonInterface (Actor $) {
- *        return JSON.encode(Simple.dict({
- *            "item", "", 
- *            "quantity", new Integer(0),
- *            "description", ""
- *            }));
- *    }
+ *public class echoString extends SOAP {
  *
  *    public void call (Actor $) throws JSON.Error {
- *        String po = $.json
- *          .O("http://schemas.xmlsoap.org/soap/envelope/ Body")
- *          .O("http://commerce.com/PO PurchaseOrder");
- *        response ($, "PurchaseOrderResponse", purchaseOrder (
- *           po.S("item"), po.intValue("quantity"), po.S("description")
- *           ));
+ *        String arg0 = $.json.O("Body").O("echoString").S("arg0")
+ *        response ($, "echoStringResponse", "Hello " + arg0 + " !");
  *    }
  *    
- *    public static Object purchaseOrder (
- *        String item, int quantity, String description
- *        ) {
- *        // ... here goes your business logic
- *    }
- *    
- *}</pre>
- * 
- * <pre>...
+ *} <pre>...
  *&lt;SOAP-ENV:Body &gt;
  *    &lt;echoStringResponse xsi:type="xsd:string" 
  *        &gt;&lt;[CDATA[Hello World!]]&gt;&lt;/echoStringResponse&gt;
@@ -136,33 +116,53 @@ import java.util.Iterator;
  * 
  * <p>Well, they are actually more bugs than features.</p>
  * 
- * <p>But it is possible to avoid those "features" and produce simple XML
- * documents with explicit XSD types 
+ * <h4>JSONR/WSDL Interfaces</h4>
  * 
- * <p>Note that SOAP response messages are fully buffered, ideally they 
- * should fit in the system's TCP stack buffers and UDP datagram largest
- * packets. If you can't break transaction is such fine grains, don't
- * even try to insert a middle tier between clients and servers.</p>
+ * <pre>import org.less4j.*;
+ * 
+ *public class PurchaseOrder extends SOAP {
+ *
+ *    public String jsonInterface (Actor $) {
+ *        return JSON.encode(Simple.dict({
+ *            "item", "", 
+ *            "quantity", new Integer(0),
+ *            "description", ""
+ *            }));
+ *    }
+ *
+ *    public void call (Actor $) throws JSON.Error {
+ *        String po = $.json.O("Body").O("PurchaseOrder");
+ *        response ($, "PurchaseOrderResponse", purchaseOrder (
+ *           po.S("item"), po.intValue("quantity"), po.S("description")
+ *           ));
+ *    }
+ *    
+ *    public static Object purchaseOrder (
+ *        String item, int quantity, String description
+ *        ) {
+ *        // ... here goes your business logic
+ *    }
+ *    
+ *}</pre>
  * 
  * <h4>Fault</h4>
  * 
  * <p>...</p>
  * 
- * <h3>Applications</h3>
- * 
  * <h4>Security</h4>
  * 
- * <p>Note that IRTD2 cookies are used for identification, authorization
+ * <p>IRTD2 cookies may be used for identification, authorization
  * and audit of the SOAP transactions by less4j, not one of the proprietary 
  * implementation of WS-Security.</p> 
  * 
- * <p>If you <em>really</em> need more security features in the usual 
- * environments where WS-* has been adopted, then there's a great deal of 
- * chance that you'd rather have X509 client certificates identifying user 
- * agents using SSL/TLS encrypted connections.</p>
+ * <p>By default no identification is required. If you <em>really</em> need 
+ * security features in the usual environments where WS-* has been adopted, 
+ * then there's a great deal of chance that you'd rather have X509 client 
+ * certificates identifying user agents using SSL/TLS encrypted connections.
+ * </p>
  * 
  * <p>And that is better handled out of the J2EE container, by stunnel for
- * clients or Apache's mod_ssl in a forward proxy.</p>
+ * clients and Apache's mod_ssl in a forward proxy for servers.</p>
  * 
  * <h3>When Money Talks</h3>
  * 
