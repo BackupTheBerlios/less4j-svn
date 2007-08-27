@@ -378,7 +378,7 @@ public class Simple {
      * @param map
      */
     public static Map dict (Map map, Object[] items) {
-        for (int i=0; i<items.length; i =+ 2)
+        for (int i=0; i<items.length; i=i+2)
             map.put(items[i], items[i+1]);
         return map;
     }
