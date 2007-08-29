@@ -189,6 +189,8 @@ import java.text.StringCharacterIterator;
  */
 public class JSON {
     
+    public static final String MIME_TYPE = "application/json"; 
+    
     /**
      * A simple JSON exception throwed for any syntax error found by the
      * interpreter.
@@ -1505,4 +1507,38 @@ public class JSON {
         return (char) val;
     }
 
+    /**
+     * Instanciate a new <code>JSON.Object</code> with an even sequence
+     * of name and value pairs, a convenient way to express JSON literals
+     * in java.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>JSON.object(new Object[]{
+     *     "hello", "world",
+     *     "one", new Integer(1),
+     *     "test", Boolean.TRUE 
+     *     });</pre>
+     * 
+     * @param items
+     */
+    public static JSON.Object object (java.lang.Object[] items) {
+        return (JSON.Object) Simple.dict(new JSON.Object(), items);
+    };
+    /**
+     * Instanciate a new <code>JSON.Array</code> with a sequence of values, 
+     * a convenient way to express JSON literals in java.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>JSON.array(new Object[]{
+     *     "world", new Integer(1), Boolean.TRUE, null 
+     *     });</pre>
+     * 
+     * @param items
+     */
+    public static JSON.Array array (java.lang.Object[] items) {
+        return (JSON.Array) Simple.list(new JSON.Array(), items);
+    };
+    
 }
