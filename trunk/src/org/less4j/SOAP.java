@@ -32,9 +32,11 @@ import java.util.Iterator;
  * 
  *public class echoString extends SOAP {
  *
- *    public void call (Actor $) throws JSON.Error {
+ *    public void call (Actor $, Document request) throws JSON.Error {
  *        String arg0 = $.json.O("Body").O("echoString").S("arg0")
- *        response ($, "echoStringResponse", "Hello " + arg0 + " !");
+ *        response ($, "echoStringResponse", new JSON.Object(
+ *            "result", "Hello " + arg0 + " !"
+ *            ));
  *    }
  *    
  *} <pre>...
@@ -130,7 +132,7 @@ import java.util.Iterator;
  *            }));
  *    }
  *
- *    public void call (Actor $) throws JSON.Error {
+ *    public void call (Actor $, Document message) throws JSON.Error {
  *        String po = $.json.O("Body").O("PurchaseOrder");
  *        response ($, "PurchaseOrderResponse", purchaseOrder (
  *           po.S("item"), po.intValue("quantity"), po.S("description")
@@ -195,7 +197,10 @@ public class SOAP implements Function {
         return JSON._null; // no regular JSON interfaces
     }
     public boolean less4jConfigure(Actor $) {
-        return true; // no configuration to do
+        String jsonr = jsonInterface($);
+        if (jsonr != JSON._null)
+            ; // TODO: compile a WSDL document for this function
+        return true; 
     }
     public boolean irtd2Identify(Actor $) {
         return true; // no IRTD2 identification required
@@ -205,13 +210,13 @@ public class SOAP implements Function {
         ) {
         if (
             method.equals(Controller._POST) && contentType != null &&
-            contentType.startsWith(XML._text_xml)
+            contentType.startsWith(XML.MIME_TYPE)
             ) try {
             Document soap = new Document();
             XML.read($.request.getInputStream(), "", null, null, soap);
             $.json = ((Element) soap.root).json;
-            this.call ($);
-        } catch (Exception e) {
+            this.call ($, soap);
+        } catch (Throwable e) {
             $.logError(e);
             fault($, e.getMessage());
         } else
@@ -226,7 +231,7 @@ public class SOAP implements Function {
     public void jsonApplication(Actor $) {
         $.httpError(501); // Not implemented
     }
-    public void call (Actor $) throws Exception {
+    public void call (Actor $, Document message) throws Exception {
         JSON.Object body = $.json.O("Body");
         String name = (String) body.keySet().iterator().next(); 
         response($, name + "Response", body.get(name)); 
@@ -262,16 +267,42 @@ public class SOAP implements Function {
             } else
                 map.put(tag, contained);
         }
-        public void valid(XML.Document document) {
+        private static final String 
+            _xsi_type = "http://www.w3.org/2001/XMLSchema-instance type";
+        private static final Map _xsd_types = Simple.dict(
+            new HashMap(), new Object[]{
+                "xsd:byte", JSONR.INTEGER,
+                "xsd:short", JSONR.INTEGER,
+                "xsd:int", JSONR.INTEGER,
+                "xsd:integer", JSONR.DECIMAL,
+                "xsd:long", JSONR.INTEGER,
+                "xsd:float", JSONR.DOUBLE,
+                "xsd:double", JSONR.DOUBLE,
+                "xsd:decimal", JSONR.DECIMAL,
+                "xsd:boolean", JSONR.BOOLEAN
+                // TODO: ? base64Binary, dateTime, hexBinary, QName ?
+            });
+        public void valid(XML.Document document) throws XML.Error {
             XML.Element parent = this.parent;
             while (parent != null && !(parent instanceof Element))
                 parent = this.parent;
             if (parent == null) // root 
                 ;
             else if (children == null) { // leaf
-                if (first != null)
-                    jsonUpdate((Element) parent, first);
-                else if (attributes != null)
+                if (first != null) {
+                    if (
+                        attributes != null && 
+                        attributes.containsKey(_xsi_type)
+                        ) try {
+                        Object value = ((JSONR.Type) _xsd_types.get(
+                                (String) attributes.get(_xsi_type)
+                                )).eval(first);
+                        jsonUpdate((Element) parent, value);
+                    } catch (JSON.Error e) {
+                        throw new XML.Error (e.getMessage());
+                    } else
+                        jsonUpdate((Element) parent, first);
+                } else if (attributes != null)
                     jsonUpdate((Element) parent, attributes);
             } else if (json != null) // branch
                 jsonUpdate((Element) parent, json);
@@ -282,24 +313,101 @@ public class SOAP implements Function {
             return new Element(name, attributes);
         }
     }
-    protected static final String _utf8 = "UTF-8";
+    
     /**
-     * Translate a Regular JSON Expression in a SOAP schema, compiles
-     * a JSONR.Type as input and produces an XML.Element tree as
-     * output.
+     * Try to translate a regular JSONR expression in a named XSD schema,
+     * throws an <code>Exception</code> for models that contain records
+     * or dictionaries (both are not supported by XSD in a way that 
+     * could fit less4j's simpler understanding of SOAP messages).
      * 
      * <h3>Synopsis</h3>
      * 
-     * <pre>...</pre>
+     * <pre>JSONR.Type model = JSONR.compile(JSON.object(new Object[]{
+     *    "item", "",
+     *    "quantity", new Integer(1),
+     *    "description", ""
+     *    "notification", Boolean.TRUE
+     *    }));
+     *XML.element type = xsd(model, "PurchaseOrder");</pre>
      * 
-     * @param model the JSONR.Type to translate to a SOAP schema
-     * @param name of the schema's root element
-     * @return the root XML.Element of the schema fragment produced
+     * @param model to translate from JSONR to XSD
+     * @param name the name of the XSD type mapped
+     * @return an <code>XML.Element</code>
+     * @throws Exception
      */
-    public static final XML.Element schema (JSONR.Type model, String name) {
-        return null; 
+    public static final XML.Element xsd (JSONR.Type model, String name) 
+    throws Exception {
+        if (model instanceof JSONR.TypeBoolean) {
+            return new XML.Element("element", new String[]{
+                "name", name, "type", "boolean", "minOccurs", "1"
+                }, null, null); // string 
+        } else if (
+            model instanceof JSONR.TypeString ||
+            model instanceof JSONR.TypeRegular
+            ) {
+            return new XML.Element("element", new String[]{
+                "name", name, "type", "string", "minOccurs", "1"
+                }, null, null); 
+        } else if (
+            model instanceof JSONR.TypeDecimal ||
+            model instanceof JSONR.TypeDecimalAbsolute ||
+            model instanceof JSONR.TypeDecimalRelative
+            ) {
+            return new XML.Element("element", new String[]{
+                "name", name, "type", "decimal", "minOccurs", "1"
+                }, null, null);
+        } else if (
+            model instanceof JSONR.TypeInteger ||
+            model instanceof JSONR.TypeIntegerAbsolute ||
+            model instanceof JSONR.TypeIntegerRelative
+            ) {
+            return new XML.Element("element", new String[]{
+                "name", name, "type", "int", "minOccurs", "1"
+                }, null, null); 
+        } else if (
+            model instanceof JSONR.TypeDouble ||
+            model instanceof JSONR.TypeDoubleAbsolute ||
+            model instanceof JSONR.TypeDoubleRelative
+            ) {
+            return new XML.Element("element", new String[]{
+                "name", name, "type", "double", "minOccurs", "1"
+                }, null, null);
+        } else if (model instanceof JSONR.TypeDictionary) {
+            throw new Exception(
+                "JSONR dictionaries are not supported by XSD"
+                ); 
+        } else if (model instanceof JSONR.TypeNamespace) {
+            JSONR.TypeNamespace type = (JSONR.TypeNamespace) model;
+            XML.Element element = new XML.Element("element", new String[]{
+                "name", name, "minOccurs", "0"
+                }, null, null);
+            XML.Element all = element.addChild("complexType").addChild("all");
+            Iterator names = type.names.iterator();
+            String property;
+            while (names.hasNext()) {
+                property = (String) names.next();
+                all.addChild(xsd(
+                    (JSONR.Type) type.namespace.get(property), property
+                    ));
+            }
+            return element;
+        } else if (model instanceof JSONR.TypeArray) {
+            JSONR.TypeArray type = (JSONR.TypeArray) model;
+            if (type.types.length == 1) {
+                XML.Element element = xsd(
+                    (JSONR.Type) type.types[0], name
+                    );
+                element.attributes.put("minOccurs", "0");
+                element.attributes.put("maxOccurs", "unbounded");
+                return element;
+            } else
+                throw new Exception(
+                    "JSONR relations are not supported by XSD"
+                    ); 
+        }
+        return null;
     };
-
+    
     /**
      * Encode an object in a really simple XML notation that is
      * backward-compatible with SOAP 1.1 but supporting "only" the 
@@ -387,6 +495,8 @@ public class SOAP implements Function {
         return sb;
     }
     
+    protected static final String _utf8 = "UTF-8";
+    
     public static final byte[] encode (Object value, String name) { 
         return Simple.encode(strb(
             new StringBuffer(), value, name
@@ -423,7 +533,7 @@ public class SOAP implements Function {
     public static final void response (Actor $, String name, Object body) {
         $.httpResponse(200, Simple.buffer(new byte[][]{
             _response_head, encode(body, name), _response_tail
-            }), XML._text_xml, _utf8);
+            }), XML.MIME_TYPE, _utf8);
     } // isn't this one liner elegant?
     
     protected static final byte[] _response_envelope = Simple.encode(
@@ -460,7 +570,7 @@ public class SOAP implements Function {
             _response_body,
             encode(body, name), 
             _response_tail
-            }), XML._text_xml, _utf8);
+            }), XML.MIME_TYPE, _utf8);
     }
     
     protected static final byte[] _fault_head = Simple.encode(
@@ -497,7 +607,7 @@ public class SOAP implements Function {
     public static final void fault (Actor $, String message) {
         $.httpResponse(500, Simple.buffer(new byte[][]{
             _fault_head, Simple.encode(message, _utf8), _fault_tail
-            }), XML._text_xml, _utf8);
+            }), XML.MIME_TYPE, _utf8);
     }
 
     protected static final byte[] _fault_body = Simple.encode(
@@ -526,7 +636,7 @@ public class SOAP implements Function {
             _fault_body, 
             Simple.encode(message, _utf8), 
             _fault_tail
-            }), XML._text_xml, _utf8);
+            }), XML.MIME_TYPE, _utf8);
     }
 
 }

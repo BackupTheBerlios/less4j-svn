@@ -36,8 +36,15 @@ import java.util.Locale;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 
-import com.jclark.xml.parse.*;
-import com.jclark.xml.parse.base.*;
+import com.jclark.xml.parse.ProcessingInstructionEvent;
+import com.jclark.xml.parse.StartElementEvent;
+import com.jclark.xml.parse.EndElementEvent;
+import com.jclark.xml.parse.CharacterDataEvent;
+import com.jclark.xml.parse.DocumentParser;
+import com.jclark.xml.parse.OpenEntity;
+import com.jclark.xml.parse.EntityManagerImpl;
+import com.jclark.xml.parse.ApplicationException;
+import com.jclark.xml.parse.base.ApplicationImpl;
 import com.jclark.xml.output.UTF8XMLWriter;
 import com.jclark.xml.sax.ReaderInputStream;
 
@@ -89,16 +96,17 @@ import com.jclark.xml.sax.ReaderInputStream;
  */
 public class XML {
 
-    public static final String _text_xml = "text/xml";
+    public static final String MIME_TYPE = "text/xml";
 
     protected static final String _utf8 = "UTF-8";
     
     /**
-     * An error class derived from <code>RuntimeException</code>, throwed
+     * An error class derived from <code>Exception</code>, throwed
      * by the <code>QP</code> application of <code>XP</code> parser when
-     * the XML processed is not-well formed.
+     * the XML 1.0 processed is not-well formed or a namespace prefix
+     * is not declared.
      */
-    public static class Error extends RuntimeException {
+    public static class Error extends Exception {
         private String _message;
         /**
          * Instanciate a new exception with the given message.
@@ -249,6 +257,16 @@ public class XML {
         }
         /**
          * 
+         * @param name
+         * @return
+         */
+        public XML.Element addChild (String name) {
+            XML.Element element = new XML.Element(name);
+            addChild(element);
+            return element;
+        }
+        /**
+         * 
          * @param cdata
          */
         public void addCdata (String cdata) {
@@ -352,6 +370,16 @@ public class XML {
                 return (String) attributes.get(name);
         }
         /**
+         * 
+         * @param name
+         * @param value
+         */
+        public void setAttribute (String name, String value) {
+            if (attributes == null) 
+                attributes = new HashMap();
+            attributes.put(name, value);
+        }
+        /**
          * This is a method called by <code>QP</code> when an element has 
          * been parsed without errors, but before the circular reference
          * to it's parent is removed.
@@ -360,11 +388,12 @@ public class XML {
          * <code>Element</code> to implement "Object Oriented Pull Parsers"
          * (OOPP). The benefit of this pattern is to avoid the need to walk
          * the element tree and instead process elements as they are
-         * validated by the parser.</p>
+         * validated by the parser, using this simple DOM as an abstract
+         * syntax tree.</p>
          * 
          * @param doc the Document currently parsed
          */
-        public void valid (Document doc) {;}
+        public void valid (Document doc) throws Error {;}
     }
     
     /**
@@ -490,7 +519,7 @@ public class XML {
                 _curr.addChild(e);
             _curr = e;
         }
-        public void endElement(EndElementEvent event) {
+        public void endElement(EndElementEvent event) throws Error {
             _curr.valid(doc);
             Element parent = _curr.parent;
             _curr.parent = null; // break circular reference!
@@ -520,7 +549,7 @@ public class XML {
      */
     public static final Document read(
         InputStream is, String path, URL baseURL, Map types, Document doc
-        ) throws Error, IOException {
+        ) throws Throwable {
         QP qp = new QP(doc, types);
         try {
             DocumentParser.parse(new OpenEntity(
@@ -533,7 +562,7 @@ public class XML {
                 qp._curr = parent;
                 parent = qp._curr.parent;
             }
-            throw new Error(e.getMessage());
+            throw e.getCause();
         }
         return doc;
     }
@@ -550,7 +579,7 @@ public class XML {
      * @throws IOException raised by accessing the XML file
      */
     public static final Document read(File file, Map types, Document doc) 
-    throws Error, IOException {
+    throws Throwable {
         return read (
             new FileInputStream(file), file.getAbsolutePath(), file.toURL(),
             types, doc
@@ -566,8 +595,7 @@ public class XML {
      * @throws Error if the XML file is not well-formed
      * @throws IOException raised by accessing the XML file
      */
-    public static final Document read(File file) 
-    throws Error, IOException {
+    public static final Document read(File file) throws Throwable {
         return read(
             new FileInputStream(file), file.getAbsolutePath(), file.toURL(),
             null, new Document()
@@ -589,7 +617,7 @@ public class XML {
     public static final Document read(
         String string, String path, URL baseURL, Map types, Document doc
         ) 
-    throws Error, IOException {
+    throws Throwable {
         return read(
             new ReaderInputStream(new StringReader(string)), 
             path, baseURL, types, doc
@@ -608,7 +636,7 @@ public class XML {
     public static final Document read(
         String string, Map types, Document doc
         ) 
-    throws Error, IOException {
+    throws Throwable {
         return read(
             new ReaderInputStream(new StringReader(string)), 
             "", null, types, doc
@@ -623,7 +651,7 @@ public class XML {
      * @throws IOException raised by accessing the XML file
      */
     public static final Document read(String string) 
-    throws Error, IOException {
+    throws Throwable {
         return read(
             new ReaderInputStream(new StringReader(string)), 
             "", null, null, new Document()
