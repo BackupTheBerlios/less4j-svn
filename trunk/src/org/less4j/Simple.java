@@ -27,8 +27,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 import java.util.HashSet;
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -295,16 +295,17 @@ public class Simple {
      * 
      * <h4>Synopsis</h4>
      * 
-     * <pre>ArrayList list = Simple.list({"a", "b", "c"});</pre>
+     * <pre>List sequence = Simple.list(
+     *     new ArrayList(), new Object[]{"a", "b", "c"}
+     *     );</pre>
      * 
      * @param objects
      * @return
      */
-    public static ArrayList list (Object[] objects) {
-        ArrayList result = new ArrayList();
+    public static List list (List sequence, Object[] objects) {
         for (int i=0; i<objects.length; i++)
-            result.add(objects[i]);
-        return result;
+            sequence.add(objects[i]);
+        return sequence;
     }
     
     /**
