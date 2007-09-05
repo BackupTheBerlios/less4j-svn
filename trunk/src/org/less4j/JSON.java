@@ -1541,4 +1541,8 @@ public class JSON {
         return (JSON.Array) Simple.list(new JSON.Array(), items);
     };
     
+    public static java.lang.Object decode(String encoded) throws Error {
+        return (new JSON()).eval(encoded);
+    };
+    
 }
