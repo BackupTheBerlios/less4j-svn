@@ -28,27 +28,100 @@ import java.util.Iterator;
  * 
  * <h3>Synopsis</h3>
  * 
+ * <p>Here is a web service to test the usual "Hello World" suspect SOAP 
+ * remote procedure call:</p>
+ * 
  * <pre>import org.less4j.*;
  * 
  *public class echoString extends SOAP {
  *
- *    public void call (Actor $, Document request) throws JSON.Error {
+ *    public void call (Actor $, Document request) throws Throwable {
  *        String arg0 = $.json.O("Body").O("echoString").S("arg0")
  *        response ($, "echoStringResponse", new JSON.Object(
  *            "result", "Hello " + arg0 + " !"
  *            ));
  *    }
  *    
- *} <pre>...
+ *}</pre>
+ *
+ * <p>Note how the SOAP request was mapped to a JSON object, skipping
+ * a lot of tedious boilerplate, transient object declaration and dropping 
+ * XML namespaces.</p>
+ *
+ * <p>The small size and decent performances of less4j's SOAP implementation
+ * are made possible by a radical design decision: to support the minimal
+ * subset of SOAP 1.1 encodings, XSD schemas and WSDL service descriptions.
+ * If you doubt about the relevance of that choice, see Google's WSDL
+ * declaration.</p>
+ *
+ * <p>Here less is definitively so much more. There are no error-prone
+ * code generation and compilation involved because there is no need to 
+ * support the contradictions in the standards or enforce static typing
+ * in the service itself.</p>
+ *
+ * <p>All that simplicity buys a lot of conveniences at a known up-front
+ * cost (a dynamic object model). First it helps not to bother too much with
+ * the implementation data structures or names, and instead focus on the
+ * SOAP, JSON and SQL data and metadata. Second, it helps to keep simple
+ * procedure free of anything else but functional programming patterns
+ * with names that mean something in the application's network (ie: sources 
+ * easy to read and undertsand).</p>
+ * 
+ * source file and makes its applications forward compatible
+ * with the defacto network object notation.</p> 
+ *
+ * <pre>...
  *&lt;SOAP-ENV:Body &gt;
  *    &lt;echoStringResponse xsi:type="xsd:string" 
  *        &gt;&lt;[CDATA[Hello World!]]&gt;&lt;/echoStringResponse&gt;
  *&lt;/SOAP-ENV:Body&gt;
  *...</pre> 
  *
- * <h4>Request</h4>
+ * <p>...</p>
+ *
+ * <h4>JSONR/WSDL Interfaces</h4>
  * 
- * <pre>...</pre> 
+ * <p>This <code>Function</code> implementation supports a subset of WSDL
+ * mapped from a regular JSON expressions. It is restricted to RPC, SOAP 
+ * encoding and the XSD equivalents of JSON types. But it supports complex 
+ * types as practically as interroperable XML schemas can allow.</p>
+ * 
+ * <p></p>
+ * 
+ * <pre>import org.less4j.*;
+ * 
+ *public class PurchaseOrder extends SOAP {
+ *
+ *    public String jsonInterface (Actor $) {
+ *        return JSON.encode(Simple.dict({
+ *            "Request", Simple.dict({
+ *                "item", "", 
+ *                "quantity", new Integer(0),
+ *                "description", ""
+ *                "price", new Integer(0),
+ *                }),
+ *            "Response", Simple.dict({
+ *                "status", "accepted|rejected|quoted", 
+ *                }),
+ *            }));
+ *    }
+ *
+ *    public void call (Actor $, Document request) throws Throwable {
+ *        String po = $.json.O("Body").O("Request");
+ *        response ($, purchaseOrder (
+ *           po.S("item"), po.intValue("quantity", 1), po.S("description")
+ *           ));
+ *    }
+ *    
+ *    public static Object purchaseOrder (
+ *        String item, int quantity, String description
+ *        ) {
+ *        // ... here goes your business logic
+ *    }
+ *    
+ *}</pre>
+ * 
+ * <h4>Request</h4>
  * 
  * <p>Unobviously at first, the SOAP interpreter built-in does not even try
  * to wax this "industy standard" object notation. Instead it maps a simple
@@ -79,7 +152,7 @@ import java.util.Iterator;
  * 
  * <p>Simple things should be easy even with SOAP:</p>
  * 
- * <pre>SOAP.response($, "00c7932fa021c9acc530", "ticket");</pre> 
+ * <pre>SOAP.response($, "ticket", "00c7932fa021c9acc530");</pre> 
  *     
  * <p>Will send an SOAP response with the simplest envelope and body:</p>
  * 
@@ -94,13 +167,14 @@ import java.util.Iterator;
  * brain dead containers' encoding required by static typing since the 
  * response objects are expected to have a dynamic JSON model.</p>
  * 
- * <p>For instance:</p>
+ * <p>As a result, neither relations (aka records) nor dictionaries
+ * (aka indexes) are supported by this implementations.</p>
  * 
- * <pre>SOAP.response ($, JSON.decode(
+ * <pre>SOAP.response ($, "hello-test", JSON.decode(
  *     "{\"hello\": \"World!\", \"test\": [1, 2.20, null, true]}"
- *     ), "hello-test");</pre> 
+ *     ));</pre> 
  * 
- * <p>Produces the following body:</p>
+ * <p>Would produce the following body:</p>
  * 
  * <pre>...
  *&lt;hello-test &gt;
@@ -112,40 +186,9 @@ import java.util.Iterator;
  *&lt;hello-test&gt;
  *...</pre> 
  *
- * <p>Note that SOAP body produced above probably cannot be supported by 
- * a WSDL schema because of its dynamism. So, what about static type mapping 
- * and all that family of powerfull features supported by WS-* & Co.</p>
- * 
- * <p>Well, they are actually more bugs than features.</p>
- * 
- * <h4>JSONR/WSDL Interfaces</h4>
- * 
- * <pre>import org.less4j.*;
- * 
- *public class PurchaseOrder extends SOAP {
- *
- *    public String jsonInterface (Actor $) {
- *        return JSON.encode(Simple.dict({
- *            "item", "", 
- *            "quantity", new Integer(0),
- *            "description", ""
- *            }));
- *    }
- *
- *    public void call (Actor $, Document message) throws JSON.Error {
- *        String po = $.json.O("Body").O("PurchaseOrder");
- *        response ($, "PurchaseOrderResponse", purchaseOrder (
- *           po.S("item"), po.intValue("quantity"), po.S("description")
- *           ));
- *    }
- *    
- *    public static Object purchaseOrder (
- *        String item, int quantity, String description
- *        ) {
- *        // ... here goes your business logic
- *    }
- *    
- *}</pre>
+ * <p>which cannot be supported by an XSD schema. Instead, namepsaces
+ * and arrays should be used to describe records and indexes, leaving
+ * the interpretation as more complex object to the schema's applications.</p>
  * 
  * <h4>Fault</h4>
  * 
@@ -191,20 +234,65 @@ import java.util.Iterator;
  * @author Laurent Szyster
  */
 public class SOAP implements Function {
+    
+    private static final String _name = "name";
+    private static final String _element = "element";
+    private static final String _Request = "Request";
+    private static final String _Response = "Response";
+    
     // org.less4j.Function implementation
     public static SOAP singleton = new SOAP();
     public String jsonInterface(Actor $) {
         return JSON._null; // no regular JSON interfaces
     }
+    private JSONR.TypeNamespace jsonr = null;
+    private XML.Element xsdRequest = null;
+    private XML.Element xsdResponse = null;
+    /**
+     * Try to compiles the Regular JSON interface(s) to a 
+     * <code>JSONR.Type</code> and then Request and Response XSD schemas, 
+     * return <code>true</code> on success or log and error and return 
+     * <code>false</code> on failure.   
+     */
     public boolean less4jConfigure(Actor $) {
-        String jsonr = jsonInterface($);
-        if (jsonr != JSON._null)
-            ; // TODO: compile a WSDL document for this function
+        try {
+            jsonr = (JSONR.TypeNamespace) JSONR.compile(jsonInterface($));
+            String name = $.about.substring(1); 
+            xsdRequest = xsd(
+                (JSONR.Type) jsonr.namespace.get(_Request), name + _Request
+                );
+            xsdResponse = xsd (
+                (JSONR.Type) jsonr.namespace.get(_Response), name + _Response
+                );
+        } catch (Exception e) {
+            $.logError(e);
+            return false;
+        } 
         return true; 
     }
+    /**
+     * Allways return <code>true</code>, to override by functions that want
+     * to leverage IRTD2 cookies for auditable HTTP user agents 
+     * identification.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>public boolean irtd2Identify(Actor $) {
+     *    $.httpError(401); // Not authorized
+     *    return false;
+     *}</pre>
+     * 
+     */
     public boolean irtd2Identify(Actor $) {
         return true; // no IRTD2 identification required
     }
+    /**
+     * Handle any text/xml content type posted to this function as a SOAP
+     * request, try map the XML element tree to a practical JSON object as 
+     * the input stream is parsed then execute the <code>call</code> to send
+     * a response, or upon failure log an error and reply with an the
+     * exception's message in a SOAP <code>fault</code>.
+     */
     public void httpContinue (
         Actor $, String method, String contentType
         ) {
@@ -222,19 +310,35 @@ public class SOAP implements Function {
         } else
             $.httpError(400);
     }
+    /**
+     * Reply to all idempotent GET request with a complete web service
+     * description.
+     */
     public void httpResource(Actor $) {
-        $.jsonResponse(200, jsonInterface($)); // TODO: WSDL instead 
+        try {
+            String name = $.about.substring(1); 
+            $.httpResponse(200, XML.encodeUTF8(wsdl(
+                $.context, name, xsdRequest, xsdResponse
+                )), XML.MIME_TYPE, XML._utf8);
+        } catch (Throwable e) {
+            $.logError(e);
+            $.httpError(500);
+        }
     }
     public Object jsonRegular(Actor $) {
-        return null; // no JSON to GET or POST
+        return null;
     }
     public void jsonApplication(Actor $) {
         $.httpError(501); // Not implemented
     }
-    public void call (Actor $, Document message) throws Exception {
+    public void call (Actor $, Document message) throws Throwable {
+        String action = $.about.substring(1);
         JSON.Object body = $.json.O("Body");
-        String name = (String) body.keySet().iterator().next(); 
-        response($, name + "Response", body.get(name)); 
+        JSON.Object request = body.O(action+_Request);
+        body.O(action+_Response).put(
+            _Response, "Hello " + request.S("arg0") + " !"
+            );
+        response($, action, body.O(action+_Response)); 
     }
     
     // Supporting SOAP implementation
@@ -294,10 +398,13 @@ public class SOAP implements Function {
                         attributes != null && 
                         attributes.containsKey(_xsi_type)
                         ) try {
-                        Object value = ((JSONR.Type) _xsd_types.get(
-                                (String) attributes.get(_xsi_type)
-                                )).eval(first);
-                        jsonUpdate((Element) parent, value);
+                        JSONR.Type type = (JSONR.Type) _xsd_types.get(
+                            (String) attributes.get(_xsi_type)
+                            );
+                        if (type != null)
+                            jsonUpdate((Element) parent, type.eval(first));
+                        else
+                            jsonUpdate((Element) parent, first);
                     } catch (JSON.Error e) {
                         throw new XML.Error (e.getMessage());
                     } else
@@ -313,6 +420,17 @@ public class SOAP implements Function {
             return new Element(name, attributes);
         }
     }
+    
+    protected static final String 
+        XSD_NS = "http://www.w3.org/2001/XMLSchema";
+    protected static final String XSD_PREFIX = "xsd";
+    
+    protected static final String xsd_schema = XSD_NS + " schema";
+    protected static final String xsd_element = XSD_NS + " element";
+    protected static final String xsd_complexType = XSD_NS + " complexType";
+    protected static final String xsd_sequence = XSD_NS + " sequence";
+    protected static final String xsd_all = XSD_NS + " all";
+    protected static final String xsd_any = XSD_NS + " any";
     
     /**
      * Try to translate a regular JSONR expression in a named XSD schema,
@@ -338,14 +456,15 @@ public class SOAP implements Function {
     public static final XML.Element xsd (JSONR.Type model, String name) 
     throws Exception {
         if (model instanceof JSONR.TypeBoolean) {
-            return new XML.Element("element", new String[]{
+            return new XML.Element(xsd_element, new String[]{
                 "name", name, "type", "boolean", "minOccurs", "1"
                 }, null, null); // string 
-        } else if (
-            model instanceof JSONR.TypeString ||
-            model instanceof JSONR.TypeRegular
-            ) {
-            return new XML.Element("element", new String[]{
+        } else if (model instanceof JSONR.TypeString) {
+            return new XML.Element(xsd_element, new String[]{
+                "name", name, "type", "string", "minOccurs", "0"
+                }, null, null); 
+        } else if (model instanceof JSONR.TypeRegular) {
+            return new XML.Element(xsd_element, new String[]{
                 "name", name, "type", "string", "minOccurs", "1"
                 }, null, null); 
         } else if (
@@ -353,7 +472,7 @@ public class SOAP implements Function {
             model instanceof JSONR.TypeDecimalAbsolute ||
             model instanceof JSONR.TypeDecimalRelative
             ) {
-            return new XML.Element("element", new String[]{
+            return new XML.Element(xsd_element, new String[]{
                 "name", name, "type", "decimal", "minOccurs", "1"
                 }, null, null);
         } else if (
@@ -361,7 +480,7 @@ public class SOAP implements Function {
             model instanceof JSONR.TypeIntegerAbsolute ||
             model instanceof JSONR.TypeIntegerRelative
             ) {
-            return new XML.Element("element", new String[]{
+            return new XML.Element(xsd_element, new String[]{
                 "name", name, "type", "int", "minOccurs", "1"
                 }, null, null); 
         } else if (
@@ -369,7 +488,7 @@ public class SOAP implements Function {
             model instanceof JSONR.TypeDoubleAbsolute ||
             model instanceof JSONR.TypeDoubleRelative
             ) {
-            return new XML.Element("element", new String[]{
+            return new XML.Element(xsd_element, new String[]{
                 "name", name, "type", "double", "minOccurs", "1"
                 }, null, null);
         } else if (model instanceof JSONR.TypeDictionary) {
@@ -378,10 +497,11 @@ public class SOAP implements Function {
                 ); 
         } else if (model instanceof JSONR.TypeNamespace) {
             JSONR.TypeNamespace type = (JSONR.TypeNamespace) model;
-            XML.Element element = new XML.Element("element", new String[]{
+            XML.Element element = new XML.Element(xsd_element, new String[]{
                 "name", name, "minOccurs", "0"
                 }, null, null);
-            XML.Element all = element.addChild("complexType").addChild("all");
+            XML.Element all = element
+                .addChild(xsd_complexType).addChild(xsd_all);
             Iterator names = type.names.iterator();
             String property;
             while (names.hasNext()) {
@@ -404,9 +524,149 @@ public class SOAP implements Function {
                 throw new Exception(
                     "JSONR relations are not supported by XSD"
                     ); 
+        } else if (model instanceof JSONR.TypeUndefined) {
+            XML.Element element = new XML.Element(xsd_element, new String[]{
+                "name", name, "minOccurs", "0"
+                }, null, null);
+            element.addChild(xsd_complexType).addChild(xsd_any);
+            return element;
         }
         return null;
     };
+
+    protected static final String 
+        SOAP_NS = "http://schemas.xmlsoap.org/wsdl/soap/";    
+    protected static final String SOAP_PREFIX = "soap";    
+    protected static final String soap_binding = SOAP_NS + " binding";
+    protected static final String soap_operation = SOAP_NS + " operation";
+    protected static final String soap_body = SOAP_NS + " body";
+    protected static final String soap_address = SOAP_NS + " address";
+    protected static final String 
+        soap_http = "http://schemas.xmlsoap.org/soap/http";
+    
+    protected static final String 
+        WSDL_NS = "http://schemas.xmlsoap.org/wsdl/";
+    protected static final String WSDL_PREFIX = "wsdl";
+    
+    protected static final String wsdl_types = WSDL_NS + " types";
+    protected static final String wsdl_definitions = WSDL_NS + " definitions";
+    protected static final String wsdl_message = WSDL_NS + " message";
+    protected static final String wsdl_part = WSDL_NS + " part";
+    protected static final String wsdl_portType = WSDL_NS + " portType";
+    protected static final String wsdl_operation = WSDL_NS + " operation";
+    protected static final String wsdl_input = WSDL_NS + " input";
+    protected static final String wsdl_output = WSDL_NS + " output";
+    protected static final String wsdl_fault = WSDL_NS + " fault";
+    protected static final String wsdl_binding = WSDL_NS + " binding";
+    protected static final String wsdl_service = WSDL_NS + " service";
+    protected static final String wsdl_port = WSDL_NS + " port";
+    
+    private static final String _targetNamespace = "targetNamespace";
+    private static final String _body = "body";
+    private static final String _tns = "tns:";
+    private static final String _message = "message";
+    private static final String _RequestMsg = "RequestMsg";
+    private static final String _ResponseMsg = "ResponseMsg";
+    private static final String _Port = "Port";
+    private static final String _Binding = "Binding"; 
+    private static final String _type = "type";
+    private static final String _style = "style"; 
+    private static final String _rpc = "rpc";
+    private static final String _transport = "transport";
+    private static final String 
+        _soap_http ="http://schemas.xmlsoap.org/soap/http";
+    private static final String _soapAction = "soapAction";
+    private static final String _encodingStyle = "encodingStyle"; 
+    private static final String 
+        _soap_encoding = "http://schemas.xmlsoap.org/soap/encoding/";
+    private static final String _use = "use";
+    private static final String _encoded = "encoded"; 
+    private static final String _binding = "binding";
+    private static final String _location = "location";
+    
+    /**
+     * Produces a WSDL description of this SOAP function from a regular 
+     * JSON interface of the form:
+     * 
+     * <pre>{"Request": null, "Response": null}</pre>
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <p>To declare and enforce a different model than the default presented
+     * above, override the <code>jsonInterface</code> method to return the
+     * regular JSON string describing this function's input and output.</p>
+     * 
+     * @param context
+     * @param name
+     * @param input
+     * @param output
+     * @return
+     */
+    public static final XML.Document wsdl (
+        String context, String name, XML.Element input, XML.Element output 
+        ) {
+        XML.Document doc = new XML.Document();
+        doc.ns.put(XSD_NS, XSD_PREFIX);
+        doc.ns.put(SOAP_NS, SOAP_PREFIX);
+        doc.ns.put(WSDL_NS, WSDL_PREFIX);
+        doc.root = new XML.Element(wsdl_definitions, new String[]{
+            _targetNamespace, context
+            }, null, null);
+        XML.Element schema = doc.root.addChild(wsdl_types)
+            .addChild(xsd_schema);
+        schema.addChild(input);
+        schema.addChild(output);
+        XML.Element input_message = doc.root.addChild(
+            wsdl_message, new String[]{_name, name + _RequestMsg}
+            );
+        input_message.addChild(wsdl_part, new String[]{
+            _name, _body, _element, _tns + name + _Request
+            });
+        XML.Element output_message = doc.root.addChild(
+            wsdl_message, new String[]{_name, name + _ResponseMsg}
+            );
+        output_message.addChild(wsdl_part, new String[]{
+            _name, _body, _element, _tns + name + _Response
+            });
+        XML.Element operation = doc.root
+            .addChild(wsdl_portType, new String[]{
+                _name, name + _Port
+                })
+            .addChild(wsdl_operation);
+        operation.addChild(wsdl_input, new String[]{
+            _message, _tns + name + _RequestMsg
+            });
+        operation.addChild(wsdl_output, new String[]{
+            _message, _tns + name + _ResponseMsg
+            });
+        XML.Element binding = doc.root.addChild(wsdl_binding, new String[]{
+            _name, name + _Binding, _type, _tns + name + _Port
+            });
+        binding.addChild(soap_binding, new String[]{
+            _style, _rpc, _transport, _soap_http    
+            });
+        operation = binding.addChild(wsdl_operation, new String[]{
+            _name, name     
+            });
+        operation.addChild(soap_operation, new String[]{
+            _soapAction, name
+            });
+        operation.addChild(wsdl_input).addChild(soap_body, new String[]{
+            _encodingStyle, _soap_encoding, _use, _encoded
+            });
+        operation.addChild(wsdl_output).addChild(soap_body, new String[]{
+            _encodingStyle, _soap_encoding, _use, _encoded
+            });
+        doc.root.addChild(wsdl_service)
+            .addChild(wsdl_port, new String[]{
+                _binding, _tns + name + _Binding,
+                _name, name + _Port
+                })
+            .addChild(soap_address, new String[]{
+                _location, context + '/' + name    
+                });
+        return doc;
+    }
     
     /**
      * Encode an object in a really simple XML notation that is
@@ -645,5 +905,7 @@ public class SOAP implements Function {
 // Rule N°1: don't bother with broken "industry standard" invented by 
 // Microsoft, adopted by Sun and supported by IBM.
 //
-// Rule N°2: interpret them loosely and secure a migration path.
+// Rule N°2: interpret them loosely and secure a migration path to defacto
+// free standard.
 //
+// Rule N°3: don't brag about it, just do it.
