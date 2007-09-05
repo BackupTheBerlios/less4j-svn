@@ -213,6 +213,7 @@ public class Controller extends HttpServlet implements Function {
         }
         // object.put("j2eeRealPath", getServletContext().getRealPath(""));
         Actor $ = new Actor (object);
+        $.context = "";
         if (!less4jConfigure ($)) throw new ServletException(
             "Failed less4j configuration."
             );
@@ -305,6 +306,7 @@ public class Controller extends HttpServlet implements Function {
                 Function function = (
                     (Function) fun.getDeclaredField(_singleton).get(fun)
                     );
+                $.about = path;
                 if (!function.less4jConfigure($) && !$.test)
                     return false;
                 
@@ -319,6 +321,7 @@ public class Controller extends HttpServlet implements Function {
                     function = (
                         (Function) fun.getDeclaredField(_singleton).get(fun)
                         );
+                    $.about = path;
                     if (!function.less4jConfigure($) && !$.test)
                         return false;
                     
