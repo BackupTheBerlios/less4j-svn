@@ -250,10 +250,12 @@ public class XML {
          * 
          * @param child
          */
-        public void addChild (Element child) {
+        public XML.Element addChild (Element child) {
             if (children == null) 
                 children = new ArrayList();
             children.add(child);
+            child.parent = this;
+            return child;
         }
         /**
          * 
@@ -261,9 +263,42 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name) {
-            XML.Element element = new XML.Element(name);
-            addChild(element);
-            return element;
+            return addChild(newElement(name, null));
+        }
+        /**
+         * 
+         * @param name
+         * @return
+         */
+        public XML.Element addChild (String name, String first) {
+            XML.Element child = addChild(newElement(name, null));
+            child.first = first;
+            return child;
+        }
+        /**
+         * 
+         * @param name
+         * @return
+         */
+        public XML.Element addChild (String name, String[] attrs) {
+            return addChild(
+                newElement(name, (HashMap) Simple.dict(new HashMap(), attrs))
+                );
+        }
+        /**
+         * 
+         * @param name
+         * @return
+         */
+        public XML.Element addChild (
+            String name, String[] attrs, String first, String follow
+            ) {
+            XML.Element child = addChild(
+                newElement(name, (HashMap) Simple.dict(new HashMap(), attrs))
+                );
+            child.first = first;
+            child.follow = follow;
+            return child;
         }
         /**
          * 
@@ -522,7 +557,7 @@ public class XML {
         public void endElement(EndElementEvent event) throws Error {
             _curr.valid(doc);
             Element parent = _curr.parent;
-            _curr.parent = null; // break circular reference!
+            // _curr.parent = null; // break circular reference!
             _curr = parent;
         }
         public void characterData (CharacterDataEvent event) 
@@ -558,7 +593,7 @@ public class XML {
         } catch (ApplicationException e) {
             Element parent = qp._curr.parent;
             while (parent != null) {
-                qp._curr.parent = null;
+                // qp._curr.parent = null;
                 qp._curr = parent;
                 parent = qp._curr.parent;
             }
