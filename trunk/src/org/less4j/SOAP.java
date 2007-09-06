@@ -35,8 +35,9 @@ import java.util.Iterator;
  * 
  *public class echoString extends SOAP {
  *
- *    public void call (Actor $, Document request) throws Throwable {
- *        response ($, "Hello " + $.json("arg0") + " !");
+ *    public void call (Actor $, SOAP.Document request) 
+ *    throws Throwable {
+ *        SOAP.response($, "Hello " + $.json("arg0") + " !");
  *    }
  *    
  *}</pre>
