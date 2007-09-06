@@ -395,7 +395,7 @@ public class SQL {
         PreparedStatement st = null;
         try {
             st = sql.prepareStatement(statement);
-            int i=0; while (args.hasNext()) st.setObject(i++, args.next());
+            int i=1; while (args.hasNext()) st.setObject(i++, args.next());
             result = st.executeUpdate();
             st.close();
             st = null;
@@ -431,7 +431,7 @@ public class SQL {
             while (params.hasNext()) {
                 args = (JSON.Array) params.next();
                 for (i=0, L=args.size(); i < L; i++)
-                    st.setObject(i, args.get(i));
+                    st.setObject(i+1, args.get(i));
                 st.addBatch();
             }
             st.execute();
