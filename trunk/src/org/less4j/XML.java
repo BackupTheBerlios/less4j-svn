@@ -693,7 +693,7 @@ public class XML {
             );
     }
     private static final String _prefix = "ns";
-    public static final String prefixed (String name, HashMap ns) {
+    public static final String prefixed (String name, Map ns) {
         int fqn = name.indexOf(' ');
         if (fqn > -1) {
             String namespace = name.substring(0, fqn);
@@ -716,7 +716,7 @@ public class XML {
      * @param element
      */
     protected static final void writeUTF8 (
-        UTF8XMLWriter writer, HashMap ns, Element element
+        UTF8XMLWriter writer, Element element, Map ns
         )
     throws IOException {
         String tag = prefixed (element.name, ns);
@@ -746,7 +746,7 @@ public class XML {
         if (element.children != null) {
             Iterator _children = element.children.iterator();
             while (_children.hasNext())
-                writeUTF8(writer, ns, (Element) _children.next());
+                writeUTF8(writer, (Element) _children.next(), ns);
         }
         writer.endElement(tag);
         if (element.follow != null)
@@ -758,11 +758,11 @@ public class XML {
      * @param root
      */
     public static final void writeUTF8 (
-        OutputStream os, Element root, HashMap ns
+        OutputStream os, Element root, Map ns
         )
     throws IOException {
         UTF8XMLWriter writer = new UTF8XMLWriter(os);
-        writeUTF8(writer, ns, root);
+        writeUTF8(writer, root, ns);
         writer.flush();
     }
     private static final 
@@ -777,7 +777,7 @@ public class XML {
         UTF8XMLWriter writer = new UTF8XMLWriter(os);
         writer.markup(_XML_10_UTF8);
         // TODO: processing instructions
-        writeUTF8(writer, document.ns, document.root);
+        writeUTF8(writer, document.root, document.ns);
         writer.flush();
     }
     /**
@@ -789,6 +789,26 @@ public class XML {
     throws IOException {
         writeUTF8(new FileOutputStream(file), document);
     }
+    /**
+     * 
+     * @param element
+     * @param ns
+     * @return
+     */
+    public static final byte[] encodeUTF8 (Element element, Map ns) {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        try {
+            writeUTF8(os, element, ns);
+        } catch (IOException e) {
+            ; // checked exceptions suck.
+        }
+        return os.toByteArray();
+    }
+    /**
+     * 
+     * @param document
+     * @return
+     */
     public static final byte[] encodeUTF8 (Document document) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
@@ -798,6 +818,11 @@ public class XML {
         }
         return os.toByteArray();
     }
+    /**
+     * 
+     * @param document
+     * @return
+     */
     public static final String encode (Document document) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
