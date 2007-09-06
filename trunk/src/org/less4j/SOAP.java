@@ -55,7 +55,7 @@ import java.util.Iterator;
  *
  * <p>...</p>
  *
- * <h4>JSONR/WSDL Interfaces</h4>
+ * <h3>WSDL for JSONR</h3>
  * 
  * <p>This <code>Function</code> implementation supports a subset of WSDL
  * mapped from a regular JSON expressions. It is restricted to RPC, SOAP 
@@ -69,10 +69,7 @@ import java.util.Iterator;
  *        "description": ".+",
  *        "price": 100
  *        },
- *    "Response": { 
- *        "status": "accepted|rejected|quoted",
- *        "quotes": [{}]
- *        }
+ *    "Response": "accepted|rejected|quoted"
  *    }</pre>
  * 
  * <p>...</p>
@@ -111,22 +108,16 @@ import java.util.Iterator;
  * 
  * <h4>Request</h4>
  * 
- * <p>Unobviously at first, the SOAP interpreter built-in does not even try
- * to wax this "industy standard" object notation. Instead it maps a simple
- * object access protocol of any XML stream into the flattest and simplest
- * JSON instance possible, considering first CDATA only, discarding attributes 
- * of non-empty elements and using types whenever an element name is mapped 
- * to a regular JSON type.</p>
- * 
  * <p>Feed test XML requests to a plain <code>SOAP.Controller</code> and see 
- * what comes out of it.</p>
+ * what comes out of it, even without a proper <code>JSONR.Type</code> it
+ * will manage to build practical document and object trees at once.</p>
+ * 
+ * <p>
  * 
  * <p>The parser applied is XP, the original XML reference implementation
  * in Java and still one of the fastest and leanest. An XML intermediary
  * data structure is used, but useless features and complications are 
  * simply ignored, only the JSON types are supported.</p>
- * 
- * <pre>...</pre> 
  * 
  * <p>Your mileage <em>will</em> vary, this XML request decoder provides
  * its applications with a single view of all messages through a simpler
@@ -138,7 +129,8 @@ import java.util.Iterator;
  * 
  * <h4>Response</h4>
  * 
- * <p>Simple things should be easy even with SOAP:</p>
+ * <p>As loose in what it accepts, this SOAP implementation is strict
+ * about what it sends.</p>
  * 
  * <pre>SOAP.response($, "00c7932fa021c9acc530");</pre> 
  *     
@@ -159,26 +151,6 @@ import java.util.Iterator;
  * 
  * <p>As a result, neither relations (aka records) nor dictionaries
  * (aka indexes) are supported by this implementations.</p>
- * 
- * <pre>SOAP.response ($, JSON.decode(
- *     "{\"hello\": \"World!\", \"test\": [1, 2.20, null, true]}"
- *     ));</pre> 
- * 
- * <p>Would produce the following body:</p>
- * 
- * <pre>...
- *&lt;hello-test &gt;
- *    &lt;hello xsi:type="xsd:string" &gt;&lt;[CDATA[World!]]&gt;&lt;/hello&gt;
- *    &lt;test xsi:type="xsd:int" &gt;&lt;1&lt;/test&gt;
- *    &lt;test xsi:type="xsd:decimal" &gt;&lt;2.20&lt;/test&gt;
- *    &lt;test/&gt;
- *    &lt;test xsi:type="xsd:boolean" &gt;&lt;true&lt;/test&gt;
- *&lt;hello-test&gt;
- *...</pre> 
- *
- * <p>which cannot be supported by an XSD schema. Instead, namepsaces
- * and arrays should be used to describe records and indexes, leaving
- * the interpretation as more complex object to the schema's applications.</p>
  * 
  * <h4>Fault</h4>
  * 
