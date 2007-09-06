@@ -670,7 +670,13 @@ public class SOAP implements Function {
      * Produces a WSDL description of this SOAP function from a regular 
      * JSON interface of the form:
      * 
-     * <pre>{"Request": null, "Response": null}</pre>
+     * <pre>{
+     *    "Request": {
+     *        "arg0": "", 
+     *        "arg1": ""
+     *        },
+     *    "Response": ""
+     *    }</pre>
      * 
      * <h3>Synopsis</h3>
      * 
