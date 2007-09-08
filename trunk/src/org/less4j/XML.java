@@ -102,9 +102,9 @@ public class XML {
     
     /**
      * An error class derived from <code>Exception</code>, throwed
-     * by the <code>QP</code> application of <code>XP</code> parser when
-     * the XML 1.0 processed is not-well formed or a namespace prefix
-     * is not declared.
+     * by the <code>XP</code> parser when the XML 1.0 processed is 
+     * not-well formed, a namespace prefix is not declared or an
+     * exception is raised by its application.
      */
     public static class Error extends Exception {
         private String _message;

@@ -30,7 +30,18 @@ import java.util.Iterator;
  * patterns: table, relations, collection, index, dictionary, one or many 
  * objects.
  * 
- * <h3>Synopsis</h3>
+ * <h3>Applications</h3>
+ * 
+ * <p>The purpose of less4j's support for SQL is to do the inverse of
+ * what ORM are usually intended: to map existing relational data to 
+ * a few common JSON object patterns instead of forcing new Java objects 
+ * (or C#, PHP, etc ...) into an SQL database.</p>
+ * 
+ * <p>Many entreprise applications are defined by the legacy data and 
+ * structures that make up their database. Only greenfield projects
+ * in a new company could benefit from an object database but I'm not
+ * sure that it is a good idea to serialize Java types (or C#, PHP, etc 
+ * ...) in a database.</p>
  * 
  * <p>This class is a library of static functions applied by less4j's 
  * <code>Actor</code> methods <code>sql*</code>, so unless you want to

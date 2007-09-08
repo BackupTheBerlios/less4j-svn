@@ -560,13 +560,7 @@ public class JSON {
     protected static final String _ctrl_r = "\\r";
     protected static final String _ctrl_t = "\\t";
     
-    /**
-     * 
-     * @param sb
-     * @param s
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, String s) {
+    protected static final StringBuffer strb(StringBuffer sb, String s) {
         if (s==null) {sb.append(_null); return sb;}
         sb.append('"');
         CharacterIterator it = new StringCharacterIterator(s);
@@ -611,13 +605,7 @@ public class JSON {
     protected static final String _true = "true";
     protected static final String _false = "false";
     
-    /**
-     * 
-     * @param sb
-     * @param bytes
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, byte[] bytes) {
+    protected static final StringBuffer strb(StringBuffer sb, byte[] bytes) {
         if (bytes.length > 0) { 
             sb.append('[');
             sb.append(bytes[0]);
@@ -630,13 +618,7 @@ public class JSON {
         return sb;
     }
     
-    /**
-     * 
-     * @param sb
-     * @param integers
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, int[] integers) {
+    protected static final StringBuffer strb(StringBuffer sb, int[] integers) {
         if (integers.length > 0) { 
             sb.append('[');
             sb.append(integers[0]);
@@ -649,13 +631,7 @@ public class JSON {
         return sb;
     }
     
-    /**
-     * 
-     * @param sb
-     * @param shorts
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, short[] shorts) {
+    protected static final StringBuffer strb(StringBuffer sb, short[] shorts) {
         if (shorts.length > 0) { 
             sb.append('[');
             sb.append(shorts[0]);
@@ -668,13 +644,7 @@ public class JSON {
         return sb;
     }
     
-    /**
-     * 
-     * @param sb
-     * @param longs
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, long[] longs) {
+    protected static final StringBuffer strb(StringBuffer sb, long[] longs) {
         if (longs.length > 0) { 
             sb.append('[');
             sb.append(longs[0]);
@@ -687,13 +657,8 @@ public class JSON {
         return sb;
     }
     
-    /**
-     * 
-     * @param sb
-     * @param doubles
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, double[] doubles) {
+    protected static final 
+    StringBuffer strb(StringBuffer sb, double[] doubles) {
         if (doubles.length > 0) { 
             sb.append('[');
             sb.append(doubles[0]);
@@ -706,13 +671,8 @@ public class JSON {
         return sb;
     }
     
-    /**
-     * 
-     * @param sb
-     * @param bools
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, boolean[] bools) {
+    protected static final 
+    StringBuffer strb(StringBuffer sb, boolean[] bools) {
         if (bools.length > 0) { 
             sb.append('[');
             sb.append(bools[0]);
@@ -725,13 +685,7 @@ public class JSON {
         return sb;
     }
     
-    /**
-     * 
-     * @param sb
-     * @param int
-     * @return
-     */
-    public static final StringBuffer strb(StringBuffer sb, char[] chars) {
+    protected static final StringBuffer strb(StringBuffer sb, char[] chars) {
         return strb(sb, chars.toString());
     }
     
@@ -767,7 +721,7 @@ public class JSON {
         return sb;
     }
     
-    public static final StringBuffer strb(
+    protected static final StringBuffer strb(
         StringBuffer sb, Map map, Iterator it
         ) {
         java.lang.Object key; 
@@ -815,7 +769,7 @@ public class JSON {
         return sb;
     }
     
-    public static final StringBuffer strb(StringBuffer sb, Iterator it) {
+    protected static final StringBuffer strb(StringBuffer sb, Iterator it) {
         if (!it.hasNext()) {
             sb.append(_array);
             return sb;

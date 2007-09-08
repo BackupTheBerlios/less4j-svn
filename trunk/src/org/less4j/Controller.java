@@ -728,7 +728,7 @@ public class Controller extends HttpServlet implements Function {
      * @param relations a JSON.Array of JSON.Array with the update arguments
      * @return true if nothing was throwed
      */
-    public static boolean sqlUpdate (
+    public static boolean sqlBatch (
         Actor $, String name, String statement, JSON.Array relations
         ) {
         boolean success = false;

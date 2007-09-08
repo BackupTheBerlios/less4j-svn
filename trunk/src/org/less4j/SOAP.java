@@ -18,13 +18,14 @@ package org.less4j;
 
 import java.util.Map;
 import java.util.List;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
 /**
  * A function that supports a practical subset of SOAP 1.1, just enough
  * to provide a <em>really</em> simple XML object notation that is forward
- * compatible with JSON web services.  
+ * compatible with JSON web services.
  * 
  * <h3>Synopsis</h3>
  * 
@@ -226,14 +227,13 @@ public class SOAP implements Function {
     private static final String _Request = "Request";
     private static final String _Response = "Response";
     
-    // org.less4j.Function implementation
     public static SOAP singleton = new SOAP();
     
     /**
      * 
      */
     public String jsonInterface(Actor $) {
-        return "{\"Request\": {\"arg0\": \"\", \"arg1\": \"\"}, \"Response\": \"\"}";
+        return "{\"Request\": \"\", \"Response\": \"\"}";
     }
     
     private JSONR.TypeNamespace jsonr = null;
@@ -379,6 +379,22 @@ public class SOAP implements Function {
     
     // Supporting SOAP implementation, legacy at its best ...
     
+    protected static final String 
+    _xsi_type = "http://www.w3.org/2001/XMLSchema-instance type";
+    protected static final Map _xsd_types = Simple.dict(
+        new HashMap(), new Object[]{
+            "xsd:byte", JSONR.INTEGER,
+            "xsd:short", JSONR.INTEGER,
+            "xsd:int", JSONR.INTEGER,
+            "xsd:integer", JSONR.DECIMAL,
+            "xsd:long", JSONR.INTEGER,
+            "xsd:float", JSONR.DOUBLE,
+            "xsd:double", JSONR.DOUBLE,
+            "xsd:decimal", JSONR.DECIMAL,
+            "xsd:boolean", JSONR.BOOLEAN
+            // TODO: ? base64Binary, dateTime, hexBinary, QName ?
+        });
+
     protected static class Element extends XML.Element {
         public static XML.Type TYPE = new Element(null, null);
         public JSON.Object json = null;
@@ -407,21 +423,6 @@ public class SOAP implements Function {
             } else
                 map.put(tag, contained);
         }
-        private static final String 
-            _xsi_type = "http://www.w3.org/2001/XMLSchema-instance type";
-        private static final Map _xsd_types = Simple.dict(
-            new HashMap(), new Object[]{
-                "xsd:byte", JSONR.INTEGER,
-                "xsd:short", JSONR.INTEGER,
-                "xsd:int", JSONR.INTEGER,
-                "xsd:integer", JSONR.DECIMAL,
-                "xsd:long", JSONR.INTEGER,
-                "xsd:float", JSONR.DOUBLE,
-                "xsd:double", JSONR.DOUBLE,
-                "xsd:decimal", JSONR.DECIMAL,
-                "xsd:boolean", JSONR.BOOLEAN
-                // TODO: ? base64Binary, dateTime, hexBinary, QName ?
-            });
         public void valid(XML.Document document) throws XML.Error {
             XML.Element parent = this.parent;
             while (parent != null && !(parent instanceof Element))
@@ -429,7 +430,7 @@ public class SOAP implements Function {
             if (parent == null) // root 
                 ;
             else if (children == null) { // leaf
-                if (first != null) {
+                if (first != null) { // simple types
                     if (
                         attributes != null && 
                         attributes.containsKey(_xsi_type)
@@ -445,10 +446,19 @@ public class SOAP implements Function {
                         throw new XML.Error (e.getMessage());
                     } else
                         jsonUpdate((Element) parent, first);
-                } else if (attributes != null)
+                } else if (attributes != null) // complex type of attributes
                     jsonUpdate((Element) parent, attributes);
-            } else if (json != null) // branch
-                jsonUpdate((Element) parent, json);
+            } else if (json != null) { // branch, complex type of elements
+                if (_xsi_type.equals(_soapenc_Array)) { // Array
+                    Iterator names = json.keySet().iterator();
+                    // move up and rename the first and only array expected
+                    if (names.hasNext())
+                        jsonUpdate((Element) parent, json.A(
+                            (String) names.next(), null
+                            ));
+                } else // Object
+                    jsonUpdate((Element) parent, json);
+            }
         }
     } 
     protected static class Document extends XML.Document {
@@ -473,8 +483,8 @@ public class SOAP implements Function {
     protected static final String xsd_restriction = XSD_NS + " restriction";
     protected static final String xsd_attribute = XSD_NS + " attribute";
     
-    private static final String _soapenc_Array = "soapenc:Array";
-    private static final String _soapenc_ArrayType = "soapenc:ArrayType";
+    private static final String _soapenc_Array = "SOAP-ENC:Array";
+    private static final String _soapenc_ArrayType = "SOAP-ENC:ArrayType";
     private static final String _Array = "Array";
     
     /**
@@ -545,28 +555,29 @@ public class SOAP implements Function {
                 ); 
         } else if (model instanceof JSONR.TypeNamespace) {
             JSONR.TypeNamespace type = (JSONR.TypeNamespace) model;
-            XML.Element namespace = new XML.Element(
-                xsd_complexType, new String[]{
-                    _name, name
-                }, null, null);
+            XML.Element namespace = schema.addChild(
+                xsd_complexType, new String[]{_name, name});
             XML.Element all = namespace.addChild(xsd_all);
-            Iterator names = type.names.iterator();
+            Object[] names = type.names.toArray(); 
+            Arrays.sort(names);
             String property;
-            while (names.hasNext()) {
-                property = (String) names.next();
+            for (int i=0; i<names.length; i++) {
+                property = (String) names[i];
                 all.addChild(XSD(
                     schema, (JSONR.Type)type.namespace.get(property), property
                     ));
             }
-            return namespace;
+            return new XML.Element(
+                xsd_element, new String[]{
+                    _name, name, _type, "tns:" + name
+                    }, null, null
+                );
         } else if (model instanceof JSONR.TypeArray) {
             JSONR.TypeArray type = (JSONR.TypeArray) model;
             if (type.types.length == 1) {
-                schema.addChild(XSD(
-                    schema, (JSONR.Type)type.types[0], name
-                    ));
-                XML.Element array = new XML.Element(
-                    xsd_complexType, new String[]{_name, name}, null, null
+                XSD(schema, (JSONR.Type)type.types[0], name);
+                XML.Element array = schema.addChild(
+                    xsd_complexType, new String[]{_name, name + _Array}
                     );
                 array.addChild(xsd_complexContent)
                     .addChild(xsd_restriction, new String[]{
@@ -576,7 +587,11 @@ public class SOAP implements Function {
                             "ref", _soapenc_ArrayType,
                             wsdl_arrayType, "tns:" + name + "[]"
                             });
-                return array;
+                return new XML.Element(
+                    xsd_element, new String[]{
+                        _name, name, _type, "tns:" + name + _Array
+                        }, null, null
+                    );
             } else
                 throw new Exception(
                     "JSONR relations are not supported for XSD"
@@ -596,7 +611,7 @@ public class SOAP implements Function {
     private static final String 
         SOAP_encoding = "http://schemas.xmlsoap.org/soap/encoding/";
     protected static final String SOAP_PREFIX = "soap";
-    protected static final String SOAPENC_PREFIX = "soapenc";
+    protected static final String SOAPENC_PREFIX = "SOAP-ENC";
     protected static final String soap_binding = SOAP_NS + " binding";
     protected static final String soap_operation = SOAP_NS + " operation";
     protected static final String soap_body = SOAP_NS + " body";
@@ -641,15 +656,9 @@ public class SOAP implements Function {
 
     /**
      * Produces a WSDL description of this SOAP function from a regular 
-     * JSON interface of the form:
+     * JSON expression of the form.
      * 
-     * <pre>{
-     *    "Request": {
-     *        "arg0": "", 
-     *        "arg1": ""
-     *        },
-     *    "Response": ""
-     *    }</pre>
+     * <pre>{"Request": ..., "Response": ...}</pre>
      * 
      * <h3>Synopsis</h3>
      * 
@@ -667,58 +676,56 @@ public class SOAP implements Function {
      * @return an <code>XML.Document</code> tree ready to be serialized
      */
     public static final XML.Document WSDL (
-        String url, String action, JSONR.TypeNamespace model
+        String url, String action, JSONR.Type model
         ) throws Exception {
+        JSONR.TypeNamespace jsonr = (JSONR.TypeNamespace) model;
+        String urn = "urn:" + action;
         XML.Document doc = new XML.Document();
-        doc.ns.put(url, _tns);
+        doc.ns.put(urn, _tns);
         doc.ns.put(XSD_NS, XSD_PREFIX);
         doc.ns.put(SOAP_NS, SOAP_PREFIX);
         doc.ns.put(SOAP_encoding, SOAPENC_PREFIX);
         doc.ns.put(WSDL_NS, WSDL_PREFIX);
         doc.root = new XML.Element(wsdl_definitions, new String[]{
-            _targetNamespace, url
+            _targetNamespace, urn
             }, null, null);
         // XSD schema <types> declaration
         XML.Element schema = doc.root
             .addChild(wsdl_types)
                 .addChild(xsd_schema);
-        XML.Element input = XSD(
-            schema, 
-            (JSONR.Type) model.namespace.get(_Request), 
-            action + _Request
-            );
-        XML.Element output = XSD(
-            schema, 
-            (JSONR.Type) model.namespace.get(_Response), 
-            action + _Response
-            );
         // SOAP input <message>, RPC style
         XML.Element message = doc.root.addChild(
             wsdl_message, new String[]{_name, action + _Request}
             );
-        if (input.children == null)
+        JSONR.Type inputType = (JSONR.Type) jsonr.namespace.get(_Request);
+        if (inputType instanceof JSONR.TypeNamespace) {
+             HashMap types = ((JSONR.TypeNamespace) inputType).namespace;
+             Iterator names = types.keySet().iterator();
+             String name;
+             XML.Element element;
+             while (names.hasNext()) {
+                 name = (String) names.next();
+                 element = XSD(schema, (JSONR.Type) types.get(name), name);
+                 message.addChild(wsdl_part, new String[]{
+                     _name, element.getAttribute(_name), 
+                     _type, _tns_prefix + element.getAttribute(_type) 
+                     });
+             }
+        } else {
+            XML.Element input = XSD(
+                schema, (JSONR.Type) inputType, action + _Request
+                );
             message.addChild(wsdl_part, new String[]{
-                _name, _return, 
-                _type, output.getAttribute(_type)  
+                _name, "arg0", 
+                _type, input.getAttribute(_type)  
                 });
-        else {
-            XML.Element type;
-            String name;
-            Iterator elements = input.getChild(0).children.iterator();
-            while (elements.hasNext()) {
-                type = ((XML.Element) elements.next());
-                if (type.children == null) { // simple type, inline in <message>
-                    message.addChild(wsdl_part).attributes = type.attributes;
-                } else { // complex type, declare in <types>
-                    schema.addChild(type);
-                    name = type.getAttribute(_name);
-                    message.addChild(wsdl_part, new String[]{
-                        _name, name, _type, _tns_prefix + name 
-                        });
-                }
-            }
-        };
+        }
         // SOAP output <message>, RPC style
+        XML.Element output = XSD(
+            schema, 
+            (JSONR.Type) jsonr.namespace.get(_Response), 
+            action + _Response
+            );
         message = doc.root.addChild(wsdl_message, new String[]{
             _name, action + _Response
             });
@@ -853,14 +860,6 @@ public class SOAP implements Function {
             sb.append("</");
             sb.append(name);
             sb.append('>');
-        } else if (value instanceof List) {
-            Iterator it = ((List) value).iterator();
-            while (it.hasNext())
-                strb(sb, it.next(), name);
-        } else if (value instanceof Iterator) {
-            Iterator it = ((Iterator) value);
-            while (it.hasNext())
-                strb(sb, it.next(), name);
         } else if (value instanceof Map) {
             Iterator it = ((Map) value).keySet().iterator();
             if (it.hasNext()) {
@@ -877,6 +876,31 @@ public class SOAP implements Function {
                 sb.append(name);
                 sb.append('>');
             }
+        } else if (value instanceof List) {
+            strb(sb, ((List) value).iterator(), name);
+        } else if (value instanceof Iterator) {
+            sb.append('<');
+            sb.append(name+_Array);
+            sb.append(" SOAP-ENC:arrayType=\"");
+            sb.append(name);
+            sb.append("[]\" xsi:type=\"SOAP-ENC:Array\">");
+            Iterator it = ((Iterator) value);
+            while (it.hasNext())
+                strb(sb, it.next(), name);
+            sb.append("</");
+            sb.append(name+_Array);
+            sb.append('>');
+        } else {
+            Class type = null;
+            try {type = value.getClass();} catch (Throwable e) {;}
+            if (type !=null && type.isArray()) {
+                Class component = type.getComponentType();
+                if (component.isPrimitive())
+                    ; // strb(sb, value, component);
+                else
+                    strb(sb, Simple.iter((java.lang.Object[]) value), name);
+            } else
+                strb(sb, value.toString(), name);
         }
         return sb;
     }

@@ -310,10 +310,20 @@ public class Actor {
     }
     
     /**
+     * Initialize a new Actor for development purpose with an empty 
+     * <code>configuration</code> and a <code>test</code> flag set to 
+     * <code>true</code>.
+     */
+    public Actor () {
+        test = true;
+        configuration = new JSON.Object();
+    }
+    
+    /**
      * Initialize a new Actor to test a controller servlet's configuration 
      * when it is initialized.
      * 
-     * @param conf the controller's configuration HashMap
+     * @param conf the controller's configuration JSON.Object
      */
     public Actor (JSON.Object conf) {
         test = conf.B(Controller._test, false);
@@ -324,7 +334,7 @@ public class Actor {
      * Initialize a new Actor to handle an HTTP request and response, 
      * set the Actor's audit digest salt and eventually load ...
      * 
-     * @param conf the controller's configuration HashMap
+     * @param conf the controller's configuration JSON.Object
      * @param req the HTTP request to handle 
      * @param res the HTTP response to complete
      */

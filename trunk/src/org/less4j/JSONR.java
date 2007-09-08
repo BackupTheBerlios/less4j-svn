@@ -288,6 +288,8 @@ public class JSONR extends JSON {
         throws Error {
             if (instance instanceof Boolean)
                 return instance;
+            else if (instance instanceof String)
+                return new Boolean(((String)instance).equals(JSON._true));
             else
                 throw new Error(JSON.BOOLEAN_TYPE_ERROR);
         }
@@ -311,6 +313,8 @@ public class JSONR extends JSON {
         throws Error {
             if (instance instanceof Integer)
                 return instance;
+            else if (instance instanceof String)
+                return new Integer((String) instance);
             else
                 throw new Error(JSON.INTEGER_TYPE_ERROR);
         }
@@ -338,6 +342,8 @@ public class JSONR extends JSON {
                 return instance;
             else if (instance instanceof Number)
                 return new Double(((Number) instance).doubleValue());
+            else if (instance instanceof String)
+                return new Double((String) instance);
             else
                 throw new Error(JSON.DOUBLE_TYPE_ERROR);
         }
@@ -361,6 +367,8 @@ public class JSONR extends JSON {
                 b = (BigDecimal) instance;
             } else if (instance instanceof Number) {
                 b = new BigDecimal(((Number) instance).doubleValue());
+            } else if (instance instanceof String) {
+                b = new BigDecimal((String) instance);
             } else
                 throw new Error(JSON.DOUBLE_TYPE_ERROR);
             return b;
