@@ -147,8 +147,6 @@ public class JSONR extends JSON {
      */
     public static class Error extends JSON.Error {
         
-        static final long serialVersionUID = 0L; // TODO: regenerate
-        
         /**
          * Instanciate a JSONR error with an error message.
          * 
@@ -262,9 +260,7 @@ public class JSONR extends JSON {
          * @return an unsynchronized copy as a <code>Type</code> 
          */
         public Type copy();
-    } // at last some use for java interfaces ;-)
-    
-    // the built-in singletons
+    }
     
     protected static final class TypeUndefined implements Type {
         public static final TypeUndefined singleton = new TypeUndefined();
@@ -360,6 +356,7 @@ public class JSONR extends JSON {
     protected static final class TypeDecimal implements Type {
         protected static final String DOUBLE_VALUE_ERROR = 
             "BigDecimal value error";
+        public static final Type singleton = new TypeDecimal();
         public final java.lang.Object value (java.lang.Object instance) 
         throws Error {
             BigDecimal b;
@@ -380,7 +377,6 @@ public class JSONR extends JSON {
             } else
                 throw new Error(DOUBLE_VALUE_ERROR);
         }
-        public static final Type singleton = new TypeDecimal();
         public final Type copy() {return singleton;}
     }
 
@@ -467,13 +463,18 @@ public class JSONR extends JSON {
     protected static final class TypeDictionary implements Type {
         protected static final String IRREGULAR_DICTIONARY = 
             "irregular Dictionary";
+        public static final Type singleton = new TypeDictionary(new Type[]{
+            new TypeRegular(".+"), TypeUndefined.singleton 
+            });
         public Type[] types;
         public TypeDictionary (Type[] types) {
             this.types = types;
             }
         public final java.lang.Object value (java.lang.Object instance) 
         throws Error {
-            if (instance instanceof HashMap) {
+            if (instance == null)
+                return null;
+            else if (instance instanceof HashMap) {
                 HashMap map = (HashMap) instance;
                 if (map.keySet().iterator().hasNext())
                     return map;
@@ -486,9 +487,6 @@ public class JSONR extends JSON {
         throws JSON.Error {
             return (new JSONR(this)).eval(string);
         }
-        public static final Type singleton = new TypeDictionary(new Type[]{
-            new TypeRegular(".+"), TypeUndefined.singleton 
-        });
         public final Type copy() {
             if (this == singleton) return singleton;
             return new TypeDictionary(new Type[]{types[0], types[1]});
@@ -498,6 +496,9 @@ public class JSONR extends JSON {
     protected static final class TypeNamespace implements Type {
         protected static final String IRREGULAR_OBJECT = 
             "irregular Namespace";
+        public static final Type singleton = new TypeNamespace(
+            new JSON.Object()
+            );
         public Set names;
         public Set mandatory;
         public HashMap namespace;
@@ -534,7 +535,6 @@ public class JSONR extends JSON {
         throws JSON.Error {
             return (new JSONR(this)).eval(string);
         }
-        public static final Type singleton = new TypeNamespace(new JSON.Object());
         public final Type copy() {
             if (this == singleton) return singleton;
             
@@ -559,6 +559,7 @@ public class JSONR extends JSON {
     
     protected static final class TypeDateTime implements JSONR.Type {
         public static final String name = "DateTime"; 
+        public static final Type singleton = new TypeDateTime();
         protected static final SimpleDateFormat format = 
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         protected static final String DATETIME_VALUE_ERROR = 
@@ -578,7 +579,6 @@ public class JSONR extends JSON {
                 throw new JSONR.Error(DATETIME_VALUE_ERROR);
             }
         }
-        public static final Type singleton = new TypeDateTime();
         public final Type copy() {return singleton;}        
     }
     
@@ -768,6 +768,84 @@ public class JSONR extends JSON {
             return test((BigDecimal) DECIMAL.eval(string));
         }
         public Type copy() {return new TypeDecimalRelative(limit);}
+    }
+    
+    /**
+     * Recursively validates an object against a <code>JSONR.Type</code>
+     * or throw a <code>JSONR.Error</code>.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>try {
+     *  JSONR.validate(value, type);
+     *} catch (JSONR.Error) {
+     *  ...
+     *}
+     * 
+     * @param instance
+     * @param type
+     * @return
+     * @throws Error
+     */
+    public static final java.lang.Object validate (
+        java.lang.Object instance, Type type
+        ) 
+    throws Error {
+        if (type instanceof TypeArray) {
+            if (type.value(instance) == null) // null
+                return null; 
+            else { // array
+                List array = (List) instance;
+                Iterator values = array.iterator();
+                Iterator types = ((TypeArray) type).iterator();
+                Type t = (Type) types.next();
+                int i = 0;
+                if (types.hasNext()) // relation
+                    do {
+                        array.set(i++, validate(values.next(), t));
+                        t = (Type) types.next();
+                    } while (types.hasNext());
+                else { // collection
+                    do {
+                        array.set(i++, validate(values.next(), t));
+                    } while (values.hasNext());
+                }
+                return array;
+            }
+        } else if (type instanceof TypeNamespace) { // namespace
+            if (type.value(instance) == null) // null
+                return null;
+            else { // object with all mandatory properties
+                Map namespace = (Map) instance;
+                TypeNamespace types = (TypeNamespace) type;
+                Iterator names = namespace.keySet().iterator();
+                String name;
+                while (names.hasNext()) { // validate all present properties 
+                    name = (String) names.next();
+                    namespace.put(name, validate(
+                        namespace.get(name), (Type) types.namespace.get(name)
+                        ));
+                }
+                return namespace;
+            }
+        } else if (type instanceof TypeDictionary) { // dictionary
+            if (type.value(instance) == null) // null
+                return null;
+            else { // 
+                Map dictionary = (Map) instance;
+                Type[] types = ((TypeDictionary) type).types;
+                Iterator keys = dictionary.keySet().iterator();
+                String key;
+                while (keys.hasNext()) { // validate all keys and values 
+                    key = (String) types[0].value(keys.next());
+                    dictionary.put(key, validate(
+                        dictionary.get(key), types[1]
+                        ));
+                }
+                return dictionary;
+            }
+        } else
+            return type.value(instance);
     }
     
     protected static final Type compile(

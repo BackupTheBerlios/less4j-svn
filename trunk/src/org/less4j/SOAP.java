@@ -38,25 +38,51 @@ import java.util.Iterator;
  *
  *    public void call (Actor $, SOAP.Document request) 
  *    throws Throwable {
- *        SOAP.response($, "Hello " + $.json("arg0") + " !");
+ *        SOAP.response($, "Hello " + $.json.S("arg0") + " !");
  *    }
  *    
  *}</pre>
  *
- * <pre>...
+ * <p>The SOAP request's parameters are available to its application as
+ * a practical JSON object and its response may be any value of JSON types.
+ * Note that a schema or web service description is not required to cast the 
+ * request body to a JSON typed object. So this function can be applied to 
+ * support legacy interfaces in a quick-and-dirty-but-damn-effective way.</p>
+ * 
+ * <p>Also note that the original XML document from which the JSON object 
+ * was mapped is also provided to the remote procedure called, allowing 
+ * access to the SOAP header element.</p>
+ *
+ * <h4>SOAP/RPC</h4>
+ *
+ * <p>Configured to handle POST request at "/echoString" in its servlet 
+ * context, this function will produce the following dialog of SOAP request 
+ * and response bodies:</p> 
+ *
+ * <pre>POST /context/echoString HTTP/1.0
+ *Host: localhost:8080
+ *Content-type: text/xml; charset=utf-8
+ *SOAPAction: echoString
+ *...
  *&lt;SOAP-ENV:Body &gt;
- *    &lt;echoStringResponse xsi:type="xsd:string" 
- *        &gt;&lt;[CDATA[Hello World!]]&gt;&lt;/echoStringResponse&gt;
+ *    &lt;echoStringRequest&gt;
+ *        &lt;arg0 xsi:type="xsd:string"&gt;World&lt;/arg0&gt;
+ *    &lt;/echoStringRequest&gt;
  *&lt;/SOAP-ENV:Body&gt;
  *...</pre> 
  *
- * <p>Note how the SOAP request was mapped to a JSON object, skipping
- * a lot of tedious boilerplate, transient object declaration and dropping 
- * XML namespaces.</p>
- *
- * <p>...</p>
- *
- * <h3>WSDL for JSONR</h3>
+ *HTTP/1.0 200 Ok
+ *Content-type: text/xml; charset=utf-8
+ *...
+ *&lt;SOAP-ENV:Body &gt;
+ *    &lt;echoStringResponse&gt; 
+ *        &lt;return xsi:type="xsd:string" 
+ *            &gt;&lt;[CDATA[00c7932fa021c9acc530]]&gt;&lt;/return&gt;
+ *    &lt;/echoStringResponse&gt;
+ *&lt;/SOAP-ENV:Body&gt;
+ *...</pre> 
+ * 
+ * <h4>WSDL for JSONR</h4>
  * 
  * <p>This <code>Function</code> implementation supports a subset of WSDL
  * mapped from a regular JSON expressions. It is restricted to RPC, SOAP 
@@ -109,49 +135,11 @@ import java.util.Iterator;
  * 
  * <h4>Request</h4>
  * 
- * <p>Feed test XML requests to a plain <code>SOAP.Controller</code> and see 
- * what comes out of it, even without a proper <code>JSONR.Type</code> it
- * will manage to build practical document and object trees at once.</p>
- * 
- * <p>
- * 
- * <p>The parser applied is XP, the original XML reference implementation
- * in Java and still one of the fastest and leanest. An XML intermediary
- * data structure is used, but useless features and complications are 
- * simply ignored, only the JSON types are supported.</p>
- * 
- * <p>Your mileage <em>will</em> vary, this XML request decoder provides
- * its applications with a single view of all messages through a simpler
- * object access protocol. It does not try to make Sun's and Microsoft's 
- * interpretation of the standard more interroperable. Instead it lets
- * you cherry-pick what you need in the whole HTTP request submitted,
- * down to the last attributes of an XML body, making the whole issue
- * goes moot and the implementation "transparent" to its protocol.</p>
+ * <p>...</p>
  * 
  * <h4>Response</h4>
  * 
- * <p>As loose in what it accepts, this SOAP implementation is strict
- * about what it sends.</p>
- * 
- * <pre>SOAP.response($, "00c7932fa021c9acc530");</pre> 
- *     
- * <p>Will send an SOAP response with the simplest envelope and body:</p>
- * 
- * <pre>...
- *&lt;SOAP-ENV:Body &gt;
- *    &lt;actionResponse&gt; 
- *        &lt;return xsi:type="xsd:string" 
- *            &gt;&lt;[CDATA[00c7932fa021c9acc530]]&gt;&lt;/return&gt;
- *    &lt;/actionResponse&gt;
- *&lt;/SOAP-ENV:Body&gt;
- *...</pre> 
- * 
- * <p>Just enough basic XSD types are supported but I avoided the
- * brain dead containers' encoding required by static typing since the 
- * response objects are expected to have a dynamic JSON model.</p>
- * 
- * <p>As a result, neither relations (aka records) nor dictionaries
- * (aka indexes) are supported by this implementations.</p>
+ * <p>...</p>
  * 
  * <h4>Fault</h4>
  * 
@@ -313,8 +301,12 @@ public class SOAP implements Function {
             Document soap = new Document();
             soap.ns = new HashMap(_NS);
             XML.read($.request.getInputStream(), "", null, null, soap);
-            if ($.test) $.logInfo(XML.encode(soap), "SOAP");
             $.json = ((Element) soap.root).json.O(_Body).O(action);
+            if ($.test) {
+                $.logInfo(XML.encode(soap), "SOAP");
+                $.logInfo(JSON.encode($.json), "INPUT");
+            }
+            JSONR.validate($.json, jsonr);
             this.call ($, soap);
         } catch (Throwable e) {
             $.logError(e);
@@ -773,7 +765,7 @@ public class SOAP implements Function {
                 _name, action + _Request    
                 })
             .addChild(soap_body, new String[]{
-                _namespace, url,
+                _namespace, urn,
                 _encodingStyle, SOAP_encoding, 
                 _use, _encoded
                 });
@@ -782,7 +774,7 @@ public class SOAP implements Function {
                 _name, action + _Response 
             })
             .addChild(soap_body, new String[]{
-                _namespace, url,
+                _namespace, urn,
                 _encodingStyle, SOAP_encoding, 
                 _use, _encoded
                 });

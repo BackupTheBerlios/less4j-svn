@@ -210,8 +210,6 @@ public class JSON {
      */
     public static class Error extends Exception {
         
-        static final long serialVersionUID = 0L; // TODO: regenerate
-        
         /**
          * The position of the JSON syntax error, -1 by default.
          */
@@ -367,7 +365,6 @@ public class JSON {
      * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Object extends HashMap {
-        static final long serialVersionUID = 0L; // TODO: regenerate
         public final Integer I(String name) throws Error {
             return JSON.I(get(name));
         }
@@ -462,7 +459,6 @@ public class JSON {
      * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Array extends ArrayList {
-        static final long serialVersionUID = 0L; // TODO: regenerate
         public final Integer I(int index) throws Error {
             return (JSON.I(get(index)));
         }
@@ -529,6 +525,439 @@ public class JSON {
         }
     }
 
+    // The Interpreter
+    
+    protected static final String ILLEGAL_UNICODE_SEQUENCE = 
+        "illegal UNICODE sequence";
+    protected static final String ILLEGAL_ESCAPE_SEQUENCE = 
+        "illegal escape sequence";
+    protected static final String COLON_EXPECTED = 
+        "colon expected";
+    protected static final String VALUE_EXPECTED = 
+        "value expected";
+    protected static final String STRING_EXPECTED = 
+        "string expected ";
+    protected static final String UNEXPECTED_CHARACTER = 
+        "unexpected character";
+    protected static final String UNEXPECTED_END = 
+        "unexpected end";
+    protected static final String NULL_EXPECTED = 
+        "null expected";
+    protected static final String FALSE_EXPECTED = 
+        "false expected";
+    protected static final String TRUE_EXPECTED = 
+        "true expected";
+    protected static final String CONTAINERS_OVERFLOW = 
+        "containers overflow";
+    protected static final String ITERATIONS_OVERFLOW = 
+        "iterations overflow";
+    
+    protected char c;
+    protected CharacterIterator it;
+    protected StringBuffer buf;
+    
+    /**
+     * The maximum number of containers left to instanciate by this parser. 
+     */
+    public int containers = 65355;
+    
+    /**
+     * The maximum number of iterations left to for this parser. 
+     */
+    public int iterations = 65355;
+    
+    /**
+     * Instanciate a JSON interpreter with limits set to 65355 on 
+     * the number of containers and iterations.
+     */
+    public JSON() {}
+    
+    /**
+     * Instanciate a JSON interpreter with the given limits on 
+     * the number of both containers and iterations.
+     *
+     * @param containers a limit on the number of objects and arrays
+     * @param iterations a limit on the total count of values
+     */
+    public JSON(int containers, int iterations) {
+        this.containers = (containers > 0 ? containers: 1);
+        this.iterations = (iterations > 0 ? iterations: 1);
+    }
+    
+    /**
+     * Evaluates a JSON <code>String</code> as an untyped value, returns a 
+     * <code>JSON.Object</code>, 
+     * <code>JSON.Array</code>, 
+     * <code>String</code>,
+     * <code>BigDecimal</code>, 
+     * <code>Integer</code>, 
+     * <code>Double</code>,
+     * <code>Boolean</code>,
+     * <code>null</code> or throws a <code>JSON.Error</code> if a syntax 
+     * error occured.
+     * 
+     * @param json string to evaluate
+     * @return an untyped Object
+     * @throws JSON.Error
+     */
+    public java.lang.Object eval(String json) throws Error {
+        buf = new StringBuffer();
+        it = new StringCharacterIterator(json);
+        try {
+            c = it.first();
+            if (c == _done)
+                throw error(NULL_JSON_STRING);
+            else
+                return value();
+        } finally {
+            buf = null;
+            it = null;
+        }
+    }
+    
+    /**
+     * Evaluates a JSON object, returns a new <code>JSON.O</code>   
+     * or throws a JSON.Error if the string does not represent a 
+     * valid object or if it exceeds the limits set on the number
+     * of containers and iterations. 
+     * 
+     * @param json string to evaluate
+     * @return a new <code>JSON.O</code>
+     * @throws Error
+     */
+    public JSON.Object object(String json) throws Error {
+        JSON.Object o = new JSON.Object();
+        Error e = update(o, json);
+        if (e == null)
+            return o;
+        else
+            throw e;
+    }
+
+    /**
+     * Evaluates a JSON array, returns a new <code>JSON.Array</code> or throws   
+     * a <code>JSON.Error</code> if the string does not represent a valid 
+     * array or if it exceeds the limits on containers and iterations. 
+     * 
+     * @param json <code>String</code> to evaluate
+     * @return a new <code>JSON.Array</code> array
+     * @throws JSON.Error
+     */
+    public JSON.Array array(String json) throws Error {
+        JSON.Array a = new JSON.Array();
+        Error e = extend(a, json);
+        if (e == null)
+            return a;
+        else
+            throw e;
+    }
+            
+    /**
+     * Evaluates a JSON <code>String</code> and update a <code>Map</code>, 
+     * return <code>null</code> or a <code>JSON.Error</code> if the string 
+     * does not represent a valid object. 
+     * 
+     * @param map the <code>Map</code> to update
+     * @param json <code>String</code> to evaluate
+     * @return <code>null</code> or a <code>JSON.Error</code>
+     */
+    public Error update(Map map, String json) {
+        buf = new StringBuffer();
+        it = new StringCharacterIterator(json);
+        try {
+            c = it.first();
+            while (Character.isWhitespace(c)) c = it.next();
+            if (c == '{') {
+                c = it.next(); object(map); return null;
+            } else
+                return error(OBJECT_TYPE_ERROR);
+        } catch (Error e) {
+            return e;
+        } finally {
+            buf = null;
+            it = null;
+        }
+    }
+    
+    /**
+     * Evaluates a JSON <code>String</code> and extends a <code>List</code>,
+     * return <code>null</code> or a <code>JSON.Error</code> if the string 
+     * does not represent a valid array. 
+     * 
+     * @param list the <code>List</code> to extend
+     * @param json <code>String</code> to evaluate
+     * @return <code>null</code> or a <code>JSON.Error</code>
+     */
+    public Error extend(List list, String json) {
+        buf = new StringBuffer();
+        it = new StringCharacterIterator(json);
+        try {
+            c = it.first();
+            while (Character.isWhitespace(c)) c = it.next();
+            if (c == '[') {
+                c = it.next(); array(list); return null;
+            } else
+                return error(ARRAY_TYPE_ERROR);
+        } catch (Error e) {
+            return e;
+        } finally {
+            buf = null;
+            it = null;
+        }
+    }
+    
+    protected final JSON.Error error(String message) {
+        return new JSON.Error(message, it.getIndex());
+    }
+    
+    protected final boolean next(char test) {
+        c = it.next();
+        return c == test;
+    }
+    
+    protected static final java.lang.Object OBJECT = new java.lang.Object();
+    protected static final java.lang.Object ARRAY = new java.lang.Object();
+    protected static final java.lang.Object COLON = new java.lang.Object();
+    protected static final java.lang.Object COMMA = new java.lang.Object();
+    
+    protected final java.lang.Object value() throws Error {
+        while (Character.isWhitespace(c)) c = it.next();
+        switch(c){
+        case '{': {c = it.next(); return object(new JSON.Object());}
+        case '[': {c = it.next(); return array(new JSON.Array());}
+        case '"': {c = it.next(); return string();}
+        case '0': case '1': case '2': case '3': case '4':  
+        case '5': case '6': case '7': case '8': case '9': 
+        case '-': {
+            return number();
+            }
+        case 't': {
+            if (next('r') && next('u') && next('e')) {
+                c = it.next(); return Boolean.TRUE;
+            } else
+                throw error(TRUE_EXPECTED);
+        }
+        case 'f': {
+            if (next('a') && next('l') && next('s') && next('e')) {
+                c = it.next(); return Boolean.FALSE;
+            } else
+                throw error(FALSE_EXPECTED);
+        }
+        case 'n': {
+            if (next('u') && next('l') && next('l')) {
+                c = it.next(); return null;
+            } else
+                throw error(NULL_EXPECTED);
+        }
+        case ',': {c = it.next(); return COMMA;} 
+        case ':': {c = it.next(); return COLON;}
+        case ']': {c = it.next(); return ARRAY;} 
+        case '}': {c = it.next(); return OBJECT;}
+        case _done:
+            throw error(UNEXPECTED_END);
+        default: 
+            throw error(UNEXPECTED_CHARACTER);
+        }
+    }
+    
+    protected final java.lang.Object value(String name) throws Error {
+        try {
+            return value();
+        } catch (JSON.Error e) {
+            e.jsonPath.add(0, name);
+            throw e;
+        }
+    }
+    
+    protected final java.lang.Object value(int index) throws Error {
+        try {
+            return value();
+        } catch (JSON.Error e) {
+            e.jsonPath.add(0, new Integer(index));
+            throw e;
+        }
+    }
+    
+    protected final java.lang.Object object(Map o) throws Error {
+        if (--containers < 0) 
+            throw error(CONTAINERS_OVERFLOW);
+        
+        String name; 
+        java.lang.Object val;
+        java.lang.Object token = value();
+        while (token != OBJECT) {
+            if (!(token instanceof String))
+                throw error(STRING_EXPECTED);
+            
+            if (--iterations < 0) 
+                throw error(ITERATIONS_OVERFLOW);
+            
+            name = (String) token;
+            if (value() == COLON) {
+                val = value(name);
+                if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
+                    throw error(VALUE_EXPECTED);
+                
+                o.put(name, val);
+                token = value();
+                if (token == COMMA)
+                    token = value();
+            } else {
+                throw error(COLON_EXPECTED);
+            }
+        }
+        return o;
+    }
+    
+    protected final java.lang.Object array(List a) throws Error {
+        if (--containers < 0) 
+            throw error(CONTAINERS_OVERFLOW);
+        
+        int i = 0;
+        java.lang.Object token = value(i++);
+        while (token != ARRAY) {
+            if (token==COLON || token==COMMA || token==OBJECT)
+                throw error(VALUE_EXPECTED);
+            
+            if (--iterations < 0) 
+                throw error(ITERATIONS_OVERFLOW);
+            
+            a.add(token);
+            token = value(); 
+            if (token == COMMA) 
+                token = value(i++);
+        }
+        return a;
+    }
+    
+    protected final java.lang.Object number() {
+        buf.setLength(0);
+        if (c == '-') {
+            buf.append(c); c = it.next();
+        }
+        digits();
+        if (c == '.') {
+            buf.append(c); c = it.next();
+            digits();
+            if (c == 'e' || c == 'E') {
+                buf.append(c); c = it.next();
+                if (c == '+' || c == '-') {
+                    buf.append(c); c = it.next();
+                }
+                digits();
+                return new Double(buf.toString());
+            } else {
+                return new BigDecimal(buf.toString()); 
+            }
+        } else if (c == 'e' || c == 'E') {
+            buf.append(c); c = it.next();
+            if (c == '+' || c == '-') {
+                buf.append(c); c = it.next();
+            }
+            digits();
+            return new Double(buf.toString());
+        } else {
+            return new Integer(buf.toString());
+        }
+    }
+    
+    protected final java.lang.Object string() throws Error {
+        buf.setLength(0);
+        while (c != '"') {
+            if (c == '\\') {
+                c = it.next(); 
+                switch(c) {
+                    case 'u': buf.append(unicode(4)); break;
+                    case 'x': buf.append(unicode(2)); break;
+                    case '\\': buf.append('\\'); break;
+                    case '"': buf.append('"'); break;
+                    case '/': buf.append('/'); break;
+                    case 'b': buf.append('\b'); break;
+                    case 'f': buf.append('\f'); break;
+                    case 'n': buf.append('\n'); break;
+                    case 'r': buf.append('\r'); break;
+                    case 't': buf.append('\t'); break;
+                    default: 
+                        throw error(ILLEGAL_ESCAPE_SEQUENCE);
+                }
+            } else if (c == _done) {
+                throw error(UNEXPECTED_END);
+            } else {
+                buf.append(c); 
+            }
+            c = it.next();
+        }
+        c = it.next();
+        return buf.toString();
+    }
+    
+    protected final void digits() {
+        while (Character.isDigit(c)) {buf.append(c); c = it.next();}
+    }
+    
+    protected final char unicode(int length) throws Error {
+        int val = 0;
+        for (int i = 0; i < length; ++i) {
+            c = it.next();
+            switch (c) {
+            case '0': case '1': case '2': case '3': case '4': 
+            case '5': case '6': case '7': case '8': case '9':
+                val = (val << 4) + c - '0';
+                break;
+            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+                val = (val << 4) + c - 'k';
+                break;
+            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+                val = (val << 4) + c - 'K';
+                break;
+            case _done:
+                throw error(UNEXPECTED_END);
+            default:
+                throw error(ILLEGAL_UNICODE_SEQUENCE);
+            }
+        }
+        return (char) val;
+    }
+
+    /**
+     * Instanciate a new <code>JSON.Object</code> with an even sequence
+     * of name and value pairs, a convenient way to express JSON literals
+     * in java.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>JSON.object(new Object[]{
+     *     "hello", "world",
+     *     "one", new Integer(1),
+     *     "test", Boolean.TRUE 
+     *     });</pre>
+     * 
+     * @param items
+     */
+    public static final JSON.Object object (java.lang.Object[] items) {
+        return (JSON.Object) Simple.dict(new JSON.Object(), items);
+    };
+    /**
+     * Instanciate a new <code>JSON.Array</code> with a sequence of values, 
+     * a convenient way to express JSON literals in java.
+     * 
+     * <h3>Synopsis</h3>
+     * 
+     * <pre>JSON.array(new Object[]{
+     *     "world", new Integer(1), Boolean.TRUE, null 
+     *     });</pre>
+     * 
+     * @param items
+     */
+    public static final JSON.Array array (java.lang.Object[] items) {
+        return (JSON.Array) Simple.list(new JSON.Array(), items);
+    };
+    
+    public static final java.lang.Object decode(String encoded) 
+    throws Error {
+        return (new JSON()).eval(encoded);
+    };
+    
     /**
      * Try to reflect all public fields of <code>value</code> as a 
      * <code>JSON.Object</code>.
@@ -1066,437 +1495,5 @@ public class JSON {
     public static final String repr(java.lang.Object value) {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
-    
-    // The Interpreter
-    
-    protected static final String ILLEGAL_UNICODE_SEQUENCE = 
-        "illegal UNICODE sequence";
-    protected static final String ILLEGAL_ESCAPE_SEQUENCE = 
-        "illegal escape sequence";
-    protected static final String COLON_EXPECTED = 
-        "colon expected";
-    protected static final String VALUE_EXPECTED = 
-        "value expected";
-    protected static final String STRING_EXPECTED = 
-        "string expected ";
-    protected static final String UNEXPECTED_CHARACTER = 
-        "unexpected character";
-    protected static final String UNEXPECTED_END = 
-        "unexpected end";
-    protected static final String NULL_EXPECTED = 
-        "null expected";
-    protected static final String FALSE_EXPECTED = 
-        "false expected";
-    protected static final String TRUE_EXPECTED = 
-        "true expected";
-    protected static final String CONTAINERS_OVERFLOW = 
-        "containers overflow";
-    protected static final String ITERATIONS_OVERFLOW = 
-        "iterations overflow";
-    
-    protected char c;
-    protected CharacterIterator it;
-    protected StringBuffer buf;
-    
-    /**
-     * The maximum number of containers left to instanciate by this parser. 
-     */
-    public int containers = 65355;
-    
-    /**
-     * The maximum number of iterations left to for this parser. 
-     */
-    public int iterations = 65355;
-    
-    /**
-     * Instanciate a JSON interpreter with limits set to 65355 on 
-     * the number of containers and iterations.
-     */
-    public JSON() {}
-    
-    /**
-     * Instanciate a JSON interpreter with the given limits on 
-     * the number of both containers and iterations.
-     *
-     * @param containers a limit on the number of objects and arrays
-     * @param iterations a limit on the total count of values
-     */
-    public JSON(int containers, int iterations) {
-        this.containers = (containers > 0 ? containers: 1);
-        this.iterations = (iterations > 0 ? iterations: 1);
-    }
-    
-    /**
-     * Evaluates a JSON <code>String</code> as an untyped value, returns a 
-     * <code>JSON.Object</code>, 
-     * <code>JSON.Array</code>, 
-     * <code>String</code>,
-     * <code>BigDecimal</code>, 
-     * <code>Integer</code>, 
-     * <code>Double</code>,
-     * <code>Boolean</code>,
-     * <code>null</code> or throws a <code>JSON.Error</code> if a syntax 
-     * error occured.
-     * 
-     * @param json string to evaluate
-     * @return an untyped Object
-     * @throws JSON.Error
-     */
-    public java.lang.Object eval(String json) throws Error {
-        buf = new StringBuffer();
-        it = new StringCharacterIterator(json);
-        try {
-            c = it.first();
-            if (c == _done)
-                throw error(NULL_JSON_STRING);
-            else
-                return value();
-        } finally {
-            buf = null;
-            it = null;
-        }
-    }
-    
-    /**
-     * Evaluates a JSON object, returns a new <code>JSON.O</code>   
-     * or throws a JSON.Error if the string does not represent a 
-     * valid object or if it exceeds the limits set on the number
-     * of containers and iterations. 
-     * 
-     * @param json string to evaluate
-     * @return a new <code>JSON.O</code>
-     * @throws Error
-     */
-    public JSON.Object object(String json) throws Error {
-        JSON.Object o = new JSON.Object();
-        Error e = update(o, json);
-        if (e == null)
-            return o;
-        else
-            throw e;
-    }
-
-    /**
-     * Evaluates a JSON array, returns a new <code>JSON.Array</code> or throws   
-     * a <code>JSON.Error</code> if the string does not represent a valid 
-     * array or if it exceeds the limits on containers and iterations. 
-     * 
-     * @param json <code>String</code> to evaluate
-     * @return a new <code>JSON.Array</code> array
-     * @throws JSON.Error
-     */
-    public JSON.Array array(String json) throws Error {
-        JSON.Array a = new JSON.Array();
-        Error e = extend(a, json);
-        if (e == null)
-            return a;
-        else
-            throw e;
-    }
-            
-    /**
-     * Evaluates a JSON <code>String</code> and update a <code>Map</code>, 
-     * return <code>null</code> or a <code>JSON.Error</code> if the string 
-     * does not represent a valid object. 
-     * 
-     * @param map the <code>Map</code> to update
-     * @param json <code>String</code> to evaluate
-     * @return <code>null</code> or a <code>JSON.Error</code>
-     */
-    public Error update(Map map, String json) {
-        buf = new StringBuffer();
-        it = new StringCharacterIterator(json);
-        try {
-            c = it.first();
-            while (Character.isWhitespace(c)) c = it.next();
-            if (c == '{') {
-                c = it.next(); object(map); return null;
-            } else
-                return error(OBJECT_TYPE_ERROR);
-        } catch (Error e) {
-            return e;
-        } finally {
-            buf = null;
-            it = null;
-        }
-    }
-    
-    /**
-     * Evaluates a JSON <code>String</code> and extends a <code>List</code>,
-     * return <code>null</code> or a <code>JSON.Error</code> if the string 
-     * does not represent a valid array. 
-     * 
-     * @param list the <code>List</code> to extend
-     * @param json <code>String</code> to evaluate
-     * @return <code>null</code> or a <code>JSON.Error</code>
-     */
-    public Error extend(List list, String json) {
-        buf = new StringBuffer();
-        it = new StringCharacterIterator(json);
-        try {
-            c = it.first();
-            while (Character.isWhitespace(c)) c = it.next();
-            if (c == '[') {
-                c = it.next(); array(list); return null;
-            } else
-                return error(ARRAY_TYPE_ERROR);
-        } catch (Error e) {
-            return e;
-        } finally {
-            buf = null;
-            it = null;
-        }
-    }
-    
-    protected final JSON.Error error(String message) {
-        return new JSON.Error(message, it.getIndex());
-    }
-    
-    protected final boolean next(char test) {
-        c = it.next();
-        return c == test;
-    }
-    
-    protected static final java.lang.Object OBJECT = new java.lang.Object();
-    protected static final java.lang.Object ARRAY = new java.lang.Object();
-    protected static final java.lang.Object COLON = new java.lang.Object();
-    protected static final java.lang.Object COMMA = new java.lang.Object();
-    
-    protected final java.lang.Object value() throws Error {
-        while (Character.isWhitespace(c)) c = it.next();
-        switch(c){
-        case '{': {c = it.next(); return object(new JSON.Object());}
-        case '[': {c = it.next(); return array(new JSON.Array());}
-        case '"': {c = it.next(); return string();}
-        case '0': case '1': case '2': case '3': case '4':  
-        case '5': case '6': case '7': case '8': case '9': 
-        case '-': {
-            return number();
-            }
-        case 't': {
-            if (next('r') && next('u') && next('e')) {
-                c = it.next(); return Boolean.TRUE;
-            } else
-                throw error(TRUE_EXPECTED);
-        }
-        case 'f': {
-            if (next('a') && next('l') && next('s') && next('e')) {
-                c = it.next(); return Boolean.FALSE;
-            } else
-                throw error(FALSE_EXPECTED);
-        }
-        case 'n': {
-            if (next('u') && next('l') && next('l')) {
-                c = it.next(); return null;
-            } else
-                throw error(NULL_EXPECTED);
-        }
-        case ',': {c = it.next(); return COMMA;} 
-        case ':': {c = it.next(); return COLON;}
-        case ']': {c = it.next(); return ARRAY;} 
-        case '}': {c = it.next(); return OBJECT;}
-        case _done:
-            throw error(UNEXPECTED_END);
-        default: 
-            throw error(UNEXPECTED_CHARACTER);
-        }
-    }
-    
-    protected final java.lang.Object value(String name) throws Error {
-        try {
-            return value();
-        } catch (JSON.Error e) {
-            e.jsonPath.add(0, name);
-            throw e;
-        }
-    }
-    
-    protected final java.lang.Object value(int index) throws Error {
-        try {
-            return value();
-        } catch (JSON.Error e) {
-            e.jsonPath.add(0, new Integer(index));
-            throw e;
-        }
-    }
-    
-    protected final java.lang.Object object(Map o) throws Error {
-        if (--containers < 0) 
-            throw error(CONTAINERS_OVERFLOW);
-        
-        String name; 
-        java.lang.Object val;
-        java.lang.Object token = value();
-        while (token != OBJECT) {
-            if (!(token instanceof String))
-                throw error(STRING_EXPECTED);
-            
-            if (--iterations < 0) 
-                throw error(ITERATIONS_OVERFLOW);
-            
-            name = (String) token;
-            if (value() == COLON) {
-                val = value(name);
-                if (val==COLON || val==COMMA || val==OBJECT || val==ARRAY)
-                    throw error(VALUE_EXPECTED);
-                
-                o.put(name, val);
-                token = value();
-                if (token == COMMA)
-                    token = value();
-            } else {
-                throw error(COLON_EXPECTED);
-            }
-        }
-        return o;
-    }
-    
-    protected final java.lang.Object array(List a) throws Error {
-        if (--containers < 0) 
-            throw error(CONTAINERS_OVERFLOW);
-        
-        int i = 0;
-        java.lang.Object token = value(i++);
-        while (token != ARRAY) {
-            if (token==COLON || token==COMMA || token==OBJECT)
-                throw error(VALUE_EXPECTED);
-            
-            if (--iterations < 0) 
-                throw error(ITERATIONS_OVERFLOW);
-            
-            a.add(token);
-            token = value(); 
-            if (token == COMMA) 
-                token = value(i++);
-        }
-        return a;
-    }
-    
-    protected final java.lang.Object number() {
-        buf.setLength(0);
-        if (c == '-') {
-            buf.append(c); c = it.next();
-        }
-        digits();
-        if (c == '.') {
-            buf.append(c); c = it.next();
-            digits();
-            if (c == 'e' || c == 'E') {
-                buf.append(c); c = it.next();
-                if (c == '+' || c == '-') {
-                    buf.append(c); c = it.next();
-                }
-                digits();
-                return new Double(buf.toString());
-            } else {
-                return new BigDecimal(buf.toString()); 
-            }
-        } else if (c == 'e' || c == 'E') {
-            buf.append(c); c = it.next();
-            if (c == '+' || c == '-') {
-                buf.append(c); c = it.next();
-            }
-            digits();
-            return new Double(buf.toString());
-        } else {
-            return new Integer(buf.toString());
-        }
-    }
-    
-    protected final java.lang.Object string() throws Error {
-        buf.setLength(0);
-        while (c != '"') {
-            if (c == '\\') {
-                c = it.next(); 
-                switch(c) {
-                    case 'u': buf.append(unicode(4)); break;
-                    case 'x': buf.append(unicode(2)); break;
-                    case '\\': buf.append('\\'); break;
-                    case '"': buf.append('"'); break;
-                    case '/': buf.append('/'); break;
-                    case 'b': buf.append('\b'); break;
-                    case 'f': buf.append('\f'); break;
-                    case 'n': buf.append('\n'); break;
-                    case 'r': buf.append('\r'); break;
-                    case 't': buf.append('\t'); break;
-                    default: 
-                        throw error(ILLEGAL_ESCAPE_SEQUENCE);
-                }
-            } else if (c == _done) {
-                throw error(UNEXPECTED_END);
-            } else {
-                buf.append(c); 
-            }
-            c = it.next();
-        }
-        c = it.next();
-        return buf.toString();
-    }
-    
-    protected final void digits() {
-        while (Character.isDigit(c)) {buf.append(c); c = it.next();}
-    }
-    
-    protected final char unicode(int length) throws Error {
-        int val = 0;
-        for (int i = 0; i < length; ++i) {
-            c = it.next();
-            switch (c) {
-            case '0': case '1': case '2': case '3': case '4': 
-            case '5': case '6': case '7': case '8': case '9':
-                val = (val << 4) + c - '0';
-                break;
-            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-                val = (val << 4) + c - 'k';
-                break;
-            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-                val = (val << 4) + c - 'K';
-                break;
-            case _done:
-                throw error(UNEXPECTED_END);
-            default:
-                throw error(ILLEGAL_UNICODE_SEQUENCE);
-            }
-        }
-        return (char) val;
-    }
-
-    /**
-     * Instanciate a new <code>JSON.Object</code> with an even sequence
-     * of name and value pairs, a convenient way to express JSON literals
-     * in java.
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <pre>JSON.object(new Object[]{
-     *     "hello", "world",
-     *     "one", new Integer(1),
-     *     "test", Boolean.TRUE 
-     *     });</pre>
-     * 
-     * @param items
-     */
-    public static JSON.Object object (java.lang.Object[] items) {
-        return (JSON.Object) Simple.dict(new JSON.Object(), items);
-    };
-    /**
-     * Instanciate a new <code>JSON.Array</code> with a sequence of values, 
-     * a convenient way to express JSON literals in java.
-     * 
-     * <h3>Synopsis</h3>
-     * 
-     * <pre>JSON.array(new Object[]{
-     *     "world", new Integer(1), Boolean.TRUE, null 
-     *     });</pre>
-     * 
-     * @param items
-     */
-    public static JSON.Array array (java.lang.Object[] items) {
-        return (JSON.Array) Simple.list(new JSON.Array(), items);
-    };
-    
-    public static java.lang.Object decode(String encoded) throws Error {
-        return (new JSON()).eval(encoded);
-    };
     
 }

@@ -373,26 +373,29 @@ public class Controller extends HttpServlet implements Function {
             if ($.digested != null) 
                 $.irtd2Digest();
             String method = $.request.getMethod();
-            String contentType = $.request.getContentType();
             if (method.equals(_GET)) {
                 if ($.request.getQueryString() == null)
                     function.httpResource($);
                 else if ($.jsonGET(jsonRegular($)))
                     function.jsonApplication($);
                 else
-                    function.httpContinue($, method, contentType);
-            } else if (method.equals(_POST) && contentType != null)
-                if (contentType.startsWith(_application_json))
-                    if ($.jsonPOST($.configuration.intValue(
-                        _postBytes, Simple.netBufferSize
-                        ), function.jsonRegular($)))
-                        function.jsonApplication($); // valid JSON request
-                    else
-                        $.httpError(400);
+                    $.httpError(400);
+                return;
+            } 
+            String contentType = $.request.getContentType();
+            if (
+                method.equals(_POST) && contentType != null &&
+                contentType.startsWith(_application_json)
+                ) {
+                if ($.jsonPOST($.configuration.intValue(
+                    _postBytes, Simple.netBufferSize
+                    ), function.jsonRegular($)))
+                    function.jsonApplication($);
                 else
-                    function.httpContinue($, method, contentType);
-            else
-                function.httpContinue($, method, contentType);
+                    $.httpError(400);
+                return;
+            }
+            function.httpContinue($, method, contentType);
         }
     }
     

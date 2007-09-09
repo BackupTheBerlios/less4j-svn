@@ -57,14 +57,27 @@ import com.jclark.xml.sax.ReaderInputStream;
  * 
  * <h3>Synopsis</h3>
  * 
- * <p>This is a practical convenience for simple XML data file processing:</p>
- * 
  * <pre>import org.less4j.XML;
+ *import org.less4j.Simple;
+ *import java.util.Iterator;
  *import java.io.File;
  *import java.io.IOException;
  *
  *try {
- *    XML.Document document = XML.read(new File("my.xml"));
+ *    // read an XML file into an element tree
+ *    XML.Document document = XML.read(new File("data.xml"));
+ *    // access and update the element tree 
+ *    Iterator items = document.root
+ *        .getChild("details")
+ *        .getChildren(Simple.set(new String[]{"item"}));
+ *    int total = 0;
+ *    while (items.hasNext()) {
+ *        total = total + Integer.parseInt(
+ *            ((XML.Element) items.next()).getAttribute("value")
+ *            );
+ *    }
+ *    document.root.addChild("total", Integer.toString(total));
+ *    // write the transformed XML to STDOUT
  *    XML.writeUTF8(System.out, document);
  *} catch (XML.Error e) {
  *    : // handle XML errors
@@ -72,25 +85,23 @@ import com.jclark.xml.sax.ReaderInputStream;
  *    ; // handle I/O errors
  *}</pre>
  *
- * <p>...</p>
- *
  * <h3>Applications</h3>
  *
  * <p>The minimal Document Object Model (DOM) provided is the defacto standard
- * element tree found across all development environments.</p>
+ * element tree found across all development environments. It makes simple
+ * XML data processing easy and complex one possible.</p>
  *
- * <p>The implementation provided by the protected <code>XML.QP</code>
- * class provides an extensible type system for <code>Element</code> nodes
+ * <p>This API support XML namespaces in the simplest possible way,
+ * as the later C versions expat implemented them. Qualified names are
+ * represented as a string joining the namespace and the local name with
+ * a single space character, unqualified names (aka tags) are represented
+ * as a string without white spaces.</p>
+ * 
+ * <p>The implementation of this <code>XP</code> parser application also 
+ * provides an extensible type system for <code>Element</code> nodes
  * that support reuse of classes in the development of XML interpreters,
  * turning the DOM into an AST.</p>
  * 
- * <p>This API also support XML namespaces in the simplest possible way,
- * allowing for both </p>
- * 
- * <pre>
- * ...
- * </pre>
- *  
  * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
  *
  */
@@ -105,6 +116,8 @@ public class XML {
      * by the <code>XP</code> parser when the XML 1.0 processed is 
      * not-well formed, a namespace prefix is not declared or an
      * exception is raised by its application.
+     * 
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Error extends Exception {
         private String _message;
@@ -132,6 +145,7 @@ public class XML {
      *
      * <pre>...</pre>
      *
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static interface Type {
         public Element newElement (String name, HashMap attributes);
@@ -147,6 +161,7 @@ public class XML {
      * 
      * <p>...</p>
      * 
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Element implements XML.Type {
         /**
@@ -156,8 +171,7 @@ public class XML {
          */
         public String name = null;
         /**
-         * A pointer to this element's parent while the tree built, or null
-         * once this element's has been added to the tree.
+         * A pointer to this element's parent.
          */
         public Element parent = null;
         /**
@@ -247,6 +261,8 @@ public class XML {
          */
         public static Type TYPE = new Document();
         /**
+         * Add a child element, creating the <code>children</code> array list
+         * if it does not exist yet.
          * 
          * @param child
          */
@@ -258,6 +274,12 @@ public class XML {
             return child;
         }
         /**
+         * Add a new named child element, creating the <code>children</code> 
+         * array list if it does not exist yet.
+         * 
+         * <h4>Synopsis</h4>
+         * 
+         * Note th
          * 
          * @param name
          * @return
@@ -287,6 +309,8 @@ public class XML {
         }
         /**
          * 
+         * <h4>Synopsis</h4>
+         * 
          * @param name
          * @return
          */
@@ -302,16 +326,37 @@ public class XML {
         }
         /**
          * 
+         * <h4>Synopsis</h4>
+         * 
+         * <pre>XML.Element parent = new XML.Element("tag");
+         * parent.addCdata("first text inside the parent");
+         * parent.addChild("child");
+         * parent.addCdata("text following ..."
+         * parent.addCdata("... the first child");</pre>
+         * 
          * @param cdata
          */
         public void addCdata (String cdata) {
-            if (children==null)
-                first = cdata;
-            else
-                getChild(children.size()-1).follow = cdata;
+            if (children==null) {
+                if (first == null)
+                    first = cdata;
+                else
+                    first = first + cdata;
+            } else {
+                Element child = getChild(children.size()-1);
+                if (child.follow == null)
+                    child.follow = cdata;
+                else
+                    child.follow = child.follow + cdata;
+            }
         }
         /**
          * Returns the element's local name.
+         * 
+         * <h4>Synopsis</h4>
+         * 
+         * <pre>(new XML.Element("urn:NameSpace tag")).getLocalName();</pre>
+         * 
          */
         public String getLocalName () {
             int local = name.indexOf(' ');
@@ -323,21 +368,33 @@ public class XML {
         /**
          * A convenience to access child <code>Element</code> by index. 
          * 
+         * <h4>Synopsis</h4>
+         * 
+         * <pre>(new XML.Element("tag")).getChild(3);</pre>
+         * 
          * @param index of the child in this element's children.
          * @return an <code>XML.Element</code> of null
          */
         public Element getChild (int index) {
-            return (Element) children.get(index);
+            if (children == null)
+                return null;
+            else
+                return (Element) children.get(index);
         }
         /**
-         * A convenience to access a first child <code>Element</code> by name. 
+         * A convenience to access a first child <code>Element</code> by name,
+         * returns null. 
+         * 
+         * <h4>Synopsis</h4>
+         * 
+         * <pre>(new XML.Element("tag")).getChild("name");</pre>
          * 
          * @param name of the child.
          * @return an <code>XML.Element</code> or null
          */
         public Element getChild (String name) {
             Element child;
-            for (int i=0, L=children.size(); i<L; i++) {
+            if (children != null) for (int i=0, L=children.size(); i<L; i++) {
                 child = (Element) children.get(i);
                 if (child.name.equals(name)) 
                     return child;
@@ -393,7 +450,11 @@ public class XML {
         }
         /**
          * A convenience to access an attribute <code>String</code> value
-         * by name. 
+         * by name, returns null if the named attribute does not exists. 
+         * 
+         * <h4>Synopsis</h4>
+         * 
+         * <pre>(new XML.Element("tag")).getAttribute("name");</pre>
          * 
          * @param name of the attribute
          * @return the value of the named attribute as a string
@@ -405,6 +466,12 @@ public class XML {
                 return (String) attributes.get(name);
         }
         /**
+         * Set the named attribute's value, creating the attributes' map if
+         * it does not exist yet.
+         * 
+         * <h4>Synopsis</h4>
+         * 
+         * <pre>(new XML.Element("tag")).setAttribute("name", "value");</pre>
          * 
          * @param name
          * @param value
@@ -416,8 +483,7 @@ public class XML {
         }
         /**
          * This is a method called by <code>QP</code> when an element has 
-         * been parsed without errors, but before the circular reference
-         * to it's parent is removed.
+         * been parsed without errors.
          * 
          * <p>The purpose of this interface is to allow derived classes of
          * <code>Element</code> to implement "Object Oriented Pull Parsers"
@@ -435,6 +501,7 @@ public class XML {
      * A class with just enough properties to fully represent an XML
      * document with namespaces and processing instructions. 
      * 
+     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
      */
     public static class Document implements Type {
         /**

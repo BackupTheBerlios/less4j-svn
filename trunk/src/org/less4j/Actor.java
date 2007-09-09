@@ -919,92 +919,19 @@ public class Actor {
     protected static final String jsonXJSON = "X-JSON";
     
     /**
-     * ...
-     * 
-     * @param interpreter
-     * @return true if a valid JSON request was transfered
-     */
-    public boolean jsonGET(JSON interpreter) {
-        json = new JSON.Object();
-        Map query = request.getParameterMap();
-        String name;
-        String[] strings;
-        Iterator iter = query.keySet().iterator();
-        interpreter.containers--;
-        while (
-            interpreter.containers > -1 && 
-            interpreter.iterations > -1 && 
-            iter.hasNext()
-            ) {
-            name = (String) iter.next();
-            strings = (String[]) query.get(name);
-            if (strings != null)
-                if (strings.length > 1) { 
-                    interpreter.containers--;
-                    JSON.Array list = new JSON.Array();
-                    for (int i=0; i < strings.length; i++) { 
-                        list.add(strings[i]); 
-                        interpreter.iterations--;
-                    }
-                    json.put(name, list);
-                } else if (strings.length > 0)
-                    json.put(name, strings[0]);
-                else
-                    json.put(name, null);
-            interpreter.iterations--;
-        }
-        String xjson = request.getHeader(jsonXJSON);
-        if (xjson != null) {
-            JSON.Error e = interpreter.update(json, xjson); 
-            if (e != null) {logError(e); return false;}
-        }
-        return true;
-    }
-    
-    /**
      * 
      * @param interpreter
      * @return true if a regular JSON request was transfered
      */
-    public boolean jsonGET(JSONR interpreter) {
-        json = new JSON.Object();
-        Map query = request.getParameterMap();
-        HashMap namespace = (
-            (JSONR.TypeNamespace) interpreter.type
-            ).namespace;
-        JSONR.Type pattern;
-        String name;
-        String[] strings;
-        Iterator iter = query.keySet().iterator();
-        interpreter.containers--;
-        while (
-            interpreter.containers > -1 && 
-            interpreter.iterations > -1 && 
-            iter.hasNext()
-            ) try {
-            name = (String) iter.next();
-            pattern = (JSONR.Type) namespace.get(name);
-            strings = (String[]) query.get(name);
-            if (pattern != null && strings != null) 
-                if (strings.length > 1) { 
-                    interpreter.containers--;
-                    JSON.Array list = new JSON.Array();
-                    for (int i=0; i < strings.length; i++) { 
-                        list.add(pattern.eval(strings[i])); 
-                        interpreter.iterations--;
-                    }
-                    json.put(name, list);
-                } else if (strings.length > 0)
-                    json.put(name, pattern.eval(strings[0]));
-                else
-                    json.put(name, null);
-            interpreter.iterations--;
-        } catch (JSON.Error e) {logError(e); return false;}
+    public boolean jsonX(JSON interpreter) {
         String xjson = request.getHeader(jsonXJSON);
-        if (xjson != null) {
-            JSON.Error e = interpreter.update(json, xjson); 
-            if (e != null) {logError(e); return false;}
-        }
+        if (xjson == null)
+            return false;
+        
+        if (json == null)
+            json = new JSON.Object();
+        JSON.Error e = interpreter.update(json, xjson); 
+        if (e != null) {logError(e); return false;}
         return true;
     }
     
@@ -1015,12 +942,50 @@ public class Actor {
      * @return true if a valid JSON request was GET or POSTed 
      */
     public boolean jsonGET(Object interpreter) {
-        if (interpreter == null)
+        JSONR.Type model = null;
+        int containers, iterations;
+        if (interpreter instanceof JSONR) {
+            JSONR intr = (JSONR) interpreter;
+            containers = intr.containers;
+            iterations = intr.iterations;
+            model = intr.type;
+        } else if (interpreter instanceof JSON) {
+            JSON intr = (JSON) interpreter;
+            containers = intr.containers;
+            iterations = intr.iterations;
+        } else
             return false;
-        else if (interpreter instanceof JSON)
-            return jsonGET((JSON) interpreter);
-        else
-            return jsonGET((JSONR) interpreter);
+        
+        json = new JSON.Object();
+        Map query = request.getParameterMap();
+        String name;
+        String[] strings;
+        Iterator iter = query.keySet().iterator();
+        containers--;
+        while (containers > -1 && iterations > -1 && iter.hasNext()) {
+            name = (String) iter.next();
+            strings = (String[]) query.get(name);
+            if (strings != null)
+                if (strings.length > 1) { 
+                    containers--;
+                    JSON.Array list = new JSON.Array();
+                    for (int i=0; i < strings.length; i++) { 
+                        list.add(strings[i]); 
+                        iterations--;
+                    }
+                    json.put(name, list);
+                } else if (strings.length > 0)
+                    json.put(name, strings[0]);
+                else
+                    json.put(name, null);
+            iterations--;
+        }
+        if (model != null) try {
+            JSONR.validate(json, model);
+        } catch (JSONR.Error e) {
+            return false;
+        }
+        return true;
     }
     
     /**
@@ -1275,7 +1240,7 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param args an iterator through arguments
+     * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
      * @param collector the <code>ORM</code> used to map the result set
      * @return a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
@@ -1292,7 +1257,7 @@ public class Actor {
 
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument names, return a <code>JSON.Object</code>
+     * statement and an argument iterator, return a <code>JSON.Object</code>
      * with the obvious "columns" and "rows" members, or <code>null</code> 
      * if the result set was empty.
      * 
@@ -1301,7 +1266,7 @@ public class Actor {
      * <pre>try {
      *    $.json.put("table", $.<strong>sqlTable(</strong>
      *        "select * from TABLE where KEY=?", 
-     *        new String[]{"key"},
+     *        Simple.iter(new Object[]{"mykey"}),
      *        100
      *        <strong>)</strong>)
      *} catch (SQLException e) {
@@ -1309,23 +1274,23 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
      * @return a <code>JSON.Object</code> or null 
      * @throws SQLException
      */
     public JSON.Object sqlTable (
-        String statement, String[] arguments, int fetch
+        String statement, Iterator arguments, int fetch
         ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.iter(json, arguments), fetch, SQL.table
+            statement, arguments, fetch, SQL.table
             );
     }
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument names, return a <code>JSON.Array</code> 
+     * statement and an argument iterator, return a <code>JSON.Array</code> 
      * of <code>JSON.Array</code>s as relations or <code>null</code> 
      * if the result set was empty.
      * 
@@ -1334,7 +1299,7 @@ public class Actor {
      * <pre>try {
      *    $.json.put("relations", $.<strong>sqlRelations(</strong>
      *        "select * from TABLE where KEY=?", 
-     *        new String[]{"key"},
+     *        Simple.iter(new Object[]{"mykey"}),
      *        100
      *        <strong>)</strong>)
      *} catch (SQLException e) {
@@ -1342,23 +1307,23 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
      * @return a <code>JSON.Array</code> of relations or null 
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlRelations (
-        String statement, String[] arguments, int fetch
+        String statement, Iterator arguments, int fetch
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.iter(json, arguments), fetch, SQL.relations
+            statement, arguments, fetch, SQL.relations
             );
     }
 
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and argument names, returns a <code>JSON.Array</code> 
+     * statement and an argument iterator, returns a <code>JSON.Array</code> 
      * as a collection for the first row in the result set or 
      * <code>null</code> if the result set was empty.
      * 
@@ -1367,7 +1332,7 @@ public class Actor {
      * <pre>try {
      *    $.json.put("collection", ($.<strong>sqlCollection(</strong>
      *        "select COLUMN from TABLE where KEY=?", 
-     *        new String[]{"key"},
+     *        Simple.iter(new Object[]{"mykey"}),
      *        100
      *        <strong>)</strong>);
      *} catch (SQLException e) {
@@ -1375,17 +1340,17 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
      * @return a <code>JSON.Array</code> as collection or <code>null</code> 
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlCollection (
-        String statement, String[] arguments, int fetch
+        String statement, Iterator arguments, int fetch
         ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.iter(json, arguments), fetch, SQL.collection
+            statement, arguments, fetch, SQL.collection
             );
     }
     
@@ -1400,7 +1365,7 @@ public class Actor {
      * <pre>try {
      *    $.json.put("index", ($.<strong>sqlIndex(</strong>
      *        "select KEY, NAME, DESCRIPTION from TABLE where VALUE > ?", 
-     *        new String[]{"value"},
+     *        Simple.iter(new Object[]{new Integer(10)}),
      *        100
      *        <strong>)</strong>);
      *} catch (SQLException e) {
@@ -1408,17 +1373,17 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
      * @return a <code>JSON.Object</code> as dictionnary or <code>null</code> 
      * @throws SQLException
      */
     public JSON.Object sqlIndex (
-        String statement, String[] arguments, int fetch
+        String statement, Iterator arguments, int fetch
         ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.iter(json, arguments), fetch, SQL.index
+            statement, arguments, fetch, SQL.index
             );
     }
         
@@ -1433,7 +1398,7 @@ public class Actor {
      * <pre>try {
      *    $.json.put("dictionary", ($.<strong>sqlDictionary(</strong>
      *        "select KEY, VALUE from TABLE where VALUE > ?", 
-     *        new String[]{"value"},
+     *        Simple.iter(new Object[]{new Integer(10)}),
      *        100
      *        <strong>)</strong>);
      *} catch (SQLException e) {
@@ -1441,17 +1406,17 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
      * @return a <code>JSON.Object</code> as dictionnary or <code>null</code> 
      * @throws SQLException
      */
     public JSON.Object sqlDictionary (
-        String statement, String[] arguments, int fetch
+        String statement, Iterator arguments, int fetch
         ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.iter(json, arguments), fetch, SQL.dictionary
+            statement, arguments, fetch, SQL.dictionary
             );
     }
         
@@ -1463,7 +1428,7 @@ public class Actor {
      * <pre>try {
      *    $.json.put("objects", ($.<strong>sqlObjects(</strong>
      *        "select * from TABLE where VALUE > ?", 
-     *        new String[]{"value"},
+     *        Simple.iter(new Object[]{new Integer(10)}),
      *        100
      *        <strong>)</strong>);
      *} catch (SQLException e) {
@@ -1471,17 +1436,17 @@ public class Actor {
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @return a <code>JSON.Array</code> of <code>JSON.Objects</code> 
      *         or <code>null</code> 
      * @throws an <code>SQLException</code>
      */
     public JSON.Array sqlObjects ( 
-        String statement, String[] arguments, int fetch
+        String statement, Iterator arguments, int fetch
     ) 
     throws SQLException {
         return (JSON.Array) sqlQuery (
-            statement, Simple.iter(json, arguments), fetch, SQL.objects
+            statement, arguments, fetch, SQL.objects
             );
     }
     
@@ -1493,23 +1458,23 @@ public class Actor {
      * <pre>try {
      *    $.json.put("object", ($.<strong>sqlObject(</strong>
      *        "select * from TABLE where VALUE = ?", 
-     *        new String[]{"value"}
+     *        Simple.iter(new Object[]{new BigDecimal("99.99")}),
      *        <strong>)</strong>);
      *} catch (SQLException e) {
      *    $.logError(e);
      *}</pre>
      * 
      * @param statement to prepare and execute as a query
-     * @param arguments an array of <code>String[]</code> 
+     * @param arguments an iterator of simple types
      * @return a <code>JSON.Object</code> or <code>null</code> 
      * @throws an <code>SQLException</code>
      */
     public JSON.Object sqlObject ( 
-        String statement, String[] arguments
+        String statement, Iterator arguments
     ) 
     throws SQLException {
         return (JSON.Object) sqlQuery (
-            statement, Simple.iter(json, arguments), 1, SQL.object
+            statement, arguments, 1, SQL.object
             );
     }
     
