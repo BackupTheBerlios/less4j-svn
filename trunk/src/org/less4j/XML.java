@@ -538,6 +538,7 @@ public class XML {
     protected static class QP extends ApplicationImpl {
         protected Document doc;
         protected Map types = null;
+        protected HashMap prefixes = new HashMap();
         protected Element _curr = null;
         public QP (Document doc, Map types) {
             this.doc = doc;
@@ -553,7 +554,7 @@ public class XML {
                 doc.pi.put(name, pi);
             }
         }
-        protected static String fqn (String name, HashMap ns) 
+        protected static String fqn (String name, HashMap prefixes) 
         throws Error {
             int colon = name.indexOf(':');
             if (colon > -1) {
@@ -561,17 +562,17 @@ public class XML {
                 if (prefix.equals(_xml))
                     return name.substring(colon+1);
                 
-                else if (ns.containsKey(prefix))
+                else if (prefixes.containsKey(prefix))
                     return (
-                        ((String)ns.get(prefix)) 
+                        ((String)prefixes.get(prefix)) 
                         + ' ' + name.substring(colon+1)
                         );
                 
                 throw new Error(_namespace_prefix_not_found);
                 
-            } else if (ns.containsKey(_no_prefix))
+            } else if (prefixes.containsKey(_no_prefix))
                 return (
-                    ((String)ns.get(_no_prefix)) 
+                    ((String)prefixes.get(_no_prefix)) 
                     + ' ' + name.substring(colon+1)
                     );
             
@@ -587,13 +588,17 @@ public class XML {
                 String[] attributeNames = new String[L]; 
                 for (int i=0; i<L; i++) {
                     name = event.getAttributeName(i);
-                    if (name.equals(_xmlns))
-                        doc.ns.put("", event.getAttributeValue(i));
-                    else if (name.startsWith(_xmlns_colon))
+                    if (name.equals(_xmlns)) {
+                        doc.ns.put(event.getAttributeValue(i), _no_prefix);
+                        prefixes.put(_no_prefix, event.getAttributeValue(i));
+                    } else if (name.startsWith(_xmlns_colon)) {
                         doc.ns.put(
+                            event.getAttributeValue(i), name.substring(6)
+                            );
+                        prefixes.put(
                             name.substring(6), event.getAttributeValue(i)
                             );
-                    else {
+                    } else {
                         attributeNames[i] = name; 
                         A++;
                     }
@@ -603,12 +608,12 @@ public class XML {
                     for (int i=0; i<L; i++) 
                         if (attributeNames[i]!=null)
                             attributes.put(
-                                fqn(attributeNames[i], doc.ns), 
+                                fqn(attributeNames[i], prefixes), 
                                 event.getAttributeValue(i)
                                 );
                 }
             }
-            name = fqn(event.getName(), doc.ns);
+            name = fqn(event.getName(), prefixes);
             Element e;
             if (types != null && types.containsKey(name))
                 e = ((Type)types.get(name)).newElement(name, attributes);
@@ -653,19 +658,9 @@ public class XML {
         InputStream is, String path, URL baseURL, Map types, Document doc
         ) throws Throwable {
         QP qp = new QP(doc, types);
-        try {
-            DocumentParser.parse(new OpenEntity(
-                is, path, baseURL
-                ), new EntityManagerImpl(), qp, Locale.US);
-        } catch (ApplicationException e) {
-            Element parent = qp._curr.parent;
-            while (parent != null) {
-                // qp._curr.parent = null;
-                qp._curr = parent;
-                parent = qp._curr.parent;
-            }
-            throw e.getCause();
-        }
+        DocumentParser.parse(new OpenEntity(
+            is, path, baseURL
+            ), new EntityManagerImpl(), qp, Locale.US);
         return doc;
     }
     
