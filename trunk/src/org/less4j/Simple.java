@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Random;
 
 import java.net.URL; 
@@ -162,7 +163,7 @@ public class Simple {
         } catch (IOException e) {
             return null;
         }
-     }
+    }
     
     /**
      * Use a <code>ByteBuffer</code> to efficiently merge arrays
@@ -381,6 +382,26 @@ public class Simple {
     public static Map dict (Map map, Object[] items) {
         for (int i=0; i<items.length; i=i+2)
             map.put(items[i], items[i+1]);
+        return map;
+    }
+    
+    public static JSON.Object dict (Object[] items) {
+        JSON.Object map = new JSON.Object();  
+        for (int i=0; i<items.length; i=i+2)
+            map.put(items[i], items[i+1]);
+        return map;
+    }
+    
+    public static Map dict (Map map, String[][] items) {
+        for (int i=0; i<items.length; i++) if (items[i].length > 1)
+            map.put(items[i][0], items[i][1]);
+        return map;
+    }
+    
+    public static JSON.Object dict (String[][] items) {
+        JSON.Object map = new JSON.Object();  
+        for (int i=0; i<items.length; i++) if (items[i].length > 1)
+            map.put(items[i][0], items[i][1]);
         return map;
     }
     
