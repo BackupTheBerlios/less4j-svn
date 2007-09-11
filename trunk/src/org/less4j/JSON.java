@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
+import java.io.OutputStream;
+import java.io.IOException;
 
 /**
  * <p>A relatively strict JSON intepreter to evaluate a UNICODE string 
@@ -1496,4 +1498,125 @@ public class JSON {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
     
+    protected static final StringBuffer pprint(
+        StringBuffer sb, Map map, Iterator it, String indent, OutputStream os 
+        ) throws IOException {
+        java.lang.Object key; 
+        if (!it.hasNext()) {
+            sb.append("{}");
+            return sb;
+        }
+        indent += _indent;
+        sb.append('{');
+        sb.append(indent);
+        key = it.next();
+        sb = pprint(sb, key, indent, os);
+        sb.append(": ");
+        sb = pprint(sb, map.get(key), indent, os);
+        while (it.hasNext()) {
+            sb.append(", ");
+            sb.append(indent);
+            key = it.next();
+            sb = pprint(sb, key, indent, os);
+            sb.append(": ");
+            sb = pprint(sb, map.get(key), indent, os);
+            if (sb.length() > Simple.netBufferSize) {
+                os.write(Simple.encode(sb.toString(), "UTF-8"));
+                os.flush();
+                sb = new StringBuffer();
+            }
+        }
+        sb.append(indent);
+        sb.append('}');
+        return sb;
+    }
+    
+    protected static final StringBuffer pprint(
+        StringBuffer sb, Iterator it, String indent, OutputStream os 
+        ) throws IOException {
+        if (!it.hasNext()) {
+            sb.append("[]");
+            return sb;
+        }
+        sb.append('[');
+        indent += _indent;
+        sb.append(indent);
+        sb = pprint(sb, it.next(), indent, os);
+        while (it.hasNext()) {
+            sb.append(", ");
+            sb.append(indent);
+            sb = pprint(sb, it.next(), indent, os);
+            if (sb.length() > Simple.netBufferSize) {
+                os.write(Simple.encode(sb.toString(), "UTF-8"));
+                os.flush();
+                sb = new StringBuffer();
+            }
+        }
+        sb.append(indent);
+        sb.append(']');
+        return sb;
+    }
+    
+    protected static final StringBuffer pprint(
+        StringBuffer sb, java.lang.Object value, String indent, OutputStream os 
+        ) throws IOException {
+        if (value == null) 
+            sb.append(_null);
+        else if (value instanceof Boolean)
+            sb.append((
+                ((Boolean) value).booleanValue() ? "true": "false"
+                ));
+        else if (value instanceof Number) 
+            sb.append(value);
+        else if (value instanceof String)
+            strb(sb, (String) value);
+        else if (value instanceof Character) 
+            strb(sb, ((Character) value).toString());
+        else if (value instanceof Iterator) 
+            sb = pprint(sb, (Iterator) value, indent, os);
+        else if (value instanceof Map) {
+            Map object = (Map) value;
+            java.lang.Object[] names = object.keySet().toArray();
+            Arrays.sort(names);
+            sb = pprint(sb, object, Simple.iter(names), indent, os);
+        } else if (value instanceof List)
+            sb = pprint(sb, ((List) value).iterator(), indent, os);
+        else if (value instanceof Object[])
+            sb = pprint(sb, Simple.iter(
+                (java.lang.Object[]) value
+                ), indent, os);
+        else {
+            Class type = null;
+            try {type = value.getClass();} catch (Throwable e) {;}
+            if (type == null)
+                sb.append(value);
+            else if (type.isArray()) {
+                Class component = type.getComponentType();
+                if (component.isPrimitive())
+                    strb(sb, value, component);
+                else
+                    sb = pprint(sb, Simple.iter(
+                        (java.lang.Object[]) value
+                        ), indent, os);
+            } else
+                sb = pprint(sb, value.toString(), indent, os);
+        }
+        return sb;
+    }
+    
+    /**
+     * Encode an untyped value as a pretty-printed JSON string with
+     * CRLF line delimiters and a two space wide indentation, buffer
+     * chunks of 16KB before writing them to an <code>OutputStream</code>.
+     * 
+     * @param value to represent
+     * @return an X-JSON <code>String</code>
+     */
+    public static final void pprint(
+        java.lang.Object value, OutputStream os
+        ) throws IOException {
+        StringBuffer sb = pprint(new StringBuffer(), value, "\r\n", os);
+        os.write(Simple.encode(sb.toString(), "UTF-8"));
+        os.flush();
+    }
 }
