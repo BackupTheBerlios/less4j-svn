@@ -211,7 +211,7 @@ public class Controller extends HttpServlet implements Function {
                     );
             }
         }
-        // object.put("j2eeRealPath", getServletContext().getRealPath(""));
+        object.put("j2eeRealPath", getServletContext().getRealPath(""));
         Actor $ = new Actor (object);
         $.context = "";
         if (!less4jConfigure ($)) throw new ServletException(
@@ -665,6 +665,22 @@ public class Controller extends HttpServlet implements Function {
      * @param fetch the maximum number of rows retrieved 
      * @return true if the result set is not null and nothing was throwed
      */
+    public static boolean sqlIndex (
+        Actor $, String name, String statement, String[] arguments,
+        int fetch
+        ) {
+        return sqlQuery($, name, statement, arguments, fetch, SQL.index);
+    }
+               
+    /**
+     * 
+     * @param $ the actor at play
+     * @param name of the result to put in <code>$.json</code>
+     * @param statement the SQL query to execute 
+     * @param arguments the names of the arguments in <code>$.json</code>
+     * @param fetch the maximum number of rows retrieved 
+     * @return true if the result set is not null and nothing was throwed
+     */
     public static boolean sqlObjects (
         Actor $, String name, String statement, String[] arguments,
         int fetch
@@ -717,6 +733,7 @@ public class Controller extends HttpServlet implements Function {
             $.json.put(name, $.sqlUpdate(
                 statement, Simple.iter($.json, arguments)
                 ));
+            $.sql.commit();
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
@@ -737,6 +754,7 @@ public class Controller extends HttpServlet implements Function {
         boolean success = false;
         if (sqlOpen($)) try {
             $.json.put(name, $.sqlBatch(statement, relations.iterator()));
+            $.sql.commit();
             success = true;
         } catch (Exception e) {$.logError(e);} finally {$.sqlClose();}
         return success;
