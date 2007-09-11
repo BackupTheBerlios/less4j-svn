@@ -301,12 +301,18 @@ public class SOAP implements Function {
             Document soap = new Document();
             soap.ns = new HashMap(_NS);
             XML.read($.request.getInputStream(), "", null, null, soap);
-            $.json = ((Element) soap.root).json.O(_Body).O(action);
+            $.json = ((Element) soap.root).json.O(_Body).O(action);  
             if ($.test) {
                 $.logInfo(XML.encode(soap), "SOAP");
                 $.logInfo(JSON.encode($.json), "INPUT");
             }
-            JSONR.validate($.json, jsonr);
+            JSONR.Type type = (JSONR.Type) jsonr.namespace.get(_Request);
+            if (type instanceof JSONR.TypeNamespace)
+                JSONR.validate($.json, type);
+            else
+                JSONR.validate($.json.get(
+                    $.json.keySet().iterator().next()
+                    ), type);
             this.call ($, soap);
         } catch (Throwable e) {
             $.logError(e);
@@ -700,7 +706,7 @@ public class SOAP implements Function {
                  element = XSD(schema, (JSONR.Type) types.get(name), name);
                  message.addChild(wsdl_part, new String[]{
                      _name, element.getAttribute(_name), 
-                     _type, _tns_prefix + element.getAttribute(_type) 
+                     _type, element.getAttribute(_type) 
                      });
              }
         } else {
@@ -721,18 +727,10 @@ public class SOAP implements Function {
         message = doc.root.addChild(wsdl_message, new String[]{
             _name, action + _Response
             });
-        if (output.children == null)
-            message.addChild(wsdl_part, new String[]{
-                _name, _return, 
-                _type, output.getAttribute(_type)  
-                });
-        else {
-            schema.addChild(output);
-            message.addChild(wsdl_part, new String[]{
-                _name, _return, 
-                _type, _tns_prefix + output.getAttribute(_name)  
-                });
-        }
+        message.addChild(wsdl_part, new String[]{
+            _name, _return, 
+            _type, output.getAttribute(_type)  
+            });
         // one WSDL operation's <port> 
         XML.Element operation = doc.root
             .addChild(wsdl_portType, new String[]{_name, action + _Port})
