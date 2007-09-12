@@ -185,7 +185,7 @@ import java.io.IOException;
  * 
  * <p>...</p>
  * 
- * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  * 
  * @version 0.30
  */
@@ -208,7 +208,7 @@ public class JSON {
      *    System.out.println(e.toString());
      *}</pre>
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent Szyster
      */
     public static class Error extends Exception {
         
@@ -364,7 +364,7 @@ public class JSON {
      * type. Not having to break the chain for "manual" type casting
      * helps a lot and make the whole a lot clearer to read and debug.</p> 
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent Szyster
      */
     public static class Object extends HashMap {
         public final Integer I(String name) throws Error {
@@ -458,7 +458,7 @@ public class JSON {
      * 
      * <p>...</p>
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent Szyster
      */
     public static class Array extends ArrayList {
         public final Integer I(int index) throws Error {

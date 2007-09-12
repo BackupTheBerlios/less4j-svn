@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
  * the fast and easy way to serialize and parse sequences of UNICODE strings 
  * (see netstrings, the 8-bit byte original).
  * 
- * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class Netunicode {
     

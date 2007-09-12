@@ -119,9 +119,7 @@ import java.text.StringCharacterIterator;
  * <p>As a decent implementation of JSONR, this one is extensible and provides
  * a Java interface and enough singleton to do so easely.</p>
  * 
- * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
- * 
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class JSONR extends JSON {
     
@@ -143,7 +141,7 @@ public class JSONR extends JSON {
      *    System.out.println(e.toString())
      *}</pre>
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent Szyster
      */
     public static class Error extends JSON.Error {
         
@@ -224,7 +222,7 @@ public class JSONR extends JSON {
      * 
      * into the appropriate <code>java.util.Date</code> instance.</p>
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent Szyster
      */
     public static interface Type {
         /**

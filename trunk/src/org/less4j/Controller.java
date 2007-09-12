@@ -64,7 +64,7 @@ import java.util.Iterator;
  * included in less4j provides a JavaScript interpreter to prototype 
  * new <code>Function</code> and <code>Controller</code> classes.</p>
  * 
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  * 
  */
 public class Controller extends HttpServlet implements Function {

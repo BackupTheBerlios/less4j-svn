@@ -26,7 +26,7 @@ import java.util.Iterator;
  * context graphs of UNICODE strings (may bring some intelligent order to 
  * the semantic chaos of network application interfaces names).</p>
  * 
- * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class PublicNames {
     

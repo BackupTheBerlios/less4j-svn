@@ -43,7 +43,6 @@ import com.jclark.xml.parse.CharacterDataEvent;
 import com.jclark.xml.parse.DocumentParser;
 import com.jclark.xml.parse.OpenEntity;
 import com.jclark.xml.parse.EntityManagerImpl;
-import com.jclark.xml.parse.ApplicationException;
 import com.jclark.xml.parse.base.ApplicationImpl;
 import com.jclark.xml.output.UTF8XMLWriter;
 import com.jclark.xml.sax.ReaderInputStream;
@@ -65,7 +64,8 @@ import com.jclark.xml.sax.ReaderInputStream;
  *
  *try {
  *    // read an XML file into an element tree
- *    XML.Document document = XML.read(new File("data.xml"));
+ *    XML.Document document = new XML.Document();
+ *    document.read(new File("data.xml"));
  *    // access and update the element tree 
  *    Iterator items = document.root
  *        .getChild("details")
@@ -78,7 +78,7 @@ import com.jclark.xml.sax.ReaderInputStream;
  *    }
  *    document.root.addChild("total", Integer.toString(total));
  *    // write the transformed XML to STDOUT
- *    XML.writeUTF8(System.out, document);
+ *    document.write(System.out);
  *} catch (XML.Error e) {
  *    : // handle XML errors
  *} catch (IOException e) {
@@ -102,7 +102,7 @@ import com.jclark.xml.sax.ReaderInputStream;
  * that support reuse of classes in the development of XML interpreters,
  * turning the DOM into an AST.</p>
  * 
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent A.V. Szyster
  *
  */
 public class XML {
@@ -117,7 +117,7 @@ public class XML {
      * not-well formed, a namespace prefix is not declared or an
      * exception is raised by its application.
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static class Error extends Exception {
         private String _message;
@@ -141,11 +141,7 @@ public class XML {
      * An interface to extend the tree builder with new classes of element 
      * derived from <code>Element</code>.
      * 
-     * <h3>Synopsis</h3>
-     *
-     * <pre>...</pre>
-     *
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static interface Type {
         public Element newElement (String name, HashMap attributes);
@@ -157,11 +153,7 @@ public class XML {
      * comments) as a compact tree of Java objects with the smallest
      * memory footprint.
      * 
-     * <h3>Synopsis</h3>
-     * 
-     * <p>...</p>
-     * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static class Element implements XML.Type {
         /**
@@ -215,21 +207,18 @@ public class XML {
          * Instanciate a new childless <code>Element</code> with attributes,
          * first and following CDATA.
          * 
-         * <h3>Synopsis</h3>
-         * 
-         * <pre>new XML.Element("a", new String[]{
-         *    "href", "#", "name", "top"
-         *    }, "go to top", "\r\n");</pre>
-         *    
-         * <p>
-         *   This constructor is usefull when building element trees
-         *   from scratch.
-         * </p>
-         * 
          * @param name the fully qualified name of this element
          * @param attributes as an even array of names and values
          * @param first text after the opening tag 
          * @param follow text after the closing tag
+         * 
+         * @synopsis new XML.Element("a", new String[]{
+         *    "href", "#", "name", "top"
+         *    }, "go to top", "\r\n");
+         *    
+         * @xml This constructor is usefull when building element trees
+         * from scratch.
+         * 
          */
         public Element (
             String name, String[] attributes, String first, String follow
@@ -277,10 +266,6 @@ public class XML {
          * Add a new named child element, creating the <code>children</code> 
          * array list if it does not exist yet.
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * Note th
-         * 
          * @param name
          * @return
          */
@@ -288,6 +273,7 @@ public class XML {
             return addChild(newElement(name, null));
         }
         /**
+         * ...
          * 
          * @param name
          * @return
@@ -298,6 +284,7 @@ public class XML {
             return child;
         }
         /**
+         * ...
          * 
          * @param name
          * @return
@@ -308,8 +295,7 @@ public class XML {
                 );
         }
         /**
-         * 
-         * <h4>Synopsis</h4>
+         * ...
          * 
          * @param name
          * @return
@@ -325,16 +311,15 @@ public class XML {
             return child;
         }
         /**
+         * ...
          * 
-         * <h4>Synopsis</h4>
+         * @param cdata
          * 
-         * <pre>XML.Element parent = new XML.Element("tag");
+         * @synopsis XML.Element parent = new XML.Element("tag");
          * parent.addCdata("first text inside the parent");
          * parent.addChild("child");
          * parent.addCdata("text following ..."
-         * parent.addCdata("... the first child");</pre>
-         * 
-         * @param cdata
+         * parent.addCdata("... the first child");
          */
         public void addCdata (String cdata) {
             if (children==null) {
@@ -353,9 +338,7 @@ public class XML {
         /**
          * Returns the element's local name.
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>(new XML.Element("urn:NameSpace tag")).getLocalName();</pre>
+         * @synopsis (new XML.Element("urn:NameSpace tag")).getLocalName();
          * 
          */
         public String getLocalName () {
@@ -368,12 +351,10 @@ public class XML {
         /**
          * A convenience to access child <code>Element</code> by index. 
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>(new XML.Element("tag")).getChild(3);</pre>
-         * 
          * @param index of the child in this element's children.
          * @return an <code>XML.Element</code> of null
+         * 
+         * @synopsis (new XML.Element("tag")).getChild(3);
          */
         public Element getChild (int index) {
             if (children == null)
@@ -385,12 +366,10 @@ public class XML {
          * A convenience to access a first child <code>Element</code> by name,
          * returns null. 
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>(new XML.Element("tag")).getChild("name");</pre>
-         * 
          * @param name of the child.
          * @return an <code>XML.Element</code> or null
+         * 
+         * @synopsis (new XML.Element("tag")).getChild("name");
          */
         public Element getChild (String name) {
             Element child;
@@ -436,14 +415,12 @@ public class XML {
         /**
          * A convenience to iterate through named children.
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>Iterator named = element.getChildren(
-         *    Simple.set({"a", "A"})
-         *    )</pre>
-         * 
          * @param name of the children.
          * @return an <code>Iterator</code> of <code>XML.Element</code>
+         * 
+         * @synopsis Iterator named = element.getChildren(
+         *    Simple.set({"a", "A"})
+         *    );
          */
         public Iterator getChildren (HashSet names) {
             return new ChildrenIterator(this, names);
@@ -452,12 +429,10 @@ public class XML {
          * A convenience to access an attribute <code>String</code> value
          * by name, returns null if the named attribute does not exists. 
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>(new XML.Element("tag")).getAttribute("name");</pre>
-         * 
          * @param name of the attribute
          * @return the value of the named attribute as a string
+         * 
+         * @synopsis (new XML.Element("tag")).getAttribute("name");
          */
         public String getAttribute (String name) {
             if (attributes == null)
@@ -469,12 +444,10 @@ public class XML {
          * Set the named attribute's value, creating the attributes' map if
          * it does not exist yet.
          * 
-         * <h4>Synopsis</h4>
-         * 
-         * <pre>(new XML.Element("tag")).setAttribute("name", "value");</pre>
-         * 
          * @param name
          * @param value
+         * 
+         * @synopsis (new XML.Element("tag")).setAttribute("name", "value");
          */
         public void setAttribute (String name, String value) {
             if (attributes == null) 
@@ -485,23 +458,33 @@ public class XML {
          * This is a method called by <code>QP</code> when an element has 
          * been parsed without errors.
          * 
-         * <p>The purpose of this interface is to allow derived classes of
+         * @param doc the Document currently parsed
+         * 
+         * @xml The purpose of this interface is to allow derived classes of
          * <code>Element</code> to implement "Object Oriented Pull Parsers"
          * (OOPP). The benefit of this pattern is to avoid the need to walk
          * the element tree and instead process elements as they are
          * validated by the parser, using this simple DOM as an abstract
-         * syntax tree.</p>
+         * syntax tree.
          * 
-         * @param doc the Document currently parsed
          */
         public void valid (Document doc) throws Error {;}
+        public byte[] encodeUTF8(Map ns) {
+            return XML.encodeUTF8(this, ns);
+        }
+        /**
+         * 
+         */
+        public String toString() {
+            return Simple.decode(XML.encodeUTF8(this, null), _utf8);
+        }
     }
     
     /**
      * A class with just enough properties to fully represent an XML
      * document with namespaces and processing instructions. 
      * 
-     * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static class Document implements Type {
         /**
@@ -526,6 +509,148 @@ public class XML {
         } 
         public Element newElement (String name, HashMap attributes) {
             return new Element(name, attributes);
+        }
+        /**
+         * Try to parse an XML <code>InputStream</code> with path and base URL 
+         * using the extension <code>types</code>. 
+         * 
+         * @param is InputStream to parse
+         * @param path locating the parsed entity
+         * @param baseURL for external entity resolution
+         * @param types to use as extensions
+         * @throws Error if the XML file is not well-formed or if one of the
+         *               extension type is broken
+         * @throws IOException raised by accessing the XML file
+         */
+        public void read (InputStream is, String path, URL baseURL, Map types) 
+        throws Throwable {
+            QP qp = new QP(this, types);
+            DocumentParser.parse(new OpenEntity(
+                is, path, baseURL
+                ), new EntityManagerImpl(), qp, Locale.US);
+        }
+        /**
+         * Try to parse an XML <code>file</code> using the extension 
+         * <code>types</code>. 
+         * 
+         * @param file to parse
+         * @param types to use as extensions
+         * @throws Error if the XML file is not well-formed or if one of the
+         *               extension type is broken
+         * @throws IOException raised by accessing the XML file
+         */
+        public void read(File file, Map types) throws Throwable {
+            read (
+                new FileInputStream(file), 
+                file.getAbsolutePath(), 
+                file.toURL(),
+                types
+                );
+        }
+        public void read(File file) throws Throwable {
+            read(
+                new FileInputStream(file), 
+                file.getAbsolutePath(), 
+                file.toURL(), 
+                null
+                );
+        }
+        public static final String PROLOGUE = 
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>";
+        public void write (OutputStream os, String prologue) 
+        throws IOException {
+            UTF8XMLWriter writer = new UTF8XMLWriter(os);
+            writer.markup(prologue);
+            // TODO: processing instructions
+            writeUTF8(writer, root, ns);
+            writer.flush();
+        }
+        public void write (OutputStream os) throws IOException {
+            write(os, PROLOGUE);
+        }
+        public void write (File file, String prologue) throws IOException {
+            FileOutputStream os = new FileOutputStream(file);
+            write(os, prologue);
+            os.close();
+        }
+        public void write (File file) throws IOException {
+            write(file, PROLOGUE);
+        }
+        /**
+         * Try to parse an XML <code>String</code>. 
+         * 
+         * @param string to parse
+         * @param path locating the parsed entity
+         * @param baseURL for external entity resolution
+         * @param types to use as extensions
+         * @throws Error if the XML file is not well-formed
+         * @throws IOException raised by accessing the XML file
+         */
+        public void parse(String string, String path, URL baseURL, Map types) 
+        throws Throwable {
+            read(
+                new ReaderInputStream(new StringReader(string)), 
+                path, baseURL, types
+                );
+        }
+        /**
+         * Try to parse an XML <code>String</code>. 
+         * 
+         * @param string to parse
+         * @param types to use as extensions
+         * @throws Error if the XML file is not well-formed
+         * @throws IOException raised by accessing the XML file
+         */
+        public void parse(String string, Map types) 
+        throws Throwable {
+            read(
+                new ReaderInputStream(new StringReader(string)), 
+                "", null, types
+                );
+        }
+        /**
+         * Try to parse an XML <code>String</code>. 
+         * 
+         * @param string to parse
+         * @throws Error if the XML file is not well-formed
+         * @throws IOException raised by accessing the XML file
+         */
+        public void parse(String string) 
+        throws Throwable {
+            read(
+                new ReaderInputStream(new StringReader(string)), 
+                "", null, null
+                );
+        }
+        /**
+         * 
+         * @return
+         */
+        public byte[] encodeUTF8 () {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            try {
+                this.write(os, "");
+            } catch (IOException e) {
+                ; // checked exceptions suck.
+            }
+            return os.toByteArray();
+        }
+        /**
+         * 
+         * @return
+         */
+        public String toString () {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            try {
+                this.write(os, "");
+            } catch (IOException e) {
+                ; // checked exceptions suck ...
+            }
+            try {
+                return os.toString(_utf8);
+            } catch (Exception e){ 
+                return os.toString(); // ... a lot!
+            }
         }
     }    
     // The Quick Parser, in Java (a "little bit" slower).
@@ -642,118 +767,113 @@ public class XML {
     }
     
     /**
-     * Try to parse an XML <code>InputStream</code> with path and base URL 
-     * using the extension <code>types</code> and an <code>XML.Document</code>. 
+     * Map any XML tag soup into a tree of JSON types that is as flat as 
+     * possible, using local names only as identifiers.
      * 
-     * @param is InputStream to parse
-     * @param path locating the parsed entity
-     * @param baseURL for external entity resolution
-     * @param types to use as extensions
-     * @return a <code>XML.Document</code>
-     * @throws Error if the XML file is not well-formed or if one of the
-     *               extension type is broken
-     * @throws IOException raised by accessing the XML file
+     * @xml This class extends XML.Element with a JSON object and overrides
+     * the valid method to map the XML names and structures to a flatter,
+     * and less ambiguous object model made of JSON objects, arrays and
+     * strings. Its purpose is to avoid the complications of DOM walks
+     * through XML data and instead provide practical JSON types that can
+     * be validated by a regular JSON expression.
+     * 
+     * @synopsis import org.less4j.XML;
+     *import org.less4j.JSON;
+     *import org.less4j.JSONR;
+     * 
+     *public class MyXMLObject extends XML.Regular {
+     *    private static final JSONR.Type model = JSONR.compile(
+     *        "{\"item\": \"[0-9]{13}\", \"quantity\": [320.01]}"
+     *        );
+     *    public validate (document) {
+     *        try {
+     *            model.validate(this.json);
+     *            // ... here goes the rest of the application ... 
+     *        } catch (JSONR.Error e) {
+     *            // ... invalid JSON input, handle the error ...
+     *            JSON.pprint(System.err, this.json)
+     *        }
+     *        this.delete(); // eventually release some memory ... 
+     *    }
+     *}
+     * 
+     * @xml Programming an XML data processor becomes a lot less tedious
+     * and error-prone wi 
+     * 
      */
-    public static final Document read(
-        InputStream is, String path, URL baseURL, Map types, Document doc
-        ) throws Throwable {
-        QP qp = new QP(doc, types);
-        DocumentParser.parse(new OpenEntity(
-            is, path, baseURL
-            ), new EntityManagerImpl(), qp, Locale.US);
-        return doc;
+    public static class Regular extends Element {
+        public static XML.Type TYPE = new Regular(null, null);
+        public JSON.Object json = null;
+        public Regular (String name, HashMap attributes) {
+            super(name, attributes);
+        }
+        public Element newElement (String name, HashMap attributes) {
+            return new Regular(name, attributes);
+        }
+        protected void jsonUpdate(
+            String tag, Regular container, Object contained
+            ) {
+            JSON.Object map = container.json; 
+            if (map == null) {
+                map = new JSON.Object();
+                container.json = map;
+                map.put(tag, contained);
+            } else if (map.containsKey(tag)) {
+                Object o = map.get(tag);
+                if (o instanceof JSON.Array) {
+                    ((JSON.Array) o).add(contained);
+                } else {
+                    JSON.Array list = new JSON.Array();
+                    list.add(o);
+                    list.add(contained);
+                    map.put(tag, list);
+                }
+            } else
+                map.put(tag, contained);
+        }
+        private static final String _text = "text";
+        public void valid(XML.Document document) throws XML.Error {
+            String tag = this.getLocalName();
+            Regular container = getContainer();
+            if (container == null) // root 
+                ;
+            else if (children == null) { // leaf
+                if (attributes != null) { // complex type of attributes
+                    if (first != null) {
+                        attributes.put(_text, first);
+                    }
+                    jsonUpdate(tag, container, attributes);
+                } else if (first != null) { // simple types
+                    jsonUpdate(tag, container, first);
+                }
+            } else { // branch, complex type of elements
+                if (json != null) {
+                    if (attributes != null)
+                        json.putAll(attributes);
+                    jsonUpdate(tag, container, json);
+                } else if (attributes != null) {
+                    jsonUpdate(tag, container, attributes);
+                }
+            }
+        }
+        public Regular getContainer() {
+            Element container = this.parent;
+            while (container != null) {
+                if (container instanceof Regular)
+                    return (Regular) container;
+
+                container = container.parent;
+            }
+            return null;
+        }
+    } 
+    
+    public static class Tree extends Document {
+        public Element newElement(String name, HashMap attributes) {
+            return new Regular(name, attributes);
+        }
     }
     
-    /**
-     * Try to parse an XML <code>file</code> using the extension 
-     * <code>types</code> and an <code>XML.Document</code>. 
-     * 
-     * @param file to parse
-     * @param types to use as extensions
-     * @return a <code>XML.Document</code>
-     * @throws Error if the XML file is not well-formed or if one of the
-     *               extension type is broken
-     * @throws IOException raised by accessing the XML file
-     */
-    public static final Document read(File file, Map types, Document doc) 
-    throws Throwable {
-        return read (
-            new FileInputStream(file), file.getAbsolutePath(), file.toURL(),
-            types, doc
-            );
-    }
-    
-    /**
-     * Try to parse an XML <code>file</code> return a new 
-     * <code>XML.Document</code>. 
-     * 
-     * @param file to parse
-     * @return a <code>XML.Document</code>
-     * @throws Error if the XML file is not well-formed
-     * @throws IOException raised by accessing the XML file
-     */
-    public static final Document read(File file) throws Throwable {
-        return read(
-            new FileInputStream(file), file.getAbsolutePath(), file.toURL(),
-            null, new Document()
-            );
-    }
-    
-    /**
-     * Try to parse an XML <code>String</code> return a new 
-     * <code>XML.Document</code>. 
-     * 
-     * @param string to parse
-     * @param path locating the parsed entity
-     * @param baseURL for external entity resolution
-     * @param types to use as extensions
-     * @return a <code>XML.Document</code>
-     * @throws Error if the XML file is not well-formed
-     * @throws IOException raised by accessing the XML file
-     */
-    public static final Document read(
-        String string, String path, URL baseURL, Map types, Document doc
-        ) 
-    throws Throwable {
-        return read(
-            new ReaderInputStream(new StringReader(string)), 
-            path, baseURL, types, doc
-            );
-    }
-    /**
-     * Try to parse an XML <code>String</code> return a new 
-     * <code>XML.Document</code>. 
-     * 
-     * @param string to parse
-     * @param types to use as extensions
-     * @return a <code>XML.Document</code>
-     * @throws Error if the XML file is not well-formed
-     * @throws IOException raised by accessing the XML file
-     */
-    public static final Document read(
-        String string, Map types, Document doc
-        ) 
-    throws Throwable {
-        return read(
-            new ReaderInputStream(new StringReader(string)), 
-            "", null, types, doc
-            );
-    }
-    /**
-     * Try to parse an XML <code>String</code> return a new 
-     * <code>XML.Document</code>. 
-     * 
-     * @param string to parse
-     * @throws Error if the XML file is not well-formed
-     * @throws IOException raised by accessing the XML file
-     */
-    public static final Document read(String string) 
-    throws Throwable {
-        return read(
-            new ReaderInputStream(new StringReader(string)), 
-            "", null, null, new Document()
-            );
-    }
     private static final String _prefix = "ns";
     public static final String prefixed (String name, Map ns) {
         int fqn = name.indexOf(' ');
@@ -776,8 +896,9 @@ public class XML {
      * 
      * @param os
      * @param element
+     * @param ns
      */
-    protected static final void writeUTF8 (
+    public static final void writeUTF8 (
         UTF8XMLWriter writer, Element element, Map ns
         )
     throws IOException {
@@ -816,43 +937,6 @@ public class XML {
     }
     /**
      * 
-     * @param os
-     * @param root
-     */
-    public static final void writeUTF8 (
-        OutputStream os, Element root, Map ns
-        )
-    throws IOException {
-        UTF8XMLWriter writer = new UTF8XMLWriter(os);
-        writeUTF8(writer, root, ns);
-        writer.flush();
-    }
-    private static final 
-    String _XML_10_UTF8 = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>";
-    /**
-     * 
-     * @param os
-     * @param document
-     */
-    public static final void writeUTF8 (OutputStream os, Document document)
-    throws IOException {
-        UTF8XMLWriter writer = new UTF8XMLWriter(os);
-        writer.markup(_XML_10_UTF8);
-        // TODO: processing instructions
-        writeUTF8(writer, document.root, document.ns);
-        writer.flush();
-    }
-    /**
-     * 
-     * @param file
-     * @param document
-     */
-    public static final void writeUTF8 (File file, Document document) 
-    throws IOException {
-        writeUTF8(new FileOutputStream(file), document);
-    }
-    /**
-     * 
      * @param element
      * @param ns
      * @return
@@ -860,42 +944,13 @@ public class XML {
     public static final byte[] encodeUTF8 (Element element, Map ns) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
-            writeUTF8(os, element, ns);
+            UTF8XMLWriter writer = new UTF8XMLWriter(os);
+            writeUTF8(writer, element, ns);
+            writer.flush();
         } catch (IOException e) {
             ; // checked exceptions suck.
         }
         return os.toByteArray();
     }
-    /**
-     * 
-     * @param document
-     * @return
-     */
-    public static final byte[] encodeUTF8 (Document document) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try {
-            writeUTF8(os, document);
-        } catch (IOException e) {
-            ; // checked exceptions suck.
-        }
-        return os.toByteArray();
-    }
-    /**
-     * 
-     * @param document
-     * @return
-     */
-    public static final String encode (Document document) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try {
-            writeUTF8(os, document);
-        } catch (IOException e) {
-            ; // checked exceptions suck ...
-        }
-        try {
-            return os.toString(_utf8);
-        } catch (Exception e){ 
-            return os.toString(); // ... a lot!
-        }
-    }
+    
 }

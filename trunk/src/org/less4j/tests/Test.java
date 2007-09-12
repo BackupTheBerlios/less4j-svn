@@ -28,7 +28,7 @@ import java.security.NoSuchAlgorithmException;
  * A simple test suite of less4j base classes: Simple, SHA1, Netunicode, 
  * PublicNames, JSON and JSONR.
  * 
- * <p><b>Copyright</b> &copy; 2006 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  * 
  * @version 0.10
  *

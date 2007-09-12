@@ -84,7 +84,7 @@ import org.mozilla.javascript.*; // More JavaScript Applications!
  * insignificant performances in comparison to the loss of one or more 
  * articulation for their applications.</p>
  * 
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class Script extends Controller {
 

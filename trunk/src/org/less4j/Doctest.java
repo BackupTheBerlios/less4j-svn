@@ -39,28 +39,40 @@ import com.sun.javadoc.Tag;
  */
 public class Doctest {
 
-    public static void doTags(Tag[] tags, XML.Element parent) {
-        String name;
-        for (int i=0; i<tags.length; i++) {
-            name = tags[i].name();
-            if (name.equals("@synopsis"))
-                parent.addChild("pre", new String[]{
-                    "class", "synopsis"
-                    }, tags[i].text(), null);
-            else
-                parent.addChild("div", new String[]{
-                    "class", name.substring(1)
-                    }, tags[i].text(), null);
-        }
-    }
-    
     public static XML.Element doComment (String text) {
         try {
-            return XML.read("<div>" + text + "</div>").root;
+            XML.Document doc = new XML.Document(); 
+            doc.parse("<div>" + text + "</div>");
+            return doc.root;
         } catch (Throwable e) {
             return new XML.Element("div", new String[]{
                 "class", "xmlError"
                 }, e.getMessage(), null);
+        }
+    }
+    
+    public static void doTags(Tag[] tags, XML.Element parent) {
+        String name, text;
+        for (int i=0; i<tags.length; i++) {
+            name = tags[i].name();
+            text = tags[i].text();
+            if (name.equals("@div"))
+                parent.addChild(doComment(text));
+            else if (name.equals("@param")) {
+                XML.Element parameter = parent.addChild(
+                    "div", new String[]{"class", "param"}
+                    );
+                int sep = text.indexOf(' ');
+                if (sep > -1) {
+                    parameter.addChild("span", text.substring(0, sep));
+                    parameter.addChild("span", text.substring(sep+1));
+                } else {
+                    parameter.first = text;
+                }
+            } else
+                parent.addChild("div", new String[]{
+                    "class", name.substring(1)
+                    }, tags[i].text(), null);
         }
     }
     
@@ -136,7 +148,7 @@ public class Doctest {
         for (int i = 0; i < methods.length; ++i) {
             javaMethods.addChild(doMethod(methods[i], name, index));
         }
-        XML.writeUTF8(new File(base + "/" + packageName + "/" + name), html);
+        html.write(new File(base + "/" + packageName + "/" + name));
     }
     
     public static void doPackage(

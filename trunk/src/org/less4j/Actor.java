@@ -143,7 +143,7 @@ import javax.servlet.http.Cookie;
  * </dd></di>
  * </dl>
  * 
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class Actor {
     

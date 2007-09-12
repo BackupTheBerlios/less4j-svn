@@ -207,7 +207,7 @@ import java.util.Iterator;
  * <p>And I like money too.</p>
  * 
  *
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class SOAP implements Function {
     
@@ -300,10 +300,10 @@ public class SOAP implements Function {
             String action = $.about.substring(1) + _Request;
             Document soap = new Document();
             soap.ns = new HashMap(_NS);
-            XML.read($.request.getInputStream(), "", null, null, soap);
+            soap.read($.request.getInputStream(), "", null, null);
             $.json = ((Element) soap.root).json.O(_Body).O(action);  
             if ($.test) {
-                $.logInfo(XML.encode(soap), "SOAP");
+                $.logInfo(soap.toString(), "SOAP");
                 $.logInfo(JSON.encode($.json), "INPUT");
             }
             JSONR.Type type = (JSONR.Type) jsonr.namespace.get(_Request);
@@ -328,9 +328,9 @@ public class SOAP implements Function {
     public void httpResource(Actor $) {
         try {
             String name = $.about.substring(1); 
-            $.httpResponse(200, XML.encodeUTF8(WSDL(
+            $.httpResponse(200, WSDL(
                 $.url, name, jsonr
-                )), XML.MIME_TYPE, XML._utf8);
+                ).encodeUTF8(), XML.MIME_TYPE, XML._utf8);
         } catch (Throwable e) {
             $.logError(e);
             $.httpError(500);

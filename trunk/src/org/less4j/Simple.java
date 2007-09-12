@@ -39,7 +39,7 @@ import java.net.URL;
  * A few utilities too simple for language experts, but damn usefull for 
  * application developers.
  * 
- * <p><b>Copyright</b> &copy; 2006-2007 Laurent A.V. Szyster</p>
+ * @copyright 2006-2007 Laurent Szyster
  */
 public class Simple {
 	

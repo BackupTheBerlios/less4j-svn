@@ -59,7 +59,7 @@ package org.less4j;
  *    }
  *}
  *
- * @json {
+ * @synopsis {
  *  "test": true;
  *  "functions": {
  *    "\/hello-world": "org.less4j.tests.HelloWorld"
@@ -75,25 +75,21 @@ public interface Function {
      */
     public static Function singleton = null;
     /**
-     * Returns a JSONR string describing this <code>Function</code> interface. 
+     * Return a JSONR string describing this <code>Function</code> interface. 
      */
     public String jsonInterface (Actor $);
     /**
-     * <p>Test wether this controller's configuration actually supports 
-     * this <code>Function</code> at runtime.</p>
+     * Test wether this controller's configuration actually supports 
+     * this <code>Function</code> at runtime. Functions that extend the 
+     * namespace of less4j's configuration must override this method.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <p>Functions that extend the namespace of less4j's configuration must 
-     * overload this method.</p>
-     * 
-     * <pre>public boolean less4jConfigure (Actor $) {
+     * @synopsis public boolean less4jConfigure (Actor $) {
      *    if (super.less4jConfigure($)) {
      *        // configure your extension here
      *        return true;
      *    } else
      *        return false;
-     *}</pre>
+     *}
      * 
      * @return true if the configuration was successfull, false otherwise
      */
@@ -104,33 +100,31 @@ public interface Function {
      * by default grant no rights to a random user ID made of ten alphanumeric 
      * characters.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>public boolean irtd2Identify (Actor $) {
+     * @synopsis public boolean irtd2Identify (Actor $) {
      *    $.identity = Simple.password(10);
      *    return true;
-     *}</pre>
+     *}
      * 
-     * <p>A simpler implementation is to reply unidentified requests
+     * @xml A simpler implementation is to reply unidentified requests
      * with a <code>401 Not Authorized</code> response:
      * 
-     *<pre>public boolean irtd2Identify (Actor $) {
+     * @synopsis public boolean irtd2Identify (Actor $) {
      *   $.httpError(401)); 
      *   return false; 
      *}</pre>
      * 
-     * <p>or redirect the user agent to another controller:</p>
+     * @xml Or redirect the user agent to another controller:
      * 
-     *<pre>public boolean irtd2Identify (Actor $) {
+     * @synopsis public boolean irtd2Identify (Actor $) {
      *   $.http302Redirect("/login"); 
      *   return false; 
-     *}</pre>
+     *}
      * 
-     * <p>The simplest implementation is to pass unidentified requests 
+     * @xml The simplest implementation is to pass unidentified requests 
      * through, here to handle JSON login with a configurable password
-     * for a <code>root</code> access in the root context "/":</p>
+     * for a <code>root</code> access in the root context "/":
      * 
-     *<pre>public static boolean irtd2Identify (Actor $) {
+     * @synopsis public static boolean irtd2Identify (Actor $) {
      *   return true;
      *}
      *
@@ -148,9 +142,9 @@ public interface Function {
      *   else
      *       $.jsonResponse(401); // Not Authorized
      *       // not identified, response completed. 
-     *}</pre>
+     *}
      * 
-     * <p>...</p>
+     * @xml ...
      *  
      * @param $ the Actor's state
      * @return true if the request was identified, false otherwise
@@ -160,51 +154,43 @@ public interface Function {
      * Complete requests not handled by <code>httpResource</code> or
      * <code>jsonApplication</code>. 
      *
-     * <h4>Synopsis</h4>
-     *
-     *<pre>public void httpContinue (Actor $) {
+     * @synopsis public void httpContinue (Actor $) {
      *    return $.httpError(400); // Bad Request
-     *}</pre>
+     *}
      *
-     * <p>...</p>
+     * @xml ...
      *
      * @param $
      */
     public void httpContinue (Actor $, String method, String contentType);
     /**
-     * <p>Reply to idempotent HTTP requests not handled by a configured
-     * <code>Function</code> or this controller.</p>
+     * Reply to idempotent HTTP requests not handled by a configured
+     * <code>Function</code> or this controller.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public void httpResource (Actor $) {
+     * @synopsis public void httpResource (Actor $) {
      *    return $.httpError(404); // Not Found
-     *}</pre>
+     *}
      *
-     * <p>This is a method to overload in an application controller that
-     * serve resources in this servlet context to identified users.</p>
+     * @xml This is a method to overload in an application controller that
+     * serve resources in this servlet context to identified users.
      * 
-     * <p>Practically, for database and directory controllers there is
+     * @xml Practically, for database and directory controllers there is
      * little else to do short of implementing your own database to URI 
      * namespace mapping for resources. Subclassing this method makes
      * it possible, but most controller will only need a static page
-     * to act as a bootstrap for a JSON application.</p>
+     * to act as a bootstrap for a JSON application.
      * 
      * @param $ the Actor's state
      */
     public void httpResource (Actor $);
     /**
-     * <p>Returns a <code>JSON</code> or <code>JSONR</code> interpreter
+     * Returns a <code>JSON</code> or <code>JSONR</code> interpreter
      * to validate a GET request's query string or a POSTed JSON request 
-     * body.</p> 
+     * body. 
      * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public Object jsonRegular (Actor $) {
+     * @synopsis public Object jsonRegular (Actor $) {
      *    return new JSON();
-     *}</pre>
-     *
-     * <p>...</p>
+     *}
      * 
      * @param $ the Actor's state
      * @return a <code>JSON</code> or <code>JSONR</code> interpreter
@@ -214,14 +200,10 @@ public interface Function {
      * Control an audited interaction between an identified user and a 
      * JSON application.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     *<pre>public void jsonApplication (Actor $) {
+     * @synopsis public void jsonApplication (Actor $) {
      *    $.jsonResponse(501); // Not implemented
-     *}</pre>
+     *}
      *
-     * <p>...</p>
-     * 
      * @param $ the Actor's state
      */
     public void jsonApplication (Actor $);
