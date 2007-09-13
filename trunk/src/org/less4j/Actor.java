@@ -16,7 +16,6 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j; // less java for more applications
 
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -49,100 +48,7 @@ import javax.servlet.http.Cookie;
  * Web 2.0 controllers of SQL databases and LDAP directories, with a 
  * comprehensive audit of identified and authorized actions in time and 
  * sequence.</p>
- * 
- * <h3>Table of Content</h3>
- * 
- * <p>The actor members and methods are grouped by aspects of its
- * applications as follow:</p>
- * 
- * <dl>
- * <di><dt>System Environment:
- * <code>test</code>, 
- * <code>configuration</code>, 
- * <code>logOut</code>, 
- * <code>logInfo</code>, 
- * <code>logError</code>,
- * <code>logAudit</code>. 
- * </dt><dd>
- * Test or production environment, standard output and error. No fancy 
- * logging formats and long stack traces, the bare minimum for all actor: 
- * STDOUT and STDERR, a compact exception trace and unconstrained logging 
- * categories for information.
- * <dd></di>
- * <di><dt>IRTD2:
- * <code>salts</code>,
- * <code>identity</code>,
- * <code>rights</code>,
- * <code>time</code>,
- * <code>digest</code>,
- * <code>digested</code>,
- * <code>irtd2Digest</code>, 
- * <code>irtd2Digested</code>. 
- * </dt><dd>
- * Identification, authorization and audit of the user agent, without
- * the woes of <code>HttpServletSession</code>. A practical implementation
- * of a simple protocol based on HTTP cookies and SHA1 digest, cross
- * plateform and designed to let the weight of persistent sessions be
- * distributed on the clients. Eventually, it also provides an effective
- * audit follow the multiple paths of interactions of a single user and
- * detect fraud attemps.
- * </dd></di>
- * <di><dt>HTTP:
- * <code>url</code>,
- * <code>about</code>,
- * <code>context</code>,
- * <code>request</code>,
- * <code>response</code>,
- * <code>httpError</code>,
- * <code>httpResponse</code>, 
- * <code>http302Redirect</code>.
- * </dt><dd>
- * A few conveniences to dispatch an HTTP request and reply with a single
- * error code, or a minimal response body or a redirect to another location. 
- * </dd></di>
- * <di><dt>Regular JSON:
- * <code>json</code>,
- * <code>jsonGET</code>,
- * <code>jsonPOST</code>,
- * <code>jsonDigest</code>,
- * <code>jsonDigested</code>,
- * <code>jsonResponse</code>.
- * </dt><dd>
- * Each actor's request and response state is represented by a JSON object 
- * that can be transfered by a GET or POST request and of which portions
- * can be digested to allow safe transfer of untampered application states.
- * </dd></di>
- * <di><dt>SQL:
- * <code>sql</code>,
- * <code>sqlOpenJ2EE</code>,
- * <code>sqlOpenJDBC</code>,
- * <code>sqlClose</code>,
- * <code>sqlQuery</code>, 
- * <code>sqlTable</code>, 
- * <code>sqlObject</code>, 
- * <code>sqlObjects</code>, 
- * <code>sqlCollection</code>, 
- * <code>sqlRelations</code>, 
- * <code>sqlUpdate</code>,
- * <code>sqlBatch</code>.
- * </dt><dd>
- * Enough SQL conveniences to declare, update and query a database, including
- * support for all the Object Relational Mapping you will ever need in a JSON 
- * application: table, relations, collection and object(s). 
- * </dd></di>
- * <di><dt>LDAP:
- * <code>ldap</code>,
- * <code>ldapOpen</code>,
- * <code>ldapClose</code>,
- * <code>ldapResolve</code>, 
- * <code>ldapUpdate</code>, 
- * <code>ldapCreate</code>.
- * </dt><dd>
- * Simple LDAP conveniences to resolve, update or create contexts in a
- * directory.
- * </dd></di>
- * </dl>
- * 
+ *  
  * @copyright 2006-2007 Laurent Szyster
  */
 public class Actor {

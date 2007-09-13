@@ -785,10 +785,12 @@ public class XML {
      *    private static final JSONR.Type model = JSONR.compile(
      *        "{\"item\": \"[0-9]{13}\", \"quantity\": [320.01]}"
      *        );
-     *    public validate (document) {
+     *    public validate (XML.Tree application) {
      *        try {
      *            model.validate(this.json);
-     *            // ... here goes the rest of the application ... 
+     *            // ... 
+     *            // handle this element's data for the application
+     *            // ... 
      *        } catch (JSONR.Error e) {
      *            // ... invalid JSON input, handle the error ...
      *            JSON.pprint(System.err, this.json)

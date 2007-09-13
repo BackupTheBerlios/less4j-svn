@@ -28,11 +28,26 @@ import com.sun.javadoc.Tag;
 
 
 /**
- * Produce a practical web of XHTML and JSON resources for all public 
- * packages, classes, fields and methods. The result is considerably simpler, 
- * smaller and faster to load in a modern browser. Adding styles and 
- * interactivity to the javadoc produced is also far more convenient to
- * do in JavaScript.  
+ * Leverage javadoc to produce a practical web of XHTML and JSON resources 
+ * for all packages, classes, fields and methods. The result is considerably 
+ * simpler, smaller and faster to load in a modern browser. Adding styles and 
+ * interactivity to the documentation produced is also far more convenient to
+ * do in JavaScript.
+ * 
+ * @div <h3>About Documentation and Test</h3>
+ * 
+ * <p>Documentation is one purpose of Doctest, the other is test.</p>
+ * 
+ * <p>Text tagged with <code>@test</code> is compiled in a JavaScript 
+ * function and saved in one big script that will execute each test.
+ * The only pre-processing of sources done is the extraction of import
+ * statements.</p>
+ * 
+ * <p>Java sources should be tagged as <code>@synopsis</code> for pure
+ * documentation purposes, but there's no reason to run unit test with
+ * anything else than Rhino. Performances don't matter at unit level
+ * and what cannot be scripted is probably only testable at the application
+ * level.</p>
  * 
  * @copyright 2006-2007 Laurent A.V. Szyster
  *
