@@ -54,9 +54,7 @@ import com.jclark.xml.sax.ReaderInputStream;
  * element tree, enhanced by an extensible type system to develop XML 
  * language interpreters.
  * 
- * <h3>Synopsis</h3>
- * 
- * <pre>import org.less4j.XML;
+ * @synopsis import org.less4j.XML;
  *import org.less4j.Simple;
  *import java.util.Iterator;
  *import java.io.File;
@@ -83,9 +81,9 @@ import com.jclark.xml.sax.ReaderInputStream;
  *    : // handle XML errors
  *} catch (IOException e) {
  *    ; // handle I/O errors
- *}</pre>
+ *}
  *
- * <h3>Applications</h3>
+ * @div <h3>Applications</h3>
  *
  * <p>The minimal Document Object Model (DOM) provided is the defacto standard
  * element tree found across all development environments. It makes simple
@@ -270,7 +268,7 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name) {
-            return addChild(newElement(name, null));
+            return addChild(new Element(name, null));
         }
         /**
          * ...
@@ -279,7 +277,7 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name, String first) {
-            XML.Element child = addChild(newElement(name, null));
+            XML.Element child = addChild(new Element(name, null));
             child.first = first;
             return child;
         }
@@ -290,9 +288,9 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name, String[] attrs) {
-            return addChild(
-                newElement(name, (HashMap) Simple.dict(new HashMap(), attrs))
-                );
+            return addChild(new Element(
+                name, (HashMap) Simple.dict(new HashMap(), attrs)
+                ));
         }
         /**
          * ...
@@ -303,9 +301,9 @@ public class XML {
         public XML.Element addChild (
             String name, String[] attrs, String first, String follow
             ) {
-            XML.Element child = addChild(
-                newElement(name, (HashMap) Simple.dict(new HashMap(), attrs))
-                );
+            XML.Element child = addChild(new Element(
+                name, (HashMap) Simple.dict(new HashMap(), attrs)
+                ));
             child.first = first;
             child.follow = follow;
             return child;
@@ -322,7 +320,7 @@ public class XML {
          * parent.addCdata("... the first child");
          */
         public void addCdata (String cdata) {
-            if (children==null) {
+            if (children == null || children.size() == 0) {
                 if (first == null)
                     first = cdata;
                 else
@@ -455,6 +453,42 @@ public class XML {
             attributes.put(name, value);
         }
         /**
+         * Break all circular reference for this element and all its children.
+         */
+        public void collect () {
+            parent = null;
+            if (children != null) {
+                Iterator child = children.iterator();
+                while (child.hasNext()) {
+                    ((Element) child.next()).collect();
+                }
+            }
+        }
+        /**
+         * Remove this element and all its children from the tree, folding
+         * up the following CDATA and collecting circular references in its
+         * branch.
+         */
+        public void delete () {
+            int index = parent.children.indexOf(this);
+            if (index == 0) {
+                if (parent.first == null)
+                    parent.first = follow;
+                else
+                    parent.first = parent.first + follow; 
+            } else {
+                XML.Element previous = (
+                    (Element) parent.children.get(index-1)
+                    );
+                if (previous.follow == null)
+                    previous.follow = follow;
+                else
+                    previous.follow = previous.follow + follow;
+            }
+            parent.children.remove(index);
+            collect();
+        }
+        /**
          * This is a method called by <code>QP</code> when an element has 
          * been parsed without errors.
          * 
@@ -468,7 +502,9 @@ public class XML {
          * syntax tree.
          * 
          */
-        public void valid (Document doc) throws Error {;}
+        public void valid (Document doc) throws Error {
+            ;
+        }
         public byte[] encodeUTF8(Map ns) {
             return XML.encodeUTF8(this, ns);
         }
@@ -752,9 +788,8 @@ public class XML {
             _curr = e;
         }
         public void endElement(EndElementEvent event) throws Error {
-            _curr.valid(doc);
             Element parent = _curr.parent;
-            // _curr.parent = null; // break circular reference!
+            _curr.valid(doc);
             _curr = parent;
         }
         public void characterData (CharacterDataEvent event) 
@@ -812,30 +847,33 @@ public class XML {
         public Element newElement (String name, HashMap attributes) {
             return new Regular(name, attributes);
         }
-        protected void jsonUpdate(
-            String tag, Regular container, Object contained
+        protected void update(
+            String name, Object value, Regular container
             ) {
             JSON.Object map = container.json; 
             if (map == null) {
                 map = new JSON.Object();
                 container.json = map;
-                map.put(tag, contained);
-            } else if (map.containsKey(tag)) {
-                Object o = map.get(tag);
+                map.put(name, value);
+            } else if (map.containsKey(name)) {
+                Object o = map.get(name);
                 if (o instanceof JSON.Array) {
-                    ((JSON.Array) o).add(contained);
+                    ((JSON.Array) o).add(value);
                 } else {
                     JSON.Array list = new JSON.Array();
                     list.add(o);
-                    list.add(contained);
-                    map.put(tag, list);
+                    list.add(value);
+                    map.put(name, list);
                 }
             } else
-                map.put(tag, contained);
+                map.put(name, value);
         }
         private static final String _text = "text";
+        /**
+         * ...
+         */
         public void valid(XML.Document document) throws XML.Error {
-            String tag = this.getLocalName();
+            Object value = null;
             Regular container = getContainer();
             if (container == null) // root 
                 ;
@@ -844,18 +882,38 @@ public class XML {
                     if (first != null) {
                         attributes.put(_text, first);
                     }
-                    jsonUpdate(tag, container, attributes);
+                    value = attributes;
                 } else if (first != null) { // simple types
-                    jsonUpdate(tag, container, first);
+                    value = first;
                 }
             } else { // branch, complex type of elements
                 if (json != null) {
                     if (attributes != null)
                         json.putAll(attributes);
-                    jsonUpdate(tag, container, json);
+                    value = json;
                 } else if (attributes != null) {
-                    jsonUpdate(tag, container, attributes);
+                    value = attributes;
                 }
+            }
+            this.validate (value, container, (Tree) document);
+        }
+        /**
+         * Applications of XML.Regular should override this method for each
+         * relevant type. The default implemention is to update the container's 
+         * JSON object and delete the validated element from the XML tree if 
+         * there is a container, leaving only the JSON structures.    
+         * 
+         * @param value
+         * @param container
+         * @param document
+         */
+        public void validate(
+            Object value, Regular container, Tree document
+            ) {
+            if (container != null) { 
+                if (value != null)
+                    update(getLocalName(), value, container);
+                delete();
             }
         }
         public Regular getContainer() {
