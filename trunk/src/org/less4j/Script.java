@@ -444,7 +444,7 @@ public class Script extends Controller {
 
 /* Note about this implementation
  * 
- * The purpose of org.less4j.applications.Script is to develop rapidely.
+ * The purpose of org.less4j.Script is to develop rapidely.
  * 
  * There is ample room for optimization here, using two axis: bytecode
  * compilation of JavaScript sources and implementations of Scriptable

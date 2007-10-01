@@ -54,7 +54,7 @@ import java.util.Iterator;
  * @copyright 2006-2007 Laurent Szyster
  */
 public class SQL {
-    
+   
     /**
      * The simplest ORM interface possible for JDBC <code>ResultSet</code>.
      * 

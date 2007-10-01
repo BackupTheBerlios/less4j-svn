@@ -664,9 +664,11 @@ public class SOAP implements Function {
      * above, override the <code>jsonInterface</code> method to return the
      * regular JSON string describing this function's input and output.</p>
      * 
-     * <p>Note that most of the port, binding and service whoopla is supported
+     * <p>Note that all that port, binding and service whoopla is supported
      * for the simplest case: one method, one class, one namespace and one URL
-     * for each services.</p>
+     * for each services. This is functional WSDL, I'm not even trying to
+     * make services look like objects with methods, that is not what they
+     * are. Well designed web services are stateless functions.</p>
      * 
      * @param url this function's service address and its schema's namespace.
      * @param action the name of this SOAP action

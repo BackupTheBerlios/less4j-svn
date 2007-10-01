@@ -30,12 +30,12 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
+ * <p>
  * Conveniences to send and receive netstrings efficiently over Java's 
  * synchronous socket API.
+ * </p>
  * 
- * <h3>Synosis</h3>
- * 
- * <pre>import org.less4j.Netstring;
+ * @synopsis import org.less4j.Netstring;
  *import java.net.Socket;
  *import java.util.Iterator;
  *
@@ -52,12 +52,7 @@ import java.nio.ByteBuffer;
  *        System.out.println (netstring.next());
  *} finally {
  *    conn.close ();
- *}</pre>
- * 
- * <p>This class is a lazy implementation of an netstring stream
- * collector, just enough to support netstring protocols.</p>
- * 
- * @copyright 2006-2007 Laurent Szyster
+ *}
  */
 public class Netstring {
     
@@ -67,9 +62,7 @@ public class Netstring {
      * single <code>byte</code> array, write it to the <code>conn</code>
      * socket's output stream and finally flush that stream. 
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import org.less4j.Simple;
      *import java.util.Iterator;
      *import java.net.Socket;
@@ -82,12 +75,12 @@ public class Netstring {
      *    Netstring.send(conn, netstrings, "UTF-8");
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      *
      * <p>The code above connects to a host named 'server' on TCP port 1234,
      * sends the netstrings below:</p>
      * 
-     * <pre>3:one,3:two,5:three,4:four,</pre>
+     * @synopsis 3:one,3:two,5:three,4:four,
      * 
      * <p>The purpose is to buffer small strings before actually sending
      * data through the socket in order to minimize local overhead and
@@ -129,9 +122,7 @@ public class Netstring {
      * A low level interface to send data from a <code>byte</code> array
      * as one netstring.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import java.net.Socket;
      *
      *byte[] data = new byte[]{
@@ -143,7 +134,7 @@ public class Netstring {
      *    Netstring.send(conn, data, 5, 5);
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      * 
      * @param conn the <code>Socket</code> connection to send to
      * @param buffer the <code>byte</code> from which to send data
@@ -168,9 +159,7 @@ public class Netstring {
      * A low level interface to send a <code>byte</code> array as one 
      * netstring.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import java.net.Socket;
      *
      *byte[] data = new byte[]{'h', 'e', 'l', 'l', 'o'};
@@ -179,7 +168,7 @@ public class Netstring {
      *    Netstring.send(conn, data);
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      * 
      * @param conn the <code>Socket</code> connection to send to
      * @param buffer the <code>byte</code> from which to send data
@@ -194,9 +183,7 @@ public class Netstring {
      * A convenience to encode a UNICODE string in 8-bit and send the byte
      * array result as one netstring.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import java.net.Socket;
      *
      *Socket conn = new Socket("server", 1234);
@@ -204,7 +191,7 @@ public class Netstring {
      *    Netstring.send(conn, "hello", "UTF-8");
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      * 
      * @param conn the <code>Socket</code> connection to send to
      * @param string to encoded as 8-bit bytes and send
@@ -311,9 +298,7 @@ public class Netstring {
     /**
      * Instanciate an <code>Iterator</code> of <code>byte[]</code> received.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import java.util.Iterator;
      *import java.net.Socket;
      *
@@ -327,7 +312,7 @@ public class Netstring {
      *    ; // handle error
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      *
      * <p>The code above opens a connection to "server" on TCP port 1234
      * and receive all netstrings one by one until the connection is closed
@@ -347,9 +332,7 @@ public class Netstring {
      * Instanciate an <code>Iterator</code> of <code>String</code> received
      * and decoded from the given 8-bit character set <code>encoding</code>.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import java.util.Iterator;
      *import java.net.Socket;
      *
@@ -363,7 +346,7 @@ public class Netstring {
      *    ; // handle error
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      *
      * <p>The code above opens a connection to "server" on TCP port 1234,
      * then receive and decode from "UTF-8" all incoming netstrings until the 
@@ -453,9 +436,7 @@ public class Netstring {
      * Iterate through netstrings found in a byte <code>buffer</code> and
      * decode them from the given character set <code>encoding</cide>.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>import org.less4j.Netstring;
+     * @synopsis import org.less4j.Netstring;
      *import java.util.Iterator;
      *0
      *byte[] buffer = new byte[]{
@@ -465,7 +446,7 @@ public class Netstring {
      *String data;
      *while (netstrings.hasNext())
      *    data = netstrings.next();
-     *</pre>
+     *
      *
      * @param buffer a <code>byte</code> array
      * @param encoding

@@ -65,9 +65,6 @@ package org.less4j;
  *    "\/hello-world": "org.less4j.tests.HelloWorld"
  *  }
  *}
- * 
- * @copyright 2006-2007 Laurent A.V. Szyster
- *
  */
 public interface Function {
     /**

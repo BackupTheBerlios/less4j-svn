@@ -128,12 +128,9 @@ public class Controller extends HttpServlet implements Function {
         "}"); 
            
     /**
-     * <p>Returns a JSONR pattern</code> to test the actor's 
-     * <code>configuration</code>.</p>
-     * 
-     * <h4>Synospis</h4>
-     * 
-     * <p>The default pattern essentially restricts configuration to a
+     * Returns a JSONR pattern to test the actor's <code>configuration</code>.
+     *
+     * @div <p>The default pattern essentially restricts configuration to a
      * namespace, typing only the values named <code>test</code> and 
      * <code>irtd2Salts</code>.</p>
      * 
@@ -142,21 +139,26 @@ public class Controller extends HttpServlet implements Function {
      * to enforce a minimal configuration without constraints on the JSON 
      * objects handled and no SQL or LDAP connections:</p>
      * 
-     * <pre>{
-     *    "test": false, // default to production
-     *    "irtd2Timeout": 3600, // one hour maximum
-     *    "postBytes": 4096, // relatively small passwords
-     *    "jsonContainers": 1, // one object
-     *    "jsonIterations": 2, // two values
-     *    "jsonRegular": {
-     *        "username": "@", // the universal e-mail sign by now. 
-     *        "password": "........+"
-     *    },
-     *    "jdbcDriver": ".+",
-     *    "jdbcURL": "jdbc:.+",
-     *    "jdbcUsername": "(?!root|admin)", // no priviledged users 
-     *    "jdbcPassword": "........+"
-     *}</pre>
+     * @synopsis public JSONR.Type configurationPattern () 
+     *throws JSON.Error {
+     *    return JSONR.compile(JSON.object(new Object[]{
+     *        "test", Boolean.FALSE, // default to production
+     *        "irtd2Timeout", new Integer(3600), // one hour maximum
+     *        "postBytes", new Integer(4096), // relatively small passwords
+     *        "jsonContainers", new Integer(1), // one object
+     *        "jsonIterations", new Integer(2), // two values
+     *        "jsonRegular", JSON.object(new Object[]{
+     *            "username", "@", // the universal e-mail sign by now. 
+     *            "password", "........+"
+     *            }),
+     *        "jdbcDriver", ".+",
+     *        "jdbcURL", "jdbc:.+",
+     *        "jdbcUsername", "(?!root|admin)", // no priviledged users 
+     *        "jdbcPassword", "........+"
+     *        }));
+     *}
+     *
+     * @return a <code>JSONR.Type</code>
      */
     public JSONR.Type configurationPattern () throws JSON.Error {
         return JSONR.compile(_configurationPattern);
