@@ -1140,6 +1140,28 @@ public class JSON {
                 result.put(pairs[i].toString(), pairs[i+1]);
         return result;
     };
+    
+    /**
+     * Instanciate a new <code>JSON.Object</code> with an sequence
+     * of name and value String pairs, a convenience to map a 
+     * <code>String[][]</code> array to a dictionary.
+     * 
+     * @pre JSON.dict(new String[][]{
+     *     {"hello", "world"},
+     *     {"one", new Integer(1)},
+     *     {"test", Boolean.TRUE} 
+     *     });
+     * 
+     * @param pairs of key and values
+     * @return a new <code>JSON.Object</code>
+     */
+    public static final JSON.Object dict (String[][] pairs) {
+        JSON.Object result = new JSON.Object();
+        for (int i=0; i< pairs.length; i++)
+            result.put(pairs[i][0], pairs[i][1]);
+        return result;
+    };
+    
     /**
      * Instanciate a new <code>JSON.Array</code> with a sequence of values, 
      * a convenient way to express JSON literals in java.
