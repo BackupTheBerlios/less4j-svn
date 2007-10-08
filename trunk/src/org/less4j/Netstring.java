@@ -30,10 +30,8 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
- * <p>
  * Conveniences to send and receive netstrings efficiently over Java's 
  * synchronous socket API.
- * </p>
  * 
  * @synopsis import org.less4j.Netstring;
  *import java.net.Socket;

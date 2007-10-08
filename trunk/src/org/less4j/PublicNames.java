@@ -22,11 +22,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 /**
- * <p>A protocol to uniformely encode and validate well-articulated 
+ * A protocol to uniformely encode and validate well-articulated 
  * context graphs of UNICODE strings (may bring some intelligent order to 
- * the semantic chaos of network application interfaces names).</p>
- * 
- * @copyright 2006-2007 Laurent Szyster
+ * the semantic chaos of network application interfaces names).
  */
 public class PublicNames {
     

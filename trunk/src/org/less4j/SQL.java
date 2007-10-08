@@ -30,7 +30,7 @@ import java.util.Iterator;
  * patterns: table, relations, collection, index, dictionary, one or many 
  * objects.
  * 
- * <h3>Applications</h3>
+ * @div <h3>Applications</h3>
  * 
  * <p>The purpose of less4j's support for SQL is to do the inverse of
  * what ORM are usually intended: to map existing relational data to 
@@ -58,7 +58,7 @@ public class SQL {
     /**
      * The simplest ORM interface possible for JDBC <code>ResultSet</code>.
      * 
-     * <h3>Synopsis</h3>
+     * @div <h3>Synopsis</h3>
      * 
      *<pre>protected static class _Collection implements ORM {
      *    public Object jdbc2 (ResultSet rs) throws SQLException {
@@ -92,14 +92,12 @@ public class SQL {
      * applications to store JSON objects as they are first, then latter
      * update one or more database with indexes and statistics about those
      * objects.</p>
-     * 
-     * @copyright 2006-2007 Laurent Szyster
      */
     public static interface ORM {
         /**
          * Try to map a <code>ResultSet</code> into a Java <code>Object</code>.
          *  
-         * Note that the six implementations provided return either a 
+         * @div Note that the six implementations provided return either a 
          * <code>JSON.Array</code> or a <code>JSON.Object</code>.
          * 
          * @param rs a JDBC <code>ResultSet</code>

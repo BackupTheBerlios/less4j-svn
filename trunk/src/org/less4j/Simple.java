@@ -37,39 +37,46 @@ import java.net.URL;
 /**
  * A few utilities too simple for language experts, but damn usefull for 
  * application developers.
- * 
- * @copyright 2006-2007 Laurent Szyster
  */
 public class Simple {
-	
+    
     /**
-     * The maximum block size for many file system.
+     * The default file I/O buffer size.
+     * 
+     * @h4 Synopsis
+     * 
+     * @p 4046 bytes is the maximum block size for many file system, so
+     * it makes a rather good default size for file I/O buffers.
      */
 	public static int fioBufferSize = 4096;
 
     /**
-     * <p>Sixteen Kilobytes (16384 8-bit bytes) represent 3,4 pages of
+     * The default network I/O buffer size.
+     * 
+     * @h4 Synopsis
+     * 
+     * @p Sixteen Kilobytes (16384 8-bit bytes) represent 3,4 pages of
      * 66 lines and 72 columns of ASCII characters. Much more information 
      * than what most of us can digest in a few minutes. It's a reasonable
      * maximum to set for an application web interface updated by its
-     * user every few seconds.</p>
+     * user every few seconds.
      * 
-     * <p>Also, 16KB happens to be the defacto standard buffer size
+     * @p Also, 16KB happens to be the defacto standard buffer size
      * for TCP peers and networks since it's the maximum UDP datagram size
      * in use. Which makes anything smaller than this limit a better candidate 
-     * for the lowest possible IP network latency.</p>
+     * for the lowest possible IP network latency.
      * 
-     * <p>Finally, sixteen KB buffers can hold more than 65 thousand concurrent
+     * @p Finally, sixteen KB buffers can hold more than 65 thousand concurrent
      * responses in one GB of RAM, a figure between one and two orders of 
      * magnitude larger than what you can reasonably expect from a J2EE 
      * container running some commodity hardware. At an average speed of
      * 0.5 millisecond per concurrent request/response 16KB buffers sums
-     * up to 36MBps, less than 1Gbps.</p>
+     * up to 36MBps, less than 1Gbps.
      * 
-     * <p>So, that sweet sixteen spot is also a safe general maximum for a 
+     * @p So, that sweet sixteen spot is also a safe general maximum for a 
      * web 2.0 application controller that needs to keep lean on RAM and
      * wants the fastest possible network and the smallest possible
-     * imbalance between input and output.</p>
+     * imbalance between input and output.
      */
     public static int netBufferSize = 16384;
     
@@ -80,9 +87,11 @@ public class Simple {
      * join them and  then returns a UNICODE string (implicitely using the 
      * default character set encoding). 
      * 
-     * <p>This is a "low-level" API to support convenience to glob files,
+     * @h4 Synopsis
+     * 
+     * @p This is a "low-level" API to support convenience to glob files,
      * URLs resources or any input stream that can be wrapped with a
-     * <code>BufferedReader</code>.</p>
+     * <code>BufferedReader</code>.
      * 
      * @param br a <code>BufferedReader</code> to glob.
      * @return a <code>String</code> with all data read
@@ -109,13 +118,13 @@ public class Simple {
     /**
      * Try to read a complete file into a String.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>String resource = Simple.read("my.xml");</pre>
+     * @pre String resource = Simple.read("my.xml");
      *     
-     * <p>Note that since it does not throw exceptions, this method can
+     * @p Note that since it does not throw exceptions, this method can
      * be used to load static class String members, piggy-backing the 
-     * class loader to fetch text resources at runtime.</p> 
+     * class loader to fetch text resources at runtime. 
      * 
      * @param name the file's name
      * @return a <code>String</code> or <code>null</code> 
@@ -131,9 +140,9 @@ public class Simple {
     /**
      * Try to read a complete InputStream into a String.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>String resource = Simple.read(System.in);</pre>
+     * @pre String resource = Simple.read(System.in);
      *     
      * @param is <code>InputStream</code> to read from
      * @return a <code>String</code> or <code>null</code>
@@ -145,13 +154,13 @@ public class Simple {
     /**
      * Try to read a complete file into a String.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>String resource = Simple.read("http://w3c.org/");</pre>
+     * @pre String resource = Simple.read("http://w3c.org/");
      *     
-     * <p>Note that since it does not throw exceptions, this method can
+     * @p Note that since it does not throw exceptions, this method can
      * be used to load static class String members, piggy-backing the 
-     * class loader to fetch text resources at runtime.</p> 
+     * class loader to fetch text resources at runtime. 
      * 
      * @param url to read from
      * @return a <code>String</code> or <code>null</code>
@@ -170,7 +179,7 @@ public class Simple {
      * sending one or more byte strings at once over synchronous
      * TCP streams.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
      * @param bytes
      * @return
@@ -186,29 +195,29 @@ public class Simple {
     /**
      * ...
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>...</pre>
+     * @pre ...
      * 
-     * <h4>Application</h4>
+     * @h4 Application
      * 
-     * <p>TCP/IP is a reliable stream protocol (TCP) implemented on top
+     * @p TCP/IP is a reliable stream protocol (TCP) implemented on top
      * of an unreliable packet protocol (IP) and this has implications
-     * when programming network peers.</p>
+     * when programming network peers.
      * 
-     * <p>As soon as latency between peers rise up, buffering data and sending 
+     * @p As soon as latency between peers rise up, buffering data and sending 
      * it in chunks that fit the common TCP windows is the only way to reach
      * decent performances. On the contrary, unbuffered output may translate
-     * into colossal waiste of network bandwith, RAM space and CPU power.</p> 
+     * into colossal waiste of network bandwith, RAM space and CPU power. 
      * 
-     * <p>So, to avoid the worse case regardless of the runtime environment, 
+     * @p So, to avoid the worse case regardless of the runtime environment, 
      * responses should be buffered at once and then chunked out in blocks 
      * that try their best to fit the local operating system buffers and the
-     * usual network packets sizes.</p>
+     * usual network packets sizes.
      * 
-     * <p>Note that this is only applicable when the output is expected to
+     * @p Note that this is only applicable when the output is expected to
      * allways be below or in the order of magnitude of the common TPC 
-     * window size, somewhere between 16KB and 64KB.</p>
+     * window size, somewhere between 16KB and 64KB.
      * 
      * @param os
      * @param bb
@@ -244,9 +253,9 @@ public class Simple {
      * the position in the buffer after the last byte received (ie:
      * the length of the buffer if it was filled).
      * 
-     * <h4>Synopsis</code>
+     * @h4 Synopsis</code>
      * 
-     * <pre>import org.less4j.Simple;
+     * @pre import org.less4j.Simple;
      *import java.net.Socket;
      *
      *byte[] buffer = new byte[4096];
@@ -257,7 +266,7 @@ public class Simple {
      *        System.out.println("buffer filled");
      *} finally {
      *    conn.close();
-     *}</pre>
+     *}
      * 
      * 
      * @param is the <code>InputStream</code> to receive from
@@ -291,54 +300,46 @@ public class Simple {
 	}
 
     /**
-     * A convenience to build an ArrayList from an array of Objects
+     * A convenience to extend a <code>List</code> from an array of 
+     * <code>Objects</code>.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>List sequence = Simple.list(
+     * @pre List sequence = Simple.list(
      *     new ArrayList(), new Object[]{"a", "b", "c"}
-     *     );</pre>
+     *     );
      * 
-     * @param objects
-     * @return
+     * @param items to add in the sequence
+     * @return the extended <code>List</code>
      */
-    public static List list (List sequence, Object[] objects) {
-        for (int i=0; i<objects.length; i++)
-            sequence.add(objects[i]);
+    public static List list (List sequence, Object[] items) {
+        for (int i=0; i<items.length; i++)
+            sequence.add(items[i]);
         return sequence;
     }
     
     /**
-     * A convenience to build a HashSet from an array of Objects
+     * A convenience to build a <code>HashSet</code> from an array of 
+     * <code>Objects</code>.
      * 
-     * <h4>Synopsis</h4>
+     * @pre HashSet set = Simple.set({"a", "b", "c"});
      * 
-     * <pre>HashSet set = Simple.set({"a", "b", "c"});</pre>
-     * 
-     * @param objects
+     * @param items to add in the set 
      * @return a <code>HashSet</code>
      */
-    public static HashSet set (Object[] objects) {
+    public static HashSet set (Object[] items) {
         HashSet result = new HashSet();
-        for (int i=0; i<objects.length; i++)
-            result.add(objects[i]);
+        for (int i=0; i<items.length; i++)
+            result.add(items[i]);
         return result;
     }
     
 	/**
 	 * A convenience to iterate around a "primitive" array. 
 	 * 
-	 * <h4>Synopsis</h4>
-     * 
-     * <p>...
-	 * 
-     * <blockquote>
-	 * <pre>Iterator iter = Simple.iter(new Object[]{x, y, z});</pre>
-     * </blockquote>
+	 * @pre Iterator iter = Simple.iter(new Object[]{x, y, z});
 	 *     
-	 * Usefull to iterate through final arrays, a prime construct in web
+	 * @p Usefull to iterate through final arrays, a prime construct in web
 	 * application controllers where check lists and filter sets made of
-	 * primitive array abound (usually to enforce business rules).</p>
+	 * primitive array abound (usually to enforce business rules).
 	 * 
 	 * @param objects the array to iterate through
 	 * @return iterator yields all objects in the array
@@ -359,57 +360,46 @@ public class Simple {
     }
 
     /**
-     * Extend a <code>Map</code> with the keys and values sequence found in
+     * Update a <code>Map</code> with the keys and values sequence found in
      * an even <code>Object</code> array.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>HashMap map = Simple.dict(new HashMap(), new Object[]{
+     * @pre HashMap map = Simple.dict(new HashMap(), new Object[]{
      *     "A", "test", 
      *     "B", true, 
      *     "C": 1.0, 
      *     "D", null
-     *     });</pre>
+     *     });
      * 
-     * <p>This method is convenient to instanciate or update dictionaries 
+     * @p This method is convenient to instanciate or update dictionaries 
      * with a clearer syntax than using a sequence of <code>Map.put</code>.
-     * </p> 
      * 
-     * @param items
-     * @param map
+     * @param map to update
+     * @param pairs of key and value to add
+     * @return the updated <code>Map</code>
      */
-    public static Map dict (Map map, Object[] items) {
-        for (int i=0; i<items.length; i=i+2)
-            map.put(items[i], items[i+1]);
+    public static Map dict (Map map, Object[] pairs) {
+        for (int i=0; i<pairs.length; i=i+2)
+            map.put(pairs[i], pairs[i+1]);
         return map;
     }
     
-    public static JSON.Object dict (Object[] items) {
-        JSON.Object map = new JSON.Object();  
-        for (int i=0; i<items.length; i=i+2)
-            map.put(items[i], items[i+1]);
-        return map;
-    }
-    
-    public static Map dict (Map map, String[][] items) {
-        for (int i=0; i<items.length; i++) if (items[i].length > 1)
-            map.put(items[i][0], items[i][1]);
-        return map;
-    }
-    
-    public static JSON.Object dict (String[][] items) {
-        JSON.Object map = new JSON.Object();  
-        for (int i=0; i<items.length; i++) if (items[i].length > 1)
-            map.put(items[i][0], items[i][1]);
+    /**
+     * ...
+     * 
+     * @param map to update
+     * @param pairs of key and value to add
+     * @return the updated <code>Map</code>
+     */
+    public static Map dict (Map map, String[][] pairs) {
+        for (int i=0; i<pairs.length; i++) if (pairs[i].length > 1)
+            map.put(pairs[i][0], pairs[i][1]);
         return map;
     }
     
     /**
      * Iterate through arbitrary values in a <code>Map</code>.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>HashMap map = Simple.dict(new HashMap(), new Object[]{
+     * @pre HashMap map = Simple.dict(new HashMap(), new Object[]{
      *     "A", "test", 
      *     "B", true, 
      *     "C": 1.0, 
@@ -417,10 +407,10 @@ public class Simple {
      *     });;
      * Iterator values = Simple.iter(map, new Object[]{
      *     "A", "C", "E"
-     *     };);</pre>
+     *     };);
      * 
-     * <p>This method is convenient to extract an ordered set of named
-     * values from a dictionary using a <code>Object</code> array.</p>
+     * @p This method is convenient to extract an ordered set of named
+     * values from a dictionary using a <code>Object</code> array.
      * 
      * @param map the <code>Map</code> to iterate through
      * @param keys and array of keys to iterate through 
@@ -435,9 +425,9 @@ public class Simple {
      * <code>encoding</code> or use the default if a 
      * <code>UnsupportedEncodingException</code> was throwed.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>byte[] encoded = Simple.encode("test", "UTF-8");</pre>
+     * @pre byte[] encoded = Simple.encode("test", "UTF-8");
      * 
      * @param unicode the <code>String</code> to encode
      * @param encoding the character set name
@@ -456,11 +446,9 @@ public class Simple {
      * set <code>encoding</code> or use the default if a 
      * <code>UnsupportedEncodingException</code> was throwed.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>String decoded = Simple.decode(
+     * @pre String decoded = Simple.decode(
      *    new byte[]{'t', 'e', 's', 't'}, "UTF-8"
-     *    );</pre>
+     *    );
      * 
      * @param bytes the <code>byte</code> array to decode 
      * @param encoding the character set name
@@ -513,9 +501,7 @@ public class Simple {
      * character as fast an lean as possible in Java (without a PCRE and
      * for a maybe too simple use case).
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>Iterator strings = Simple.split("one two three", ' ');</pre>
+     * @pre Iterator strings = Simple.split("one two three", ' ');
      * 
      * @param splitted the <code>String</code> to split
      * @param splitter the <code>char</char> used to split input
@@ -526,12 +512,12 @@ public class Simple {
     }
 	
     /**
-     * If you miss Python's <code>join</code>, here it is ;-) 
+     * Join the items produced by an <code>Iterator</code> in a 
+     * <code>StringBuffer</code>, using an <code>Object</code> as
+     * separator between items.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>Iterator iter = Simple.iter(new Object[]{"A", "B", "C"});
-     *StringBuffer joined = Simple.join(", ", iter, new StringBuffer())</pre>
+     * @pre Iterator iter = Simple.iter(new Object[]{"A", "B", "C"});
+     *StringBuffer joined = Simple.join(", ", iter, new StringBuffer())
      * 
      * @param separator
      * @param iter
@@ -540,22 +526,21 @@ public class Simple {
     public static StringBuffer join (
         Object separator, Iterator iter, StringBuffer sb
         ) {
-        if (iter.hasNext())
+        if (iter.hasNext()) {
             sb.append(iter.next());
             while (iter.hasNext()) {
                 sb.append(separator);
                 sb.append(iter.next()); 
             }
+        }
         return sb;
     }
     
     /**
      * If you miss Python's <code>join</code>, here it is ;-) 
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>Iterator strings = Simple.iter(new Object[]{"A", "B", "C"});
-     *String joined = Simple.join(", ", strings)</pre>
+     * @pre Iterator strings = Simple.iter(new Object[]{"A", "B", "C"});
+     *String joined = Simple.join(", ", strings)
      * 
      * @param separator 
      * @param iter 
@@ -579,8 +564,8 @@ public class Simple {
     };
     
     /**
-     * <p>Generate a random password of a given <code>length</code>, using
-     * only US ASCII characters.</p>
+     * @p Generate a random password of a given <code>length</code>, using
+     * only US ASCII characters.
      * 
      * @param length of the password to generate
      * @return a string of <code>length</code> characters

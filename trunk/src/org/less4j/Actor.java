@@ -44,21 +44,17 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
 
 /**
- * <p>A rich state and a flat "full-stack" API to develop complex entreprise 
- * Web 2.0 controllers of SQL databases and LDAP directories, with a 
- * comprehensive audit of identified and authorized actions in time and 
- * sequence.</p>
- *  
- * @copyright 2006-2007 Laurent Szyster
+ * Hold a rich state for each request and provide many conveniences to
+ * apply HTTP, JSON, SQL, LDAP and IRTD2.   
  */
 public class Actor {
     
     protected static final String less4j = "less4j";
     
     /**
-     * <p>The default charset encoding in less4j, something supported by
+     * The default charset encoding in less4j, something supported by
      * web 2.0 browsers (IE6, Firefox, etc ...) and java runtime
-     * environments. Also the defacto standard for JSON encoding.</p>
+     * environments. Also the defacto standard for JSON encoding.
      */
     protected static final String _UTF_8 = "UTF-8";
     
@@ -163,10 +159,7 @@ public class Actor {
      */
     public InitialDirContext ldap = null;
     
-    /**
-     * Serialize this Actor's public state to a JSON <code>StringBuffer</code>
-     */
-    public StringBuffer strb(StringBuffer sb) {
+    protected StringBuffer strb(StringBuffer sb) {
         sb.append("{\"time\":");
         sb.append(time);
         sb.append(",\"identity\":");
@@ -192,13 +185,13 @@ public class Actor {
     /**
      * Return a JSON <code>String</code> of this Actor's public state.
      * 
-     * <h4>Synopsis</h4>
+     * @return this Actor's state
      * 
-     * <pre>$.json200Ok ($.toString());</pre>
+     * @pre $.json200Ok ($.toString());
      * 
-     * <p>The string returned matches this JSONR pattern:
+     * @p Will return string returned matches this JSONR pattern:
      * 
-     * <pre>{
+     * @jsonr {
      *    "identity": "$[0-9a-zA-Z]+^", 
      *    "rights": "$[0-9a-zA-Z]+^",
      *    "time": 0, 
@@ -206,10 +199,10 @@ public class Actor {
      *    "digested": "[0-9a-f]{20}",
      *    "about": [""],
      *    "json": null
-     *}</pre>
+     *}
      * 
-     * <p>Note that it does not include the controller's private part
-     * of its state: configuration, salt, salted, sql or ldap.</p>
+     * @p Note that it does not include the controller's private part
+     * of its state: configuration, salt, salted, sql or ldap.
      */
     public String toString() {
         return strb(new StringBuffer()).toString();
@@ -266,23 +259,20 @@ public class Actor {
     }
 
     /**
-     * <p>Write a message to STDOUT, as one line: </p>
+     * Write a message to STDOUT, as one line prefixed with the Actor's
+     * IRTD2 <code>digested</code> hash and a white space.
      * 
-     * <pre>message</pre>
-     *     
-     * <p>If you cannot apply Resin's excellent configuration of STDOUT for
-     * your web applications:</p>
+     * @p You may apply Resin's excellent configuration of STDOUT for
+     * your web applications:
      * 
-     * <blockquote>
-     * <pre><a href="http://wiki.caucho.com/Stdout-log"
-     *   >http://wiki.caucho.com/Stdout-log</a></pre>
-     * </blockquote>
+     * @pre <a href="http://wiki.caucho.com/Stdout-log"
+     *   >http://wiki.caucho.com/Stdout-log</a>
      * 
-     * <p>Use multilog or any other log post-processor to add timestamp and
-     * other usefull audit information, from outside your application 
-     * where it belong.</p>
+     * @p Use multilog or any other log post-processor to add timestamp 
+     * and other usefull audit information, from outside your application 
+     * where those functions belong.
      * 
-     * @param message the string logged to STDOUT
+     * @param message the text string prefixed and logged to STDOUT
      *     
      */
     public void logOut (String message) {
@@ -296,35 +286,33 @@ public class Actor {
     private static final String _logInfoDelimiter = ": "; 
     
     /**
-     * <p>Write a categorized message to STDERR, as:</p>
+     * @p Write a message to STDERR as one line prefixed with the Actor's
+     * IRTD2 <code>digested</code> hash and a category name, both separated
+     * by a whitespace.
      * 
-     * <pre>category: message</pre>
-     *
-     * <p>Again, you should use a log-posprocessor to add audit information 
-     * to your logs. Or apply Resin:</p>
+     * @p Again, you should use a log-posprocessor to add audit information 
+     * to your logs. Or apply the J2EE container's configuration features:
      * 
-     * <blockquote>
-     * <pre><a href="http://wiki.caucho.com/Stderr-log"
-     *   >http://wiki.caucho.com/Stderr-log</a></pre>
-     * </blockquote>
+     * @pre <a href="http://wiki.caucho.com/Stderr-log"
+     *   >http://wiki.caucho.com/Stderr-log</a>
      * 
-     * <p>Audit logs may inform about a completed transaction, an aborted
+     * @p Audit logs may inform about a completed transaction, an aborted
      * action, a authorization failure or any hazardous event for which
-     * a trace is legaly required.</p>
+     * a trace is legaly required.
      * 
-     * <p>Categorization is unpredictable, it should not be restricted to 
-     * levels of debugging which are usefull to programmers only.</p>
+     * @p Categorization is unpredictable, it should not be restricted to 
+     * levels of debugging which are usefull to programmers only.
      * 
-     * @param message
-     * @param category
+     * @param message the text string prefixed and logged to STDERR
+     * @param category usefull for post-processing informative logs
      *     
      */
     public void logInfo (String message, String category) {
         StringBuffer sb = new StringBuffer();
-        sb.append(category);
-        sb.append(_logInfoDelimiter);
         sb.append(digested);
         sb.append(' ');
+        sb.append(category);
+        sb.append(_logInfoDelimiter);
         sb.append(message);
         System.err.println(sb.toString());
     }
@@ -332,15 +320,14 @@ public class Actor {
     private static final String _stackTrace = "JAVA: ";
     
     /**
-     * <p>Write a full stack trace to STDERR in test mode or just one line
-     * in production, prefix both with "JAVA: " and the IRTD2 digest, 
-     * allowing to link every errors back to their audit trail.</p>
+     * Write a full stack trace to STDERR in test mode or just one line
+     * in production, prefix both the IRTD2 digest and categorize it as 
+     * <code>JAVA</code>.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {...} catch (Exception e) {logError (e);}</pre>
+     * @pre try {...} catch (Exception e) {logError (e);}
      *     
      * @param error the throwable instance catched
+     * @return the line logged
      */
     public String logError (Throwable error) {
         StackTraceElement[] stacktrace = error.getStackTrace();
@@ -375,22 +362,18 @@ public class Actor {
     /** 
      * Log an complete audit of this Actor's JSON application in one line.
      * 
-     * <h4>Synopsis</h3>
+     * @p There's no need to call this method, it will be called by the
+     * httpError, httpResponse, http302Redirect and jsonResponse.
      * 
-     * <p>There's no need to call this method, it will be called by the
-     * httpError, httpResponse, http302Redirect and jsonResponse.</p>
-     * 
-     * <h4>Applications</h4>
-     * 
-     * <p>The audit log of less4j is designed to be applied outside of
+     * @p The audit log of less4j is designed to be applied outside of
      * its J2EE host. Each line is formated as a sequence of 11 byte
-     * strings separated by a space.</p>
+     * strings separated by a space.
      * 
-     * <p>For instance:</p>
+     * @p For instance:
      * 
-     * <pre>LESS4J: identity roles time digested digest GET /url HTTP/1.1 200 null</pre>
+     * @pre LESS4J: identity roles time digested digest GET /url HTTP/1.1 200 null
      *
-     * <p>...</p>
+     * @p ...
      * 
      */
     public void logAudit (int status) {
@@ -424,19 +407,15 @@ public class Actor {
      * digest a new cookie only if a the digested cookie is still valid in 
      * time and bears the signature of this servlet, return false otherwise. 
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>...</pre>
-     * 
-     * <p>This method is expected to be called by the <code>Actor</code>'s 
+     * @p This method is expected to be called by the <code>Actor</code>'s 
      * <code>Controller</code> before it handles the request, so it should 
-     * not be called by less4j's applications.</p>
+     * not be called by less4j's applications.
      * 
-     * <p>Nevertheless, application developpers should understand what this
-     * method does and why it is so usefull for web controllers.</p>
+     * @p Nevertheless, application developpers should understand what this
+     * method does and why it is so usefull for web controllers.
      * 
-     * <p>There are four benefits to expect from IRTD2 cookies for
-     * J2EE public applications:</p>
+     * @p There are four benefits to expect from IRTD2 cookies for
+     * J2EE public applications:
      * 
      * <ol>
      * <li>Remove the weight of statefull sessions in the J2EE container.</li>
@@ -446,9 +425,9 @@ public class Actor {
      * <li>Audit impersonation exploit by a man-in-the-middle.</li>
      * </ol>
      * 
-     * <p>Note that it does <em>not</em> prevent cookie theft but it
+     * @p Note that it does <em>not</em> prevent cookie theft but it
      * does the only next-best actually possible for a public network
-     * application: detect and report fraudulent actions.</p>
+     * application: detect and report fraudulent actions.
      * 
      * @param timeout the limit of an IRTD2 cookie's age, in seconds  
      * @return true if the request failed to be authenticated
@@ -507,22 +486,20 @@ public class Actor {
      * the request into a new cookie bearing the Actor's time, to be sent
      * with the response.
      * 
-     * <h4>Synopis</h4>
+     * @pre ...
      * 
-     * <pre>...</pre>
+     * @p The cookie value is a formatted string made as follow:
      * 
-     * <p>The cookie value is a formatted string made as follow:</p>
+     * @pre Cookie: IRTD2=identity roles time digested digest; 
      * 
-     * <pre>Cookie: IRTD2=<strong>identity roles time digested digest</strong>; </pre>
-     * 
-     * <p>where <code>identity</code> and <code>roles</code> are respectively
+     * @p where <code>identity</code> and <code>roles</code> are respectively
      * Public Names and netstrings of 7-bit ASCII characters only, followed
      * by the controller's <code>time</code> representation and two SHA1 hex
      * digests: the client's last digest for this cookie and the one computed 
-     * from the byte string that precedes it.</p>
+     * from the byte string that precedes it.
      * 
-     * <p>This method is usefull in authorization controllers, like user
-     * identification or roles attribution services.</p>
+     * @p This method is usefull in authorization controllers, like user
+     * identification or roles attribution services.
      */
     public void irtd2Digest() {
         StringBuffer sb = new StringBuffer();
@@ -585,26 +562,24 @@ public class Actor {
     /**
      * A convenience to validate a location as an absolute URL.
      * 
-     * <h4>Synopsis</h4>
+     * @p Eventually complete a relative location to this Actor's 
+     * requested resource:
      * 
-     * <p>Eventually complete a relative location to this Actor's 
-     * requested resource
-     * 
-     * <blockquote><pre>?action</pre></blockquote>
+     * @pre ?action
      *
-     * relative to its application's domain
+     * @p Relative to its application's domain:
      * 
-     * <blockquote><pre>/resource</pre></blockquote>
+     * @pre /resource
      * 
-     * to the resource context path
+     * @p To the resource context path:
      * 
-     * <blockquote><pre>resource</pre></blockquote>
+     * @pre resource
      * 
-     * to produce a n absolute URL like
+     * @p Produce a n absolute URL like:
      *
-     * <blockquote><pre>http://domain/resource?action</pre></blockquote>
+     * @pre http://domain/resource?action
      * 
-     * something quite usefull for redirection in a RESTfull controller.</p>
+     * @p something quite usefull for redirection in a RESTfull controller.
      * 
      * @param location a relative web location
      * @return an absolute web URL
@@ -636,10 +611,6 @@ public class Actor {
     /**
      * ...
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>...</pre>
-     * 
      * @param limit
      * @return a <code>byte[]</code> buffer
      */
@@ -659,13 +630,9 @@ public class Actor {
     }
     
     /**
-     * <p>Try to send an HTTP error response, rely on the J2EE implementation
+     * Try to send an HTTP error response, rely on the J2EE implementation
      * to produce headers and body. Audit a successfull response or log an 
-     * error.</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>...</pre>
+     * error.
      * 
      * @param code HTTP error to send
      */
@@ -678,13 +645,9 @@ public class Actor {
     }
     
     /**
-     * <p>Try to send an HTTP response with the appropriate headers
+     * Try to send an HTTP response with the appropriate headers
      * for an array of bytes as body, a given content type and 
-     * charset. Audit a successfull response or log an error.</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>...</pre>
+     * charset. Audit a successfull response or log an error.
      * 
      * @param code of the HTTP response status
      * @param body as a ByteBuffer
@@ -709,13 +672,9 @@ public class Actor {
     }
     
     /**
-     * <p>Try to send an HTTP response with the appropriate headers
+     * Try to send an HTTP response with the appropriate headers
      * for an arbitrary bytes string as body, a given content type and 
-     * charset. Audit a successfull response or log an error.</p>
-     * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>...</pre>
+     * charset. Audit a successfull response or log an error.
      * 
      * @param code the HTTP response code
      * @param body a byte string
@@ -740,17 +699,15 @@ public class Actor {
     }
     
     /**
-     * <p>Send an HTTP response with the appropriate headers for
+     * Send an HTTP response with the appropriate headers for
      * a UNICODE string as body, a given content type and charset. This
      * method catches any <code>UnsupportedEncodingException</code> and 
      * uses the plateform default character set if the given encoding is
-     * not supported. Audit a successfull response or log an error.</p>
+     * not supported. Audit a successfull response or log an error.
      * 
-     * <h4>Synopsis</h4>
+     * @pre $.httpResponse(200, "&lt;hello-world/&gt;", "text/xml", "ASCII")
      * 
-     * <pre>$.httpResponse(200, "&lt;hello-world/&gt;", "text/xml", "ASCII")</pre>
-     * 
-     * <p>Note: here <code>$</code> is an <code>Actor</code> instance.</p>
+     * @p Note: here <code>$</code> is an <code>Actor</code> instance.
      *
      * @param body a string
      * @param type the resource content type
@@ -777,8 +734,8 @@ public class Actor {
      * or relative to this resource. Audit a successfull response or log an 
      * error.
      * 
-     * <p>Note that the Content-Type specified must match the body's MIME
-     * type and character set encoding.</p> 
+     * @p Note that the Content-Type specified must match the body's MIME
+     * type and character set encoding. 
      *
      * @param location to redirect to
      * @param body an of bytes with the response body 
@@ -797,22 +754,18 @@ public class Actor {
             );
         
     /**
-     * <p>Try to send a 302 HTTP Redirect response to the a relative or
+     * Try to send a 302 HTTP Redirect response to the a relative or
      * absolute location with the following XML string as body: 
      * 
-     * <blockquote>
-     * <pre>&lt;rest302Redirect/&gt;</pre>
-     * </blockquote>
+     * @pre &lt;rest302Redirect/&gt;
      * 
-     * <h4>Synopsis</h4>
+     * @pre $.http302Redirect("/resource?action")
      * 
-     * <pre>$.http302Redirect("/resource?action")</pre>
-     * 
-     * <p>Note that this method does <em>not</em> apply the
+     * @p Note that this method does <em>not</em> apply the
      * <code>sendRedirect</code> method of <code>HttpServletResponse</code>
      * in order to send its own response body. Instead it uses the 
      * <code>URL</code> convenience to validate a location as an
-     * absolute URL.</p>
+     * absolute URL.
      * 
      * @param location to redirect to
      */
@@ -825,6 +778,7 @@ public class Actor {
     protected static final String jsonXJSON = "X-JSON";
     
     /**
+     * ...
      * 
      * @param interpreter
      * @return true if a regular JSON request was transfered
@@ -895,23 +849,19 @@ public class Actor {
     }
     
     /**
-     * <p>Try to read and parse the body of a POST request, assuming it 
+     * Try to read and parse the body of a POST request, assuming it 
      * contains a content of type <code>application/json</code> encoded
      * in UTF-8 and fitting in a limited buffer. Return true on success or 
-     * log an error and return false.</p>
+     * log an error and return false.
      * 
-     * <h4>Synopsis</h3>
-     * 
-     * <h4>Applications</h4>
-     * 
-     * <p>This is a controller's actor and less4j is a framework for 
+     * @p This is a controller's actor and less4j is a framework for 
      * entreprise web interfaces: there is no reason to accept JSON objects 
-     * larger than the limit that fits its application.</p>
+     * larger than the limit that fits its application.
      * 
-     * <p>Using a the servlet getReader method directly is not an option
+     * @p Using a the servlet getReader method directly is not an option
      * if the application controller must enforce reasonable input limits
      * per request. Here's a good place to do it once for all JSON
-     * applications.</p>
+     * applications.
      * 
      * @param interpreter
      * @return true if successfull, false otherwise
@@ -946,6 +896,7 @@ public class Actor {
     }
     
     /**
+     * ...
      * 
      * @param digestedName
      * @param digestName
@@ -988,49 +939,59 @@ public class Actor {
         "text/javascript;charset=UTF-8";
     
     /**
-     * <p>Try to complete an HTTP/1.X response <code>code</code> with a byte
-     * string as body and audit the response, or log an error.</p>
+     * Try to complete an HTTP/1.X response <code>code</code> with a byte
+     * string as body and audit the response, or log an error.
+     * 
+     * @param status of the response
+     * @param body of the response 
      */
-    public void jsonResponse (int code, byte[] body) {
+    public void jsonResponse (int status, byte[] body) {
         /* the response body must be short enough to be buffered fully */
-        response.setStatus(code);
+        response.setStatus(status);
         response.setContentType(jsonContentType);
         response.setContentLength(body.length);
         try {
             response.setBufferSize(Simple.netBufferSize);
             response.getOutputStream().write(body);
             response.flushBuffer();
-            logAudit(code);
+            logAudit(status);
         } catch (IOException e) {
             logError(e);
         }
     }
     
     /**
-     * <p>Try to complete an HTTP/1.X response <code>code</code> with a 
+     * Try to complete an HTTP/1.X response <code>code</code> with a 
      * string encoded in UTF-8 as body and audit the response, or log an 
-     * error.</p>
+     * error.
+     * 
+     * @param status of the response
+     * @param body of the response 
      */
-    public void jsonResponse (int code, String body) {
-        jsonResponse(code, Simple.encode(body, _UTF_8));
+    public void jsonResponse (int status, String body) {
+        jsonResponse(status, Simple.encode(body, _UTF_8));
     }
     
     /**
-     * <p>Try to complete an HTTP/1.X response <code>code</code> with the 
+     * Try to complete an HTTP/1.X response <code>code</code> with the 
      * actor's JSON object encoded in UTF-8 as body and audit the response, 
-     * or log an error.</p>
+     * or log an error.
+     * 
+     * @param status of the response
+     * @param body of the response 
      */
-    public void jsonResponse (int code) {
+    public void jsonResponse (int status) {
         if (test)
-            jsonResponse(code, JSON.repr(json));
+            jsonResponse(status, JSON.repr(json));
         else
-            jsonResponse(code, JSON.encode(json));
+            jsonResponse(status, JSON.encode(json));
     }
     /**
      * Try to open a J2EE datasource and disable AutoCommit, return 
      * <code>true</code> and if in "test" mode, log information, or
      * return <code>false</code> and log error.
      * 
+     * @param datasource name of the J2EE <code>DataSource</code>
      * @return true if the connection was successfull, false otherwise
      */
     public boolean sqlOpenJ2EE (String datasource) {
@@ -1057,11 +1018,12 @@ public class Actor {
      * Try to open a JDBC connection from its URL, disable AutoCommit. Allways 
      * log error, log success only in test mode.
      * 
+     * @param url of the JDBC connection
      * @return true if the connection was successfull, false otherwise
      */
-    public boolean sqlOpenJDBC (String dburl) {
+    public boolean sqlOpenJDBC (String url) {
         try {
-            sql = DriverManager.getConnection(dburl);
+            sql = DriverManager.getConnection(url);
         } catch (Exception e) {
             logError(e);
             return false;
@@ -1082,13 +1044,16 @@ public class Actor {
      * and password, disable AutoCommit. Allways log error, log success only 
      * in test mode.
      * 
+     * @param url of the JDBC connection
+     * @param username
+     * @param password 
      * @return true if the connection was successfull, false otherwise
      */
     public boolean sqlOpenJDBC (
-        String dburl, String username, String password
+        String url, String username, String password
         ) {
         try {
-            sql = DriverManager.getConnection(dburl, username, password);
+            sql = DriverManager.getConnection(url, username, password);
         } catch (Exception e) {
             logError(e);
             return false;
@@ -1133,17 +1098,15 @@ public class Actor {
      * to return a <code>JSON.Array</code>, a <code>JSON.Object</code>
      * or null if the result set was empty.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    JSON.Array relations = (JSON.Array) $.<strong>sqlQuery(</strong>
+     * @pre try {
+     *    JSON.Array relations = (JSON.Array) $.sqlQuery(
      *        "select * from TABLE where KEY = ? and VALUE > ?", 
      *        Simple.iterator (new Object[]{"key", new Integer(10)}),
      *        100, SQL.relations
-     *        <strong>)</strong>;
+     *        );
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1167,17 +1130,15 @@ public class Actor {
      * with the obvious "columns" and "rows" members, or <code>null</code> 
      * if the result set was empty.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("table", $.<strong>sqlTable(</strong>
+     * @pre try {
+     *    $.json.put("table", $.sqlTable(
      *        "select * from TABLE where KEY=?", 
      *        Simple.iter(new Object[]{"mykey"}),
      *        100
-     *        <strong>)</strong>)
+     *        ))
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1200,17 +1161,15 @@ public class Actor {
      * of <code>JSON.Array</code>s as relations or <code>null</code> 
      * if the result set was empty.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("relations", $.<strong>sqlRelations(</strong>
+     * @pre try {
+     *    $.json.put("relations", $.sqlRelations(
      *        "select * from TABLE where KEY=?", 
      *        Simple.iter(new Object[]{"mykey"}),
      *        100
-     *        <strong>)</strong>)
+     *        ))
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1233,17 +1192,15 @@ public class Actor {
      * as a collection for the first row in the result set or 
      * <code>null</code> if the result set was empty.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("collection", ($.<strong>sqlCollection(</strong>
+     * @pre try {
+     *    $.json.put("collection", ($.sqlCollection(
      *        "select COLUMN from TABLE where KEY=?", 
      *        Simple.iter(new Object[]{"mykey"}),
      *        100
-     *        <strong>)</strong>);
+     *        ));
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1266,17 +1223,15 @@ public class Actor {
      * that maps the first column of the result set <code>JSON.Array</code>
      * of the value(s) found in the following column(s).
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("index", ($.<strong>sqlIndex(</strong>
+     * @pre try {
+     *    $.json.put("index", ($.sqlIndex(
      *        "select KEY, NAME, DESCRIPTION from TABLE where VALUE > ?", 
      *        Simple.iter(new Object[]{new Integer(10)}),
      *        100
-     *        <strong>)</strong>);
+     *        ));
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1299,17 +1254,15 @@ public class Actor {
      * that maps the first column of the result set to the second or 
      * <code>null</code> if the result set was empty.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("dictionary", ($.<strong>sqlDictionary(</strong>
+     * @pre try {
+     *    $.json.put("dictionary", ($.sqlDictionary(
      *        "select KEY, VALUE from TABLE where VALUE > ?", 
      *        Simple.iter(new Object[]{new Integer(10)}),
      *        100
-     *        <strong>)</strong>);
+     *        ));
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1329,17 +1282,15 @@ public class Actor {
     /**
      * ...
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("objects", ($.<strong>sqlObjects(</strong>
+     * @pre try {
+     *    $.json.put("objects", ($.sqlObjects(
      *        "select * from TABLE where VALUE > ?", 
      *        Simple.iter(new Object[]{new Integer(10)}),
      *        100
-     *        <strong>)</strong>);
+     *        ));
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1359,16 +1310,14 @@ public class Actor {
     /**
      * ...
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>try {
-     *    $.json.put("object", ($.<strong>sqlObject(</strong>
+     * @pre try {
+     *    $.json.put("object", ($.sqlObject(
      *        "select * from TABLE where VALUE = ?", 
      *        Simple.iter(new Object[]{new BigDecimal("99.99")}),
-     *        <strong>)</strong>);
+     *        ));
      *} catch (SQLException e) {
      *    $.logError(e);
-     *}</pre>
+     *}
      * 
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
@@ -1441,10 +1390,10 @@ public class Actor {
      * true on success and false otherwise, log an information message
      * in test mode.
      * 
+     * @param url of the LDAP connection to open
      * @return true if the connection was successfull, false otherwise
      */
-    public boolean 
-    ldapOpen (String url) {
+    public boolean ldapOpen (String url) {
         Hashtable env = new Hashtable();
         env.put(Context.INITIAL_CONTEXT_FACTORY, ldapCtxFactory);
         env.put(Context.PROVIDER_URL, url);
@@ -1466,6 +1415,7 @@ public class Actor {
      * true on success and false otherwise, log an information message
      * in test mode.
      * 
+     * @param url of the LDAP connection to open
      * @param principal an LDAP user name
      * @param credentials the associated password  
      * @return true if the connection was successfull, false otherwise
@@ -1504,29 +1454,27 @@ public class Actor {
      * <code>null</code>, strings or <code>JSON.Array</code> of strings, then 
      * return true if the context's name was resolved, false otherwise.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>if ($.ldapOpen("ldap://host:port", "user", "pass")) try {
+     * @pre if ($.ldapOpen("ldap://host:port", "user", "pass")) try {
      *    JSON.Object attributes = new JSON.Object();
-     *    if ($.<strong>ldapResolve(</strong>
+     *    if ($.ldapResolve(
      *        "uid=lszyster,ou=People,...", attributes, Simple.iterator(
      *            new String[]{"cn", "mail", "homeDirectory"}
      *            ) 
-     *        <strong>)</strong>)
+     *        ))
      *        ...
      *} catch (Exception e) {
      *    $.logError(e);
      *} finally {
      *    $.ldapClose();
-     *}</pre>
+     *}
      *
-     * <p>The purpose of this method is to allow applications not to worry 
+     * @p The purpose of this method is to allow applications not to worry 
      * about the specialized types and the API details of JNDI. Instead they 
-     * can use <code>Map</code>, <code>List</code> and <code>String</code>.</p>
+     * can use <code>Map</code>, <code>List</code> and <code>String</code>.
      * 
-     * <p>Note that if the <code>Actor</code> instance's <code>test</code> is 
+     * @p Note that if the <code>Actor</code> instance's <code>test</code> is 
      * true, then values of the attributes resolved will be logged as one 
-     * information message.</p>
+     * information message.
      * 
      * @param dn the distinguished name to resolve
      * @param object the <code>JSON.Object</code> to update
@@ -1607,6 +1555,7 @@ public class Actor {
     }
     
     /**
+     * ...
      * 
      * @param dn the distinguished name of the context updated
      * @param object containing the attribute values to update

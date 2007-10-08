@@ -10,17 +10,17 @@ public class TestSOAP extends SOAP {
     public static final TestSOAP singleton = new TestSOAP();
 
     public String jsonInterface (Actor $) {
-        return JSON.encode(JSON.object(new Object[]{
-            "Request", JSON.array(new Object[]{
-                JSON.object(new Object[]{
+        return JSON.encode(JSON.dict(new Object[]{
+            "Request", JSON.list(new Object[]{
+                JSON.dict(new Object[]{
                     "item", "[0-9A-Z]{12}", 
                     "quantity", new Integer(20),
                     "description", ".+",
                     "price", new Integer(100)
                     })
                 }),
-            "Response", JSON.array(new Object[]{
-                JSON.object(new Object[]{
+            "Response", JSON.list(new Object[]{
+                JSON.dict(new Object[]{
                     "item", "[0-9A-Z]{12}",
                     "quantity", new Integer(20),
                     "price", new Integer(100)
@@ -68,7 +68,7 @@ public class TestSOAP extends SOAP {
             while(parts.hasNext()) 
                 name = (String) parts.next();
         }
-        SOAP.WSDL(space.toString(), name, JSONR.compile(
+        SOAP.wsdl(space.toString(), name, JSONR.compile(
             singleton.jsonInterface(new Actor())
             )).write(new File(name + ".xml")); // do you like one-liner too?
     }

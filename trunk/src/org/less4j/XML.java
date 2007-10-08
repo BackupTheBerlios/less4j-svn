@@ -100,8 +100,6 @@ import com.jclark.xml.sax.ReaderInputStream;
  * that support reuse of classes in the development of XML interpreters,
  * turning the DOM into an AST.</p>
  * 
- * @copyright 2006-2007 Laurent A.V. Szyster
- *
  */
 public class XML {
 
@@ -114,8 +112,6 @@ public class XML {
      * by the <code>XP</code> parser when the XML 1.0 processed is 
      * not-well formed, a namespace prefix is not declared or an
      * exception is raised by its application.
-     * 
-     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static class Error extends Exception {
         private String _message;
@@ -138,8 +134,6 @@ public class XML {
     /**
      * An interface to extend the tree builder with new classes of element 
      * derived from <code>Element</code>.
-     * 
-     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static interface Type {
         public Element newElement (String name, HashMap attributes);
@@ -150,8 +144,6 @@ public class XML {
      * properties, just enough to fully represent an XML string (without
      * comments) as a compact tree of Java objects with the smallest
      * memory footprint.
-     * 
-     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static class Element implements XML.Type {
         /**
@@ -214,7 +206,7 @@ public class XML {
          *    "href", "#", "name", "top"
          *    }, "go to top", "\r\n");
          *    
-         * @xml This constructor is usefull when building element trees
+         * @div This constructor is usefull when building element trees
          * from scratch.
          * 
          */
@@ -379,6 +371,13 @@ public class XML {
             return null;
         }
         
+        public Element getLastChild () {
+            if (children == null)
+                return null;
+            
+            return getChild(children.size()-1);
+        }
+        
         protected class ChildrenIterator implements Iterator {
             private Iterator _children = null;
             private Element _next = null;
@@ -494,7 +493,7 @@ public class XML {
          * 
          * @param doc the Document currently parsed
          * 
-         * @xml The purpose of this interface is to allow derived classes of
+         * @div The purpose of this interface is to allow derived classes of
          * <code>Element</code> to implement "Object Oriented Pull Parsers"
          * (OOPP). The benefit of this pattern is to avoid the need to walk
          * the element tree and instead process elements as they are
@@ -519,8 +518,6 @@ public class XML {
     /**
      * A class with just enough properties to fully represent an XML
      * document with namespaces and processing instructions. 
-     * 
-     * @copyright 2006-2007 Laurent A.V. Szyster
      */
     public static class Document implements Type {
         /**
@@ -805,7 +802,7 @@ public class XML {
      * Map any XML tag soup into a tree of JSON types that is as flat as 
      * possible, using local names only as identifiers.
      * 
-     * @xml This class extends XML.Element with a JSON object and overrides
+     * @div This class extends XML.Element with a JSON object and overrides
      * the valid method to map the XML names and structures to a flatter,
      * and less ambiguous object model made of JSON objects, arrays and
      * strings. Its purpose is to avoid the complications of DOM walks
@@ -834,7 +831,7 @@ public class XML {
      *    }
      *}
      * 
-     * @xml Programming an XML data processor becomes a lot less tedious
+     * @div Programming an XML data processor becomes a lot less tedious
      * and error-prone wi 
      * 
      */
@@ -928,6 +925,9 @@ public class XML {
         }
     } 
     
+    /**
+     * ...
+     */
     public static class Tree extends Document {
         public Element newElement(String name, HashMap attributes) {
             return new Regular(name, attributes);

@@ -36,7 +36,7 @@ import java.text.StringCharacterIterator;
  * formated dates, collections, relations, regular dictionaries and
  * relevant namespaces.
  * 
- * <h3>Synopsis</h3>
+ * @div <h3>Synopsis</h3>
  * 
  * <pre>JSONR pattern = new JSONR("["my model", "is a constant"]");
  *try {
@@ -118,8 +118,6 @@ import java.text.StringCharacterIterator;
  * 
  * <p>As a decent implementation of JSONR, this one is extensible and provides
  * a Java interface and enough singleton to do so easely.</p>
- * 
- * @copyright 2006-2007 Laurent Szyster
  */
 public class JSONR extends JSON {
     
@@ -127,11 +125,11 @@ public class JSONR extends JSON {
      * A simple JSONR exception throwed for any type or value error found 
      * by the regular interpreter.
      * 
-     * <h3>Synopsis</h3>
+     * @div <h3>Synopsis</h3>
      * 
-     * This class is a shallow copy of JSON.Error to distinguish between
+     * <p>This class is a shallow copy of JSON.Error to distinguish between
      * a syntax and a regular error, allowing the interpreter to recover
-     * valid JSON from an invalid JSONR (ie: to do error handling).
+     * valid JSON from an invalid JSONR (ie: to do error handling).</p>
      * 
      * <pre>String model = "[[true, \"[a-z]+\", null]]";
      * String string = "[[false, \"test\", 1.0][true, \"ERROR\", {}]]";
@@ -140,8 +138,6 @@ public class JSONR extends JSON {
      *} catch (JSONR.Error e) {
      *    System.out.println(e.toString())
      *}</pre>
-     * 
-     * @copyright 2006-2007 Laurent Szyster
      */
     public static class Error extends JSON.Error {
         
@@ -169,10 +165,10 @@ public class JSONR extends JSON {
     /**
      * An interface to extend JSONR with application types.
      * 
-     * <h3>Synopsis</h3>
+     * @div <h3>Synopsis</h3>
      * 
      * <p>Custom type classes must implement the <code>value</code>,
-     * <code>eval</code> and <code>copy</code> methods:
+     * <code>eval</code> and <code>copy</code> methods:</p>
      * 
      * <blockquote>
      * <pre>import org.less4j.JSONR;
@@ -208,7 +204,7 @@ public class JSONR extends JSON {
      *}</pre>
      * </blockquote>
      * 
-     * can be mapped to this name 
+     * <p>can be mapped to this name</p> 
      * 
      * <blockquote>
      * <pre>"yyyy-MM-ddTHH:mm:ss"</pre>
@@ -221,8 +217,6 @@ public class JSONR extends JSON {
      * </blockquote>
      * 
      * into the appropriate <code>java.util.Date</code> instance.</p>
-     * 
-     * @copyright 2006-2007 Laurent Szyster
      */
     public static interface Type {
         /**
@@ -232,6 +226,7 @@ public class JSONR extends JSON {
          */
         public final static Type singleton = null;
         /**
+         * ...
          * 
          * @param instance to validate as a regular type and value
          * @return a regular <code>Object</code>, or

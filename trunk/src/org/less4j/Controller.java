@@ -28,44 +28,49 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 /**
- * <p>One obvious way to do REST right with J2EE as it is since version 1.4.2: 
- * stateless, bended like PHP with a healthy dose of JSON dynamism, more 
- * protocols, less Java and no XML.</p>
+ * A servlet to control HTTP access to configurable entreprise resources and 
+ * stateless JSON services using SHA1 digests of identity, rights and time, 
+ * leveraging regular JSON expression to describe those services and validate 
+ * their input. It provides conveniences to update or query SQL databases 
+ * with JSON arguments and map results to common JSON patterns. It also 
+ * includes practical API to resolve, create and update LDAP contexts with 
+ * JSON types. Note that it does not limit its application to the simple form
+ * requests from web browsers and can be extended to handle file upload,
+ * SOAP messages or serve its own web of HTTP resources.
  * 
- * <h3>Synopsis</h3>
+ * @h3 Synopsis
  * 
- * <pre>&lt;servlet&gt;
- *  &lt;servlet-name&gt;less4jscript&lt;/servlet-name&gt;
- *  &lt;servlet-class&gt;org.less4j.Controller&lt;/servlet-class&gt;
- *  &lt;init-param&gt;
- *    &lt;param-name&gt;less4j&lt;/param-name&gt;
- *    &lt;param-value&gt;&lt;![CDATA[
- *    {
+ * @p This servlet can be used as-is, controlling access to the configured
+ * SQL database and LDAP dictionary via the functions specified.
+ * 
+ * @p Here's the <code>web.xml</code> deployer of a controller for the 
+ * simplest JSON function:
+ * 
+ * @pre <servlet>
+ *  <servlet-name>less4jscript</servlet-name>
+ *  <servlet-class>org.less4j.Controller</servlet-class>
+ *  <init-param>
+ *    <param-name>less4j</param-name>
+ *    <param-value><![CDATA[ {
  *      "test": false, 
  *      "functions": {
  *        "\/hello-world", "org.less4j.tests.HelloWorld"
  *        }
- *      }
- *    ]]&gt;&lt;/param-value&gt;
- *  &lt;/init-param&gt;
- *&lt;/servlet&gt;</pre>
+ *      } ]]></param-value>
+ *  </init-param>
+ *</servlet>
  * 
- * <p>This class can be used as-is, with configured functions only and
- * no other HTTP resources than a dictionary of JSONR interfaces.</p> 
+ * @p This implementation of <code>HttpServlet</code> fits the common use 
+ * case of a web controller that aggregates functions on a set of resource 
+ * like file folders, an SQL database or an LDAP direcory.  
+ * It dispatches HTTP requests to configured <code>Function</code> by 
+ * request URL's <code>PATH_INFO</code> and provides the practical 
+ * configuration options required to move from development to production 
+ * and allow system maintenance. 
  * 
- * <p>It fits the common use case of a web controller that aggregates 
- * functions on a set of resource like file folders, an SQL database or 
- * an LDAP direcory. This implementation supports dispatching of an HTTP 
- * requests to a configured <code>Function</code> based on the request URL's
- * <code>PATH_INFO</code>.</p>
- * 
- * <p>Application developpers can also derive from <code>Controller</code>
- * to implement ad-hoc servlets. The <code>Script</code> controller
- * included in less4j provides a JavaScript interpreter to prototype 
- * new <code>Function</code> and <code>Controller</code> classes.</p>
- * 
- * @copyright 2006-2007 Laurent Szyster
- * 
+ * @p Application developpers can derive from <code>Controller</code>
+ * to implement their own HTTP resource controllers. Look in the package
+ * <code>org.less4j.controllers</code> for example of controllers.
  */
 public class Controller extends HttpServlet implements Function {
     
@@ -415,22 +420,26 @@ public class Controller extends HttpServlet implements Function {
     }
     
     /**
-     * Reply with an HTTP <code>400</code> error to requests not handled by 
-     * this controller's or a function's <code>httpResource</code> and 
-     * <code>jsonApplication</code> methods. 
-     *
+     * Application controllers must override this method to implement
+     * other HTTP methods than GET for all requests not handled by
+     * one of its function. This implementation sends a <code>400 Bad 
+     * Request</code> error response.
+     * 
      * @param $ the Actor's state
+     * @param method the HTTP request's method ("POST", "HEAD", etc ..) 
+     * @param contentType the value of the request's Content-type header or
+     * <code>null</code>
      */
     public void httpContinue (Actor $, String method, String contentType) {
         $.httpError(400); // Bad Request
     }
     
     /**
-     * <p>Reply to idempotent HTTP requests not handled by a configured
+     * Reply to idempotent HTTP requests not handled by a configured
      * <code>Function</code> with the JSON interfaces description of the
      * functions supported if the request exactly matches this servlet
      * context path (ie: its root), or replies a <code>404 Not 
-     * Found</code> error.</p>
+     * Found</code> error.
      * 
      * @param $ the Actor's state
      */
@@ -442,9 +451,9 @@ public class Controller extends HttpServlet implements Function {
     }
 
     /**
-     * <p>Returns the configured <code>JSON</code> or <code>JSONR</code> 
+     * Returns the configured <code>JSON</code> or <code>JSONR</code> 
      * interpreter to validate a GET request's query string or a POSTed 
-     * JSON request body.</p> 
+     * JSON request body. 
      * 
      * @param $ the Actor's state
      * @return a <code>JSON</code> or <code>JSONR</code> interpreter

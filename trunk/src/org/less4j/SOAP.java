@@ -27,7 +27,7 @@ import java.util.Iterator;
  * to provide a <em>really</em> simple XML object notation that is forward
  * compatible with JSON web services.
  * 
- * <h3>Synopsis</h3>
+ * @div <h3>Synopsis</h3>
  * 
  * <p>Here is a web service to test the usual "Hello World" suspect SOAP 
  * remote procedure call:</p>
@@ -53,7 +53,7 @@ import java.util.Iterator;
  * was mapped is also provided to the remote procedure called, allowing 
  * access to the SOAP header element.</p>
  *
- * <h4>SOAP/RPC</h4>
+ * <h3>SOAP/RPC</h3>
  *
  * <p>Configured to handle POST request at "/echoString" in its servlet 
  * context, this function will produce the following dialog of SOAP request 
@@ -82,7 +82,7 @@ import java.util.Iterator;
  *&lt;/SOAP-ENV:Body&gt;
  *...</pre> 
  * 
- * <h4>WSDL for JSONR</h4>
+ * @div <h3>WSDL for JSONR</h3>
  * 
  * <p>This <code>Function</code> implementation supports a subset of WSDL
  * mapped from a regular JSON expressions. It is restricted to RPC, SOAP 
@@ -205,9 +205,6 @@ import java.util.Iterator;
  * <p>WS-* only walk when money talks ...</p>
  * 
  * <p>And I like money too.</p>
- * 
- *
- * @copyright 2006-2007 Laurent Szyster
  */
 public class SOAP implements Function {
     
@@ -240,12 +237,12 @@ public class SOAP implements Function {
             jsonr = (JSONR.TypeNamespace) JSONR.compile(jsonInterface($));
             String action = $.about.substring(1);
             XML.Element schema = new XML.Element(xsd_schema, null);
-            XSD(
+            xsd(
                 schema, 
                 (JSONR.Type) jsonr.namespace.get(_Request), 
                 action + _Request
                 );
-            XSD(
+            xsd(
                 schema,
                 (JSONR.Type) jsonr.namespace.get(_Response), 
                 action + _Response
@@ -328,7 +325,7 @@ public class SOAP implements Function {
     public void httpResource(Actor $) {
         try {
             String name = $.about.substring(1); 
-            $.httpResponse(200, WSDL(
+            $.httpResponse(200, wsdl(
                 $.url, name, jsonr
                 ).encodeUTF8(), XML.MIME_TYPE, XML._utf8);
         } catch (Throwable e) {
@@ -507,7 +504,7 @@ public class SOAP implements Function {
      * @return an <code>XML.Element</code>
      * @throws Exception
      */
-    public static final XML.Element XSD (
+    public static final XML.Element xsd (
         XML.Element schema, JSONR.Type model, String name
         ) 
     throws Exception {
@@ -561,7 +558,7 @@ public class SOAP implements Function {
             String property;
             for (int i=0; i<names.length; i++) {
                 property = (String) names[i];
-                all.addChild(XSD(
+                all.addChild(xsd(
                     schema, (JSONR.Type)type.namespace.get(property), property
                     ));
             }
@@ -573,7 +570,7 @@ public class SOAP implements Function {
         } else if (model instanceof JSONR.TypeArray) {
             JSONR.TypeArray type = (JSONR.TypeArray) model;
             if (type.types.length == 1) {
-                XSD(schema, (JSONR.Type)type.types[0], name);
+                xsd(schema, (JSONR.Type)type.types[0], name);
                 XML.Element array = schema.addChild(
                     xsd_complexType, new String[]{_name, name + _Array}
                     );
@@ -675,7 +672,7 @@ public class SOAP implements Function {
      * @param model of RPC to map from JSONR to WSDL
      * @return an <code>XML.Document</code> tree ready to be serialized
      */
-    public static final XML.Document WSDL (
+    public static final XML.Document wsdl (
         String url, String action, JSONR.Type model
         ) throws Exception {
         JSONR.TypeNamespace jsonr = (JSONR.TypeNamespace) model;
@@ -705,14 +702,14 @@ public class SOAP implements Function {
              XML.Element element;
              while (names.hasNext()) {
                  name = (String) names.next();
-                 element = XSD(schema, (JSONR.Type) types.get(name), name);
+                 element = xsd(schema, (JSONR.Type) types.get(name), name);
                  message.addChild(wsdl_part, new String[]{
                      _name, element.getAttribute(_name), 
                      _type, element.getAttribute(_type) 
                      });
              }
         } else {
-            XML.Element input = XSD(
+            XML.Element input = xsd(
                 schema, (JSONR.Type) inputType, action + _Request
                 );
             message.addChild(wsdl_part, new String[]{
@@ -721,7 +718,7 @@ public class SOAP implements Function {
                 });
         }
         // SOAP output <message>, RPC style
-        XML.Element output = XSD(
+        XML.Element output = xsd(
             schema, 
             (JSONR.Type) jsonr.namespace.get(_Response), 
             action + _Response

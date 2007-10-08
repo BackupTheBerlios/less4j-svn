@@ -19,72 +19,61 @@ package org.less4j;
 import org.mozilla.javascript.*; // More JavaScript Applications!
 
 /**
- * <p>An application of less4j and to Mozilla's JavaScript interpreter that
- * allow developers to script servers and clients in the same language.</p>
+ * An application of less4j and to Mozilla's JavaScript interpreter that
+ * allow developers to script servers and clients in the same language.
  * 
- * <h3>Synopsis</h3>
+ * @h3 Synopsis
  * 
- * <pre>&lt;servlet&gt;
- *  &lt;servlet-name&gt;less4jscript&lt;/servlet-name&gt;
- *  &lt;servlet-class&gt;org.less4j.Controller&lt;/servlet-class&gt;
- *  &lt;init-param&gt;
- *    &lt;param-name&gt;less4j&lt;/param-name&gt;
- *    &lt;param-value&gt;&lt;![CDATA[
- *    {
+ * @pre {
  *      "test": false,
  *      "scripts": [
  *        "functions.js", 
  *        "hello-world.js"
  *        ] 
  *      }
- *    ]]&gt;&lt;/param-value&gt;
- *  &lt;/init-param&gt;
- *&lt;/servlet&gt;</pre>
  * 
- * <p>... <code>hello-world.js</code> ...</p>
+ * @ ... <code>hello-world.js</code> ...
  * 
- * <pre>functions["/hello-world"] = less4jFunction (
+ * @pre functions["/hello-world"] = less4jFunction (
  *    function application ($) {
  *        $.jsonResponse(200);
  *    }, 
  *    null, '{"hello": "world!"}', 1, 2
- *    );</pre>
+ *    );
  * 
- * <p>Scripts loaded by servlets of this controller class can supply their
+ * @p Scripts loaded by servlets of this controller class can supply their
  * own JavaScript implementation of the <code>Controller</code>'s
  * <code>Function</code> interfaces. The purpose is to prototype new Java 
- * controller and functions in JavaScript first and from a web prompt.</p>
+ * controller and functions in JavaScript first and from a web prompt.
  * 
- * <p>The less4j framework comes with a <code>functions.js</code> script
+ * @p The less4j framework comes with a <code>functions.js</code> script
  * that dispatches requests for which there are no <code>Functions</code>
  * configured to the JavaScript prototypes declared by other scripts and
- * registered in the scripted <code>functions</code> mapping.</p>
+ * registered in the scripted <code>functions</code> mapping.
  *  
- * <h3>Applications</h3>
+ * @h3 Applications
  * 
- * <p>This controller can be used in two different ways to cover a wide
- * range of applications.</p>
+ * @p This controller can be used in two different ways to cover a wide
+ * range of applications.
  * 
- * <p>First as-is, configured with SQL, LDAP, a Regular JSON Expression 
+ * @p First as-is, configured with SQL, LDAP, a Regular JSON Expression 
  * to validate its input and a set of interpreted JavaScript functions.
  * It mainly does the Right Thing for many entreprise applications, leaving
- * only the domain specific functions to be scripted.</p>
+ * only the domain specific functions to be scripted.
  * 
- * <p>With <code>Script</code>, "everything should just work" and every parts 
+ * @p With <code>Script</code>, "everything should just work" and every parts 
  * of the controller are tested at runtime. Configuration is validated and 
- * tested while scripts are compiled and interpreted.</p>
+ * tested while scripts are compiled and interpreted.
  * 
- * <p>Then, once applications of less4j's <code>Script</code> meet their 
+ * @p Then, once applications of less4j's <code>Script</code> meet their 
  * users' requirements, this class provides a base to migrate to Java
- * the functions that cannot be entrusted to Rhino.</p>
+ * the functions that cannot be entrusted to Rhino.
  * 
- * <p>Note however that most of those functions are best optimized alone
+ * @p Note however that most of those functions are best optimized alone
  * first and can then be applied in JavaScript with at a marginal cost.
  * To override a <code>Script</code> controller methods will usually gain 
  * insignificant performances in comparison to the loss of one or more 
- * articulation for their applications.</p>
- * 
- * @copyright 2006-2007 Laurent Szyster
+ * articulation for their applications.
  */
 public class Script extends Controller {
 
@@ -112,16 +101,16 @@ public class Script extends Controller {
      * Returns a <code>String</code> of the JSONR model that will be used
      * to validate this controller's JSON <code>configuration</code>.
      * 
-     * <h3>Synopsis</h3>
+     * @h3 Synopsis
      * 
-     * <p>Override this method in a derived class of <code>Script</code>
+     * @p Override this method in a derived class of <code>Script</code>
      * to restrict and/or widden the model of your application's 
      * configuration. The default model adds an array of <code>scripts</code>
      * filename in the original <code>Controller</code> configuration 
      * namespace and disable the ability to register Controller.Function
-     * classes.</p>
+     * classes.
      * 
-     * <pre>{
+     * @pre {
      *    "test": false, 
      *    "scripts": ["^.+?[.]js$"],
      *    "functions": {"^\/.*$": ""},
@@ -139,7 +128,7 @@ public class Script extends Controller {
      *    "ldapURL": null,
      *    "ldapUsername": null,
      *    "ldapPassword": null
-     *    }</pre>
+     *    }
      *     
      * @return a JSONR <code>String</code>
      * @throws <code>JSON.Error</code>
@@ -239,18 +228,18 @@ public class Script extends Controller {
      * <code>/WEB-INF/functions.js</code> and return true or log an error and 
      * return false.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>var less4jConfigure = function ($) {
+     * @pre var less4jConfigure = function ($) {
      *    $.configuration.put("jsonBytes", 65355);
-     *}</pre>
+     *}
      *
-     * <p>The practical purpose of this interface is to override or supply
+     * @p The practical purpose of this interface is to override or supply
      * a configuration in JavaScript, for instance to load more options from
-     * the network or force a limit to posted data.</p>
+     * the network or force a limit to posted data.
      * 
-     * <p>Note that the default <code>Controller</code> configuration test
-     * cannot be restricted or extended in JavaScript and they should not.</p>
+     * @p Note that the default <code>Controller</code> configuration test
+     * cannot be restricted or extended in JavaScript and they should not.
      * 
      * @param $ the <code>Actor</code> used to configure this controller.
      */
@@ -270,12 +259,12 @@ public class Script extends Controller {
      * or reply with an HTTP error 404 if no such function exists or if
      * it raised an exception.
      * 
-     * <h4>Synopsis</h4>
+     * @h4 Synopsis
      * 
-     * <pre>var irtd2Identify = function ($) {
+     * @pre var irtd2Identify = function ($) {
      *    $.identity = Simple.password(20);
      *    return true; 
-     *}</pre>
+     *}
      */
     public boolean irtd2Identify (Actor $) {
         Scriptable scriptScope = (Scriptable) 
@@ -363,20 +352,20 @@ public class Script extends Controller {
      * and validate requests, or return the configured configured one
      * if "jsonRegular" is not implemented by the scripts.
      * 
-     * <h3>Synopsis</h3>
+     * @h3 Synopsis
      * 
-     * <p>In one of the configured scripts, define:</p>
+     * @p In one of the configured scripts, define:
      * 
-     * <pre>importPackage(org.less4j);
+     * @pre importPackage(org.less4j);
      * 
      *var model = JSONR.compile ('{"hello": "world!"}');
      *function jsonRegular ($) {
      *    return new JSONR(19, 1, 1, model); // strictly!
-     *}</pre>
+     *}
      * 
-     * <p>This interface enables application scripts to validate
+     * @p This interface enables application scripts to validate
      * requests against different models before they are dispatched
-     * to a distinct function.<p>
+     * to a distinct function.@p
      * 
      */
     public Object jsonRegular (Actor $) {
@@ -411,13 +400,13 @@ public class Script extends Controller {
      * exception was throwed or 501 if "jsonApplication" is not 
      * implemented by the scripts configured.
      * 
-     * <h3>Synopsis</h3>
+     * @h3 Synopsis
      * 
-     * <p>In one of the configured scripts, define:</p>
+     * @p In one of the configured scripts, define:
      * 
-     * <pre>function jsonApplication ($) {
+     * @pre function jsonApplication ($) {
      *    $.jsonResponse (200, "Hello World!");
-     *}</pre>
+     *}
      * 
      */
     public void jsonApplication (Actor $) {

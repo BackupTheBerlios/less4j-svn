@@ -17,6 +17,7 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j;
 
 import java.util.Iterator;
+import java.util.HashSet;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,15 +29,21 @@ import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.Parameter;
 import com.sun.javadoc.Tag;
+import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.Type;
 
 import org.mozilla.javascript.*;
 
 /**
- * Leverages javadoc to produce a practical web of XHTML fragment, a JSON 
- * index and JavaScript test suites. 
+ * Produce a practical web of XHTML fragment, a JSON index and a JavaScript 
+ * test suite, enable developers to document and test their sources in the
+ * same &quot;place&quot;.
+ * 
+ * @h3 Synopsis
  *  
- * @synopsis <javadoc 
+ * @p Here's the ANT job that generated this documentation and test suite: 
+ *  
+ * @pre <javadoc 
  *    docletpath="./less4j.jar;./lib/xp.jar;"
  *    doclet="org.less4j.Doctest"
  *    packagenames="org.less4j" 
@@ -45,55 +52,92 @@ import org.mozilla.javascript.*;
  *    classpath="./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar;/jdk1.5.0_11/lib/tools.jar" 
  *    access="public" 
  *    >
+ *    
+ * @p To run the tests again and log their outputs: 
+ *  
+ * @pre java \
+ *   --classpath=./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar \
+ *   Doctest.java ./tests 1> tests.out 2> tests.err
  * 
- * @synopsis java Doctest.java ./tests 1> tests.out 2> tests.err
+ * @h3 Document
  * 
- * @div <h3>Documentation and Test</h3>
+ * @p For documentation purposes <code>Doctest</code> supports the original 
+ * javadoc tags. To enhance your documentation with simple HTML elements, it 
+ * maps a <code>@h3</code>, <code>@h4</code>, <code>@p</code> and 
+ * <code>@pre</code> tag to the equivalent HTML titles, paragraph and 
+ * preformatted text elements. Any other tag yield a <code>div</code> 
+ * element with a CSS class named after the tag. 
  * 
- * <p>Documentation is one purpose of Doctest, the other is test.</p>
+ * @p Note that you can still use XHTML markup inside the tagged and 
+ * the untagged comment text. Doctest will try to validate it and document 
+ * any XML errors.
  * 
- * <p>Text tagged with <code>@test</code> is compiled in a JavaScript 
- * function and saved in one big script that will execute each test.
- * The only pre-processing of sources done is the extraction of import
- * statements.</p>
+ * @p Here is a typical method comment for Doctest:
  * 
- * <p>Tests are expected to be a sequence of JavaScript statements that
- * return a boolean. For instance, here's a dumb test:</p>
+ * @pre /**
+ * * This should be a short description of the identifier's purpose.
+ * * 
+ * * @param arg0 followed by a comment text
+ * * @param arg1 etc ...
+ * * @return what exactly
+ * *
+ * * @h4 Synopsis
+ * * 
+ * * @p Include an application example, with sources:
+ * *
+ * * @pre import org.less4j.*;
+ * *
+ * *...
+ * *
+ * * @h4 Tests
+ * *
+ * * @p Explain tests sources:
+ * *
+ * * @test return "A".equals("A");
+ * *
+ * * /
+ *
+ * @p Comments for fields may be quite shorter and lack tests or synopsis,
+ * class documentation may include a longer description of its application
+ * purposes.
+ *
+ * @h3 Test
  * 
- * @test return "A".lowercase().equals("a");
+ * @p Text tagged with <code>@test</code> is compiled in a JavaScript 
+ * function and saved individually, named with their SHA1 hexdigest.
  * 
- * @div <p>In the context of org.less4j's doctests, it will yield the 
- * following JavaScript sources:</p>
+ * @p Tests are expected to be a simple script that returns a boolean.
  * 
- * <pre>importPackage(Packages.org.less4j);
- *var prefix = '... org.less4j.Doclet.main ';
- *function out () {
- *    System.out.println(prefix + arguments.join(' '));
- *}
- *function err () {
- *    System.err.println(prefix + arguments.join(' '));
- *}
- *function test () {
- *    <strong>return 'A'.lowercase().equals('a');</strong>
- *}
- *var result = false;
- *try {
- *    result = test();
- *    out('OK');
- *} catch (e) {
- *    err(e.toString());
- *}
- *return (result===true);</pre>
+ * @p For instance here are three tests. The first one pass:
  * 
- * <p>The test sources are saved individually, named with their SHA1
- * hexdigest.</p>
+ * @test return "A".toLowerCase().equals("a");
  * 
- * @jsonr {
- *    "local": "[a-zA-Z$][a-zA-Z$0-9_]*",
- *    "qualified": "[a-zA-Z$][a-zA-Z$0-9_]*([.][a-zA-Z$][a-zA-Z$0-9_]+)+",
- *    "index": {"local": ["qualified"]},
- *    "packages": ["qualified"],
- *    "classes": {"local": ["local"]}
+ * @p The second fails: 
+ * 
+ * @test return "A".equals("a");
+ * 
+ * @p A third one that raise and exception (and fails): 
+ * 
+ * @test out("start ..."); 
+ *var result = "A".lowerCase().equals("a");
+ *out("... stop");
+ *return result;
+ *
+ * @p ...
+ * 
+ * @pre {
+ *    "index": {"identifier": ["fqn"]},
+ *    "types": {"type": {
+ *        "extends": "type",
+ *        "implements": ["type"],
+ *        "contains": ["type"],
+ *        "fields": {"identifier": "modifiers"},
+ *        "methods": {"identifier": "modifiers"}
+ *        }},
+ *    "packages": {"package": {
+ *        "interfaces": ["type"],
+ *        "implementations": ["type"]
+ *    }
  *}
  */
 public class Doctest {
@@ -112,47 +156,69 @@ public class Doctest {
         + "\"http://www.w3.org/TR/html4/strict.dtd\">\r\n"
         );
     
-    protected static XML.Element doXML (String text, String tag) {
+    protected static XML.Element doXML (String tag, String text) {
         try {
             XML.Document doc = new XML.Document(); 
             doc.parse("<" + tag +">" + text + "</" + tag + ">");
             return doc.root;
         } catch (Throwable e) {
             XML.Element error = new XML.Element(
-                "div", new String[]{"class", "xml"}, null, null
+                "div", new String[]{"class", "error"}, e.getMessage(), "\r\n"
                 );
-            error.addChild(
-                "div", new String[]{"class", "source"}, text, null
-                );
-            error.addChild(
-                "div", new String[]{"class", "error"}, e.getMessage(), null
-                );
+            error.addChild("pre", text);
             return error;
         }
     }
 
     protected static final String test_prologue = (
-        "function out () {\r\n"
-        + "    System.out.println(prefix + arguments.join(' '));\r\n"
-        + "}\r\n"
-        + "function err () {\r\n"
-        + "    System.err.println(prefix + arguments.join(' '));\r\n"
-        + "}\r\n"
-        + "function test () {\r\n"
+        "importClass(java.lang.System);\r\n"
+        + "var doctest_out = [];\r\n"
+        + "var doctest_err = [];\r\n"
+        + "var out = function (line) {doctest_out.push(line);};\r\n"
+        + "var err = function (line) {doctest_err.push(line);};\r\n"
+        + "var doctest = function () {\r\n"
         );
     
-    protected static final String test_epilogue = (
-        "\r\n}\r\n"
-        + "function run_test () {\r\n"
+    protected static final String run_prologue = (
+        "importClass(java.lang.System);\r\n"
+        + "var out = function (line) {\r\n"
+        + "    System.out.println(prefix + line);\r\n"
+        + "};\r\n"
+        + "var err = function (line) {\r\n"
+        + "    System.err.println(prefix + line);\r\n"
+        + "};\r\n"
+        + "var doctest = function () {\r\n"
+        );
+    
+    protected static final String run_epilogue = (
+        "\r\n};\r\n"
+        + "var run_test = function () {\r\n"
         + "    var result = false;\r\n"
         + "    try {\r\n"
-        + "        result = test();\r\n"
+        + "        result = doctest();\r\n"
         + "        out('OK');\r\n"
         + "    } catch (e) {\r\n"
         + "        err(e.toString());\r\n"
         + "    }\r\n"
         + "    return (result===true);\r\n"
-        + "}"
+        + "};"
+        );
+    
+    protected static final String test_epilogue = (
+        "\r\n};\r\n"
+        + "var doctest_stdout, doctest_stderr;"  
+        + "var run_test = function () {\r\n"
+        + "    var result = false;\r\n"
+        + "    try {\r\n"
+        + "        result = doctest();\r\n"
+        + "        out('OK');\r\n"
+        + "    } catch (e) {\r\n"
+        + "        err(e.toString());\r\n"
+        + "    }\r\n"
+        + "    doctest_stdout = doctest_out.join('\\r\\n');\r\n"
+        + "    doctest_stderr = doctest_err.join('\\r\\n');\r\n"
+        + "    return (result===true);\r\n"
+        + "};"
         );
     
     protected XML.Element doTest(String source, String localName) 
@@ -161,29 +227,48 @@ public class Doctest {
         SHA1 sha1 = new SHA1();
         sha1.update(Simple.encode(source, "UTF-8"));
         String hash = sha1.hexdigest();
-        String test = (
-            "importPackage(" + packageName + ");\r\n" 
+        String prologue = (
+            "importPackage("
+            + (packageName.startsWith("java.") ? "": "Packages.")
+            + packageName 
+            + ");\r\n" 
             + "var prefix = '" + hash + " " + fqn + " ';\r\n"
-            + test_prologue 
-            + source
-            + test_epilogue
             );
+        String test_sources = (
+            prologue + test_prologue + source + test_epilogue
+            );
+        String run_sources = (
+            prologue + run_prologue + source + run_epilogue
+            );
+        (new FileOutputStream(new File(
+            base + "/tests/" + hash + ".js"
+            ))).write(Simple.encode(test_sources, "UTF-8"));
         XML.Element doctest = new XML.Element("div", new String[]{
             "class", "test",
             }, null, null);
-        doctest.addChild(
-            "div", new String[]{"class", "source"}, source, null
-            );
+        doctest.addChild("pre", source);
         ScriptableObject scope;
         Context cx = Context.enter();
         try {
-            scope = new ImporterTopLevel(cx, false);
-            cx.evaluateString(
-                scope, "function(){" + source + "}", hash, 1, null
+            scope = new ImporterTopLevel(cx, true);
+            cx.evaluateString(scope, test_sources, hash, 1, null);
+            org.mozilla.javascript.Function fun = (
+                org.mozilla.javascript.Function
+                ) scope.get("run_test", scope);
+            if (!((Boolean) Context.jsToJava(
+                fun.call(cx, scope, scope, new Object[]{}), Boolean.class
+                )).booleanValue())
+                doctest.addChild(
+                    "div", new String[]{"class", "error"}, "failed", null
+                    );
+            doctest.addChild(
+                "div", new String[]{"class", "stdout"}, 
+                (String) scope.get("doctest_stdout", scope), null
                 );
-            (new FileOutputStream(new File(
-                base + "/tests/" + hash + ".js"
-                ))).write(Simple.encode(test, "UTF-8"));
+            doctest.addChild(
+                "div", new String[]{"class", "stderr"}, 
+                (String) scope.get("doctest_stderr", scope), null
+                );
         } catch (Exception e) {
             doctest.addChild(
                 "div", new String[]{"class", "error"}, e.getMessage(), null
@@ -198,109 +283,10 @@ public class Doctest {
         return name.substring(name.lastIndexOf('.')+1);
     }
     
-    protected static void doParameters (MethodDoc method, XML.Element parent) 
-    throws Exception {
-        String text;
-        Tag[] tags = method.paramTags();
-        Parameter[] parameters = method.parameters();
-        XML.Element tr;
-        XML.Element table = parent.addChild("table", new String[]{
-            "class", "parameters"
-            });
-        for (int i=0; i<tags.length; i++) {
-            text = tags[i].text();
-            if (parameters.length > i) {
-                tr = table.addChild(
-                    "tr", new String[]{"class", "parameter"}
-                    );
-                tr.addChild("td", new String[]{
-                    "class", "type"
-                    }, simpleName(parameters[i].typeName()), null
-                    );
-                int sep = text.indexOf(' ');
-                if (sep > -1) {
-                    tr.addChild("td", new String[]{
-                        "class", "identifier"    
-                        }, text.substring(0, sep), null);
-                    tr.addChild(doXML(text.substring(sep+1), "td"));
-                } else {
-                    tr.addChild("td", new String[]{
-                        "class", "identifier",
-                        }, text, null);
-                    tr.addChild("td", new String[]{
-                        "class", "description"    
-                        }, "...", null);
-                }
-            }
-        }
-    }
-    
-    protected static void doMethodTags (
-        MethodDoc method, 
-        XML.Element parent, 
-        String base, 
-        String packageName,
-        String localName
-        ) throws Exception {
-        Tag[] tags = method.tags();
-        String name, text;
-        XML.Element tr;
-        XML.Element table = parent.addChild("table", new String[]{
-            "class", "tags"
-            });
-        for (int i=0; i<tags.length; i++) {
-            name = tags[i].name();
-            text = tags[i].text();
-            if (name.equals("@param") && method.parameters().length > i) {
-                tr = table.addChild(
-                    "tr", new String[]{"class", "parameter"}
-                    );
-                tr.addChild("td", new String[]{
-                    "class", "type"
-                    }, simpleName(method.parameters()[i].typeName()), null
-                    );
-                int sep = text.indexOf(' ');
-                if (sep > -1) {
-                    tr.addChild("td", new String[]{
-                        "class", "identifier"    
-                        }, text.substring(0, sep), null);
-                    tr.addChild(doXML(text.substring(sep+1), "td"));
-                } else {
-                    tr.addChild("td", new String[]{
-                        "class", "identifier",
-                        }, text, null);
-                    tr.addChild("td", new String[]{
-                        "class", "description"    
-                        }, "...", null);
-                }
-            } else if (name.equals("@return")) {
-                tr = table.addChild(
-                    "tr", new String[]{"class", "return"}
-                    );
-                tr.addChild("td", "Return");
-                tr.addChild("td", new String[]{
-                    "class", "type"
-                    }, simpleName(method.returnType().typeName()), null
-                    );
-                tr.addChild(doXML(text, "td"));
-            } else if (name.equals("@throws")) {
-                tr = table.addChild(
-                    "tr", new String[]{"class", "throws"}
-                    );
-                tr.addChild("td", "Throws");
-                Type[] exceptions = method.thrownExceptions();
-                String[] names = new String[exceptions.length];
-                for (int j=0; j<names.length; j++)
-                    names[j] = exceptions[j].simpleTypeName();
-                tr.addChild("td", new String[]{
-                    "class", "type"
-                    }, Simple.join(", ", Simple.iter(names)), null
-                    );
-                tr.addChild(doXML(text, "td"));
-            }
-        }
-    }
-    
+    protected static final HashSet NAMESPACE_HTML_4_01 = Simple.set(
+            new Object[]{"@div", "@h3", "@h4", "@p"}
+            );
+        
     protected void doTags(
         Tag[] tags, 
         XML.Element parent, 
@@ -316,8 +302,10 @@ public class Doctest {
                 name.equals("@throws")
                 ) {
                 ; // filters out method tags
-            } else if (name.equals("@div")) {
-                parent.addChild(doXML(text, "div"));
+            } else if (name.equals("@pre")) {
+                parent.addChild("pre", text);
+            } else if (NAMESPACE_HTML_4_01.contains(name)) {
+                parent.addChild(doXML(name.substring(1), text));
             } else if (name.equals("@test")) {
                 parent.addChild(doTest(tags[i].text(), localName));
             } else
@@ -334,6 +322,8 @@ public class Doctest {
         index.A(name).add(fqn);
     }
     
+    private static final char u_rarr = 8594;
+
     protected void doField(FieldDoc field) throws Exception {
         String name = field.name();
         String fqn = packageName + "." + className + "." + name;
@@ -342,12 +332,26 @@ public class Doctest {
         String css = "javaField " + field.modifiers();
         html.root = new XML.Element("div");
         html.root.addChild("h2", className); 
-        html.root.addChild("h3", new String[]{
-            "class", css
-            }, name, null);
-        html.root.addChild(doXML(field.commentText(), "p"));
+        XML.Element title = html.root.addChild("h3");
+        title.addChild(
+            "span", new String[]{"class", css}, name, 
+            " " + u_rarr + " " + field.type().typeName()  
+            );
+        html.root.addChild(doXML("p", field.commentText()));
         doTags(field.tags(), html.root, fqn);
         html.write(new File(base + "/fragments/" + fqn), "");
+    }
+
+    protected static String doParameter (
+        ParamTag tag, Parameter parameter, XML.Element table
+    ) {
+        XML.Element div = table.addChild(
+            "div", new String[]{"class", "parameter"}
+            );
+        div.addChild("code", parameter.typeName()).follow = " - ";
+        div.addChild("span", tag.parameterName()).follow = " ";
+        div.addChild(doXML("span", tag.parameterComment()));
+        return tag.parameterName();
     }
     
     protected void doMethod(MethodDoc method, XML.Element root) 
@@ -360,12 +364,55 @@ public class Doctest {
             ) + method.modifiers();
         XML.Element javaMethod = root.addChild("div"); 
         XML.Element title = javaMethod.addChild("h3");
-        title.addChild("span", new String[]{
-            "class", css 
-            }, method.name(), " ");
-        title.addChild("span", method.flatSignature());
-        doMethodTags(method, javaMethod, base, packageName, localName);
-        javaMethod.addChild(doXML(method.commentText(), "p"));
+        javaMethod.addChild(doXML("p", method.commentText()));
+        title.addChild(
+            "span", new String[]{"class", css}, method.name(), null
+            );
+        XML.Element dl = javaMethod.addChild("dl");
+        // parameters
+        XML.Element di = dl.addChild("di");
+        Parameter[] parameters = method.parameters();
+        String arguments;
+        if (parameters.length > 0) {
+            di.addChild("dt", "Parameters");
+            XML.Element dd = di.addChild("dd");
+            ParamTag[] paramTags = method.paramTags();
+            if (parameters.length == paramTags.length) {
+                arguments = " (";
+                arguments = arguments + doParameter(
+                    paramTags[0], parameters[0], dd
+                    );
+                for (int i=1; i<parameters.length; i++) {
+                    arguments = arguments + ", " + doParameter(
+                        paramTags[i], parameters[i], dd
+                        );
+                }
+                arguments = arguments + ")"; 
+            } else { 
+                arguments = " " + method.flatSignature();
+            }
+        } else {
+            arguments = " ()";
+        }
+        // return
+        String rt = method.returnType().typeName();
+        if (rt == "void")
+            title.getLastChild().follow = arguments;
+        else {
+            title.getLastChild().follow = arguments + " " + u_rarr + " " + rt;
+            if (method.tags("@return").length > 0) {
+                di = dl.addChild("di");
+                di.addChild("dt", "Return");
+                di.addChild(doXML("dd", method.tags("@return")[0].text()));
+            }
+        }
+        // throws
+        if (method.tags("@throws").length > 0) {
+            di = dl.addChild("di");
+            di.addChild("dt", "Throws");
+            di.addChild(doXML("dd", method.tags("@throws")[0].text()));
+        }
+        // other tags ...
         doTags(method.tags(), javaMethod, localName);
     }
         
@@ -373,45 +420,68 @@ public class Doctest {
         className = Class.name();
         String fqn = packageName + "." + Class.name();
         doIndex(className, fqn);
-        JSON.Array members = new JSON.Array();
-        classes.put(fqn, members);
+        JSON.Object properties = new JSON.Object();
+        ClassDoc[] innerClasses = Class.innerClasses();
+        if (innerClasses.length > 0) {
+            JSON.Array innerTypes = new JSON.Array();
+            properties.put("contains", innerTypes);
+            for (int i=0; i<innerClasses.length; i++)
+                innerTypes.add(innerClasses[i].qualifiedName());
+        }
+        if (Class.superclassType() != null)
+            properties.put(
+                "extends", Class.superclassType().qualifiedTypeName()
+                );
+        JSON.Array interfaces = new JSON.Array();
+        Type[] _interfaces = Class.interfaceTypes();
+        for (int i = 0; i < _interfaces.length; i++)
+            interfaces.add(_interfaces[i].qualifiedTypeName());
+        properties.put("implements", interfaces);
+        JSON.Object fields = new JSON.Object();
+        properties.put("fields", fields);
+        classes.put(fqn, properties);
         XML.Document html = new XML.Document();
         html.root = new XML.Element("div", new String[]{
             "class", (Class.isInterface()) ? "javaInterface" : "javaClass" 
             }, null, null);
         html.root.addChild("h2", className);
         // fields
-        FieldDoc[] fields = Class.fields();
-        for (int i = 0; i < fields.length; ++i) 
-            if (fields[i].isPublic()) {
-                doField(fields[i]);
-                members.add(fields[i].name());
+        FieldDoc[] fieldsDoc = Class.fields();
+        for (int i = 0; i < fieldsDoc.length; ++i) 
+            if (fieldsDoc[i].isPublic()) {
+                doField(fieldsDoc[i]);
+                fields.put(fieldsDoc[i].name(), fieldsDoc[i].modifiers());
             }
         // methods
-        MethodDoc[] methods = Class.methods();
+        MethodDoc[] methodsDoc = Class.methods();
+        JSON.Object methods = new JSON.Object();
+        properties.put("methods", methods);
         JSON.Object pages = new JSON.Object();
-        for (int i = 0; i < methods.length; ++i) {
+        String methodName;
+        for (int i = 0; i < methodsDoc.length; ++i) {
+            methodName = methodsDoc[i].name();
             if (
-                methods[i].isPublic() && 
-                !pages.containsKey(methods[i].name())
+                methodsDoc[i].isPublic() && 
+                !pages.containsKey(methodName)
                 ) {
                 XML.Document method = new XML.Document();
                 method.root = new XML.Element(
                     "div", new String[]{"class", "javaMethods"}, null, null
                     );
                 method.root.addChild("h2", className); 
-                pages.put(methods[i].name(), method);
+                pages.put(methodName, method);
+                methods.put(methodName, methodsDoc[i].modifiers());
             }
         }
-        String methodName;
-        for (int i = 0; i < methods.length; ++i)
-            if (methods[i].isPublic()) {
-                methodName = methods[i].name();
+        for (int i = 0; i < methodsDoc.length; ++i)
+            if (methodsDoc[i].isPublic()) {
+                methodName = methodsDoc[i].name();
                 doMethod(
-                    methods[i], ((XML.Document) pages.get(methodName)).root
+                    methodsDoc[i], 
+                    ((XML.Document) pages.get(methodName)).root
                     );
             }
-        html.root.addChild(doXML(Class.commentText(), "div"));
+        html.root.addChild(doXML("p", Class.commentText()));
         doTags(Class.tags(), html.root, className);
         html.write(new File(base + "/fragments/" + fqn), "");
         Iterator names = pages.keySet().iterator();
@@ -420,7 +490,6 @@ public class Doctest {
             doIndex(
                 methodName, packageName + "." + className + "." + methodName
                 );
-            members.add(methodName);
             ((XML.Document) pages.get(methodName)).write(new File (
                 base + "/fragments/" + fqn + "." + methodName
                 ), "");
@@ -430,10 +499,22 @@ public class Doctest {
     protected void doPackage(PackageDoc Package) throws Exception {
         packageName = Package.name();
         packages.add(packageName);
+        XML.Document html = new XML.Document();
+        html.root = new XML.Element("div", new String[]{
+            "class", "javaPackage" 
+            }, null, null);
+        html.root.addChild("h2", "Package Overview");
+        XML.Element dl = html.root.addChild("dl");
         ClassDoc[] classes = Package.allClasses();
         for (int i = 0; i < classes.length; ++i) 
-            if (classes[i].isPublic()) // don't doctest protected and protected
+            if (classes[i].isPublic()) {
                 doClass(classes[i]);
+                XML.Element di = dl.addChild("di");
+                di.addChild("dt", classes[i].name());
+                di.addChild(doXML("dd", classes[i].commentText()));
+                ;
+            }
+        html.write(new File(base + "/fragments/" + packageName), "");
     }
     
     protected static void doDirectory (String path) throws Exception {
@@ -446,10 +527,11 @@ public class Doctest {
     }
     
     protected boolean doRoot (RootDoc root) throws Exception {
-        options = Simple.dict(root.options());
-        base = options.S("-destdir", "javadoc");
+        options = JSON.dict(root.options());
+        base = options.S("-destdir", "doc");
         doDirectory(base);
         doDirectory(base + "/fragments");
+        doDirectory(base + "/tests");
         PackageDoc[] docs = root.specifiedPackages();
         try {
             for (int i = 0; i < docs.length; ++i) {
@@ -491,11 +573,11 @@ public class Doctest {
      * 
      * @param arguments a list of package names
      *  
-     * @synopsis java Doctest org.less4j \
+     * @pre java Doctest org.less4j \
      *  -classpath ./less4j.jar;./lib/smalljs.jar;./lib/xp.jar \
      *  1> doctests.out 2> doctests.err 
      * 
-     * @div Test results are simple text messages prefixed by a hash of the
+     * @p Test results are simple text messages prefixed by a hash of the
      * sources running, uniquely identifying the same tests accross versions
      * allowing to distinguish between old and new tests when comparing
      * two test logs.

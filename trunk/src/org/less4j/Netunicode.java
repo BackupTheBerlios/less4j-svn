@@ -23,8 +23,6 @@ import java.util.NoSuchElementException;
  * A protocol to encode and iterate strings without escaping characters, 
  * the fast and easy way to serialize and parse sequences of UNICODE strings 
  * (see netstrings, the 8-bit byte original).
- * 
- * @copyright 2006-2007 Laurent Szyster
  */
 public class Netunicode {
     

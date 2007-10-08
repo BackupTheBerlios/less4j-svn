@@ -51,7 +51,8 @@ package org.less4j;
 /**
  * This class implements the SHA-1 message digest algorithm (copied from
  * Jython 2.3 without the dependencies and synchronization).
- * <p>
+ * 
+ * @div <p>
  * <b>References:</b>
  * <ol>
  *   <li> Bruce Schneier,
