@@ -1148,8 +1148,8 @@ public class JSON {
      * 
      * @pre JSON.dict(new String[][]{
      *     {"hello", "world"},
-     *     {"one", new Integer(1)},
-     *     {"test", Boolean.TRUE} 
+     *     {"one", "1"},
+     *     {"test", "true"} 
      *     });
      * 
      * @param pairs of key and values
@@ -1157,8 +1157,12 @@ public class JSON {
      */
     public static final JSON.Object dict (String[][] pairs) {
         JSON.Object result = new JSON.Object();
-        for (int i=0; i< pairs.length; i++)
-            result.put(pairs[i][0], pairs[i][1]);
+        for (int i=0; i<pairs.length; i++) {
+            if (pairs[i].length > 1)
+                result.put(pairs[i][0], pairs[i][1]);
+            else
+                result.put(pairs[i][0], null);
+        }
         return result;
     };
     
