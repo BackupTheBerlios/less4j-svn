@@ -1,0 +1,42 @@
+<h2>Where Less Code Is More Applications</h2>
+<h3>Download</h3>
+<p>
+  The binaries and source jars from the project's page at Google.
+</p>
+<h3>Apply</h3>
+<p>
+  Deploy the ready-made WAR included, configure for your SQL database and 
+  start to prototype your next web 2.0 service in JavaScript immediately. 
+  From the web browser and in the same language on the server and the client.
+</p>
+<p>
+  ...
+</p>
+<p>
+  One obvious way to do REST right with J2EE as it is since version 1.4.2: 
+  stateless, bended like PHP with a healthy dose of JSON dynamism, more 
+  protocols, less Java and XML for legacy only.
+</p>
+<h3>Develop</h3>
+<p>
+  http://...
+</p>
+<p>
+  <strong>Less4j</strong> is a library that fits in a framework defined
+  by network protocols, with an API designed to leverage those protocols,
+  not try to work around them. So, there are very few interfaces in 
+  less4j's sources because protocols provide already most of the abstractions 
+  required by a network application.
+</p>
+<p>
+  <strong>Less4j</strong> provides simple implementations of a stable 
+  stack of standard protocols: SQL, LDAP, SHA1, HTTP, XML, JSON and a 
+  meaningfull subset of SOAP/RPC. It is made of practical conveniences for 
+  J2EE developers. It was written with legacy support in mind, i.e.: 
+  Java 1.4.2, plain old relational databases and web services.  
+  Last but not least it offers a jumpstart into model driven Web 2.0 
+  application development.
+</p>
+<p>
+  ...
+</p>

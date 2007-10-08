@@ -1,0 +1,27 @@
+.container { height: 750px; }
+
+a { color: #3333FF; text-decoration: none; }
+a:visited { color: #3333FF; }
+a:hover { color: #3333FF; }
+a:active { color: #6666FF; }
+
+.static { font-style: italic; }
+pre {
+	font-family: 'Courier New', 'Courier', Fixed;
+	background-color: #EEEEEE;
+    padding: 1.5em;
+    margin-bottom: 1.5em;
+	}	
+	
+h1.action {
+    cursor:pointer;
+	}
+span.action {
+	margin-left: 0.5em;
+    color: grey;
+    text-decoration:none;
+    cursor:pointer;
+	}
+div.corner-up-right {
+	text-align: right;
+	}
