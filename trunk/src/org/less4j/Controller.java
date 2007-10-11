@@ -131,14 +131,14 @@ public class Controller extends HttpServlet implements Function {
     /**
      * Returns a JSONR pattern to test the actor's <code>configuration</code>.
      *
-     * @div <p>The default pattern essentially restricts configuration to a
+     * @p The default pattern essentially restricts configuration to a
      * namespace, typing only the values named <code>test</code> and 
-     * <code>irtd2Salts</code>.</p>
+     * <code>irtd2Salts</code>.
      * 
-     * <p>To restrict or extend the valid configuration options, override
+     * @p To restrict or extend the valid configuration options, override
      * this property in your class with the appropriate pattern. For instance,
      * to enforce a minimal configuration without constraints on the JSON 
-     * objects handled and no SQL or LDAP connections:</p>
+     * objects handled and no SQL or LDAP connections:
      * 
      * @pre public JSONR.Type configurationPattern () 
      *throws JSON.Error {
@@ -215,27 +215,25 @@ public class Controller extends HttpServlet implements Function {
     protected static final String _singleton = "singleton";
     
     /**
-     * <p>Test wether this controller's configuration actually supports 
+     * Test wether this controller's configuration actually supports 
      * this Actor class at runtime, supply a random IRTD2 salt if missing
      * and return false if the configured SQL or LDAP resources are not
-     * available.</p>
+     * available.
      * 
-     * <h4>Synopsis</h4>
+     * @p Application developers that extend the namespace of less4j's 
+     * configuration and the Actor class must overload this method.
      * 
-     * <p>Application developers that extend the namespace of less4j's 
-     * configuration and the Actor class must overload this method.</p>
-     * 
-     * <pre>public boolean less4jConfigure (Actor $) {
+     * @pre public boolean less4jConfigure (Actor $) {
      *    if (super.less4jConfigure($)) {
      *        // configure your extension here
      *        return true;
      *    } else
      *        return false;
-     *}</pre>
+     *}
      * 
-     * <p>By definition a servlet configuration is a runtime environment
+     * @p By definition a servlet configuration is a runtime environment
      * variable, something that cannot be relied upon without testing
-     * it each time the J2EE container initialize it.</p>
+     * it each time the J2EE container initialize it.
      * 
      * @return true if the configuration was successfull, false otherwise
      */
@@ -470,13 +468,11 @@ public class Controller extends HttpServlet implements Function {
      * Try to open an SQL connection using the configuration properties,
      * applying <code>sqlOpenJDBC</code> or <code>sqlOpenJ2EE</code>.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <p>A typical use of <code>sqlOpen</code> is to try to open a
+     * @p A typical use of <code>sqlOpen</code> is to try to open a
      * database connection and make a sequence of requests, handling each
-     * error conditions as branches in a simple procedure.</p>  
+     * error conditions as branches in a simple procedure.  
      * 
-     * <pre>if (sqlOpen($)) {
+     * @pre if (sqlOpen($)) {
      *    try {
      *        $.sqlQuery('this', 'SELECT ...', 10);
      *        doThisAndThat();
@@ -491,16 +487,16 @@ public class Controller extends HttpServlet implements Function {
      *    } finally {
      *        $.sqlClose();
      *    }
-     *}</pre>
+     *}
      *
-     * <p>And do it without naming the database, user name and password
-     * in the application code, leaving it for configuration ... or better.</p>
+     * @p And do it without naming the database, user name and password
+     * in the application code, leaving it for configuration ... or better.
      * 
-     * <p>Here a convention can be used before configuration: use the
+     * @p Here a convention can be used before configuration: use the
      * local MySQL server and identify a <code>Class</code> user with
      * an empty password string. That's a decent default which allows
      * to configure authorization on the SQL server once for all the
-     * executions of this controller's class.</p>
+     * executions of this controller's class.
      * 
      * @return true if the connection was successfull, false otherwise
      */
@@ -609,15 +605,13 @@ public class Controller extends HttpServlet implements Function {
      * execute an SQL query with the named arguments to update the Actor's 
      * JSON named state and return true if no exception was raised.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>if (slqCollection(
+     * @pre if (slqCollection(
      *    $, "result", "select COLUMN from TABLE where KEY=?", 
      *    new String[]{"key"}
      *    ))
      *    ; // non-null result set fetched, maybe do something with it ...
      *else
-     *    ; // exception or null result set, handle the error ...</pre>
+     *    ; // exception or null result set, handle the error ...
      * 
      * @param $ the actor at play
      * @param name of the result to put in <code>$.json</code>
@@ -687,15 +681,13 @@ public class Controller extends HttpServlet implements Function {
      * execute an SQL query with the named arguments to update the Actor's 
      * JSON named state and return true if no exception was raised.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <pre>if (slqObject(
+     * @pre if (slqObject(
      *    $, "result", "select * from TABLE where COLUMN=?", 
      *    String[]{"argument"}
      *    ))
      *    ; // non-null result set fetched, do something with it ...
      *else
-     *    ; // exception or null result set, handle the error ...</pre>
+     *    ; // exception or null result set, handle the error ...
      * 
      * @param $ the actor at play
      * @param name of the result to put in <code>$.json</code>
@@ -765,19 +757,17 @@ public class Controller extends HttpServlet implements Function {
      * 
      * and return true if the connection was successfull, false otherwise.
      * 
-     * <h4>Synopsis</h4>
-     * 
-     * <p>Here a convention can be used before configuration: use the
+     * @p Here a convention can be used before configuration: use the
      * local LDAP server and identify a <code>Class</code> user with
      * an empty password string. That's a decent default which allows
      * to configure authorization on the LDAP server once for all the
-     * executions of this controller's class.</p>
+     * executions of this controller's class.
      * 
-     * <p>A typical use of <code>ldapOpen</code> is to try to open an
+     * @p A typical use of <code>ldapOpen</code> is to try to open an
      * LDAP connection and make a sequence of requests, handling each
-     * error conditions as branches in a simple procedure.</p>  
+     * error conditions as branches in a simple procedure.  
      * 
-     * <pre>if (ldapOpen($)) {
+     * @pre if (ldapOpen($)) {
      *    try {
      *        $.ldapResolve('cn=cname');
      *        $.json200Ok();
@@ -786,9 +776,9 @@ public class Controller extends HttpServlet implements Function {
      *    } finally {
      *        $.ldapClose();
      *    }
-     *}</pre>
+     *}
      *
-     * <p>...</p>
+     * @p ...
      * 
      * @param $ the Actor at play
      * @return true if the connection was successfull, false otherwise
