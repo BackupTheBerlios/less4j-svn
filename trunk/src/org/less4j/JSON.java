@@ -350,21 +350,22 @@ public class JSON {
      */
     public static class Object extends HashMap {
         /**
-         * ...
+         * Access an <code>Integer</code> value by name.
          * 
-         * @param name
-         * @return
-         * @throws Error
+         * @param name of the value to access
+         * @return an integer value
+         * @throws if there is no <code>Integer</code> value by that named
          */
         public final Integer I(String name) throws Error {
             return JSON.I(get(name));
         }
         /**
-         * ...
+         * Access a value by name and cast it to an <code>int</code> or return 
+         * the given default.
          * 
-         * @param name
-         * @param def
-         * @return
+         * @param name of the value to cast
+         * @param def the default value if none is named
+         * @return an integer value
          */
         public final int intValue(String name, int def) {
             if (!containsKey(name)) return def;
@@ -372,11 +373,12 @@ public class JSON {
             catch (Error e) {return def;}
         }
         /**
-         * ...
+         * Access a value by name and cast it to an <code>long</code> or 
+         * return the given default.
          * 
-         * @param name
-         * @param def
-         * @return
+         * @param name of the value to cast
+         * @param def the default value if none is named
+         * @return an long value
          */
         public final long longValue(String name, long def) {
             if (!containsKey(name)) return def;
@@ -384,21 +386,22 @@ public class JSON {
             catch (Error e) {return def;}
         }
         /**
-         * ...
+         * Access a value by name and cast it to an <code>BigDecimal</code>.
          * 
-         * @param name
-         * @return
-         * @throws Error
+         * @param name of the value
+         * @return a decimal value
+         * @throws if there is no <code>BigDecimal</code> value by that named
          */
         public final BigDecimal D(String name) throws Error {
             return JSON.D(get(name));
         }
         /**
-         * ...
+         * Access a value by name and cast it to an <code>BigDecimal</code> 
+         * or return the given default.
          * 
-         * @param name
-         * @param def
-         * @return
+         * @param name of the value to cast
+         * @param def the default value if none is named
+         * @return an decimal value
          */
         public final BigDecimal D(String name, BigDecimal def) {
             if (!containsKey(name)) return def;
@@ -1181,6 +1184,13 @@ public class JSON {
         return (JSON.Array) Simple.list(new JSON.Array(), items);
     };
     
+    /**
+     * Decode a JSON string.
+     * 
+     * @param encoded JSON string
+     * @return a JSON type
+     * @throws JSON syntax error
+     */
     public static final java.lang.Object decode(String encoded) 
     throws Error {
         return (new JSON()).eval(encoded);
@@ -1442,11 +1452,10 @@ public class JSON {
     }
     
     /**
-     * ...
+     * Serialize a JSON type in a <code>StringBuffer</code>
      * 
-     * @param sb
-     * @param value
-     * @param coll
+     * @param sb to fill
+     * @param value to serialize
      * @return
      */
     public static final StringBuffer strb(

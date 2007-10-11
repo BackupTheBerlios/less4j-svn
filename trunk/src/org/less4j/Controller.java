@@ -28,15 +28,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 /**
- * A servlet to control HTTP access to configurable entreprise resources and 
- * stateless JSON services using SHA1 digests of identity, rights and time, 
- * leveraging regular JSON expression to describe those services and validate 
- * their input. It provides conveniences to update or query SQL databases 
- * with JSON arguments and map results to common JSON patterns. It also 
- * includes practical API to resolve, create and update LDAP contexts with 
- * JSON types. Note that it does not limit its application to the simple form
- * requests from web browsers and can be extended to handle file upload,
- * SOAP messages or serve its own web of HTTP resources.
+ * An <code>HttpServlet</code> to control and dispatch HTTP access to 
+ * configurable entreprise resources and web services. Also provides 
+ * conveniences to: update or query SQL databases with JSON arguments and 
+ * map results to common JSON patterns; to resolve, create and update LDAP 
+ * contexts with JSON types. 
  * 
  * @h3 Synopsis
  * 
@@ -144,7 +140,7 @@ public class Controller extends HttpServlet implements Function {
      * to enforce a minimal configuration without constraints on the JSON 
      * objects handled and no SQL or LDAP connections:</p>
      * 
-     * @synopsis public JSONR.Type configurationPattern () 
+     * @pre public JSONR.Type configurationPattern () 
      *throws JSON.Error {
      *    return JSONR.compile(JSON.object(new Object[]{
      *        "test", Boolean.FALSE, // default to production
@@ -175,20 +171,6 @@ public class Controller extends HttpServlet implements Function {
      * controller's <code>less4jConfigure</code> method or raise a
      * ServletException if the configuration is incomplete and fails
      * the Actor's tests.
-     *  
-     * <h4>Synopsis</h4>
-     * 
-     * <p>Upon initialization, the servlet's <code>less4jConfigure</code>
-     * method is called with a new <code>Actor</code> instance (represented
-     * throughout less4j by the <code>$</code> symbol).</p>
-     * 
-     * <p>The <code>Actor</code> passed has a <code>configuration</code> 
-     * property decoded from the <code>less4j</code> parameter found in the 
-     * servlet's <code>WEB-INF/web.xml</code> configuration file (or any other 
-     * deployement configuration medium with a J2EE interface).</p>
-     * 
-     * <p>By convention, this method is expected to test the servlet's named
-     * parameters found in the <code>$.configuration</code> JSON object.</p>
      * 
      * @param config the Servlet configuration <code>Map</code>
      */

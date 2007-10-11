@@ -54,7 +54,7 @@ import com.jclark.xml.sax.ReaderInputStream;
  * element tree, enhanced by an extensible type system to develop XML 
  * language interpreters.
  * 
- * @synopsis import org.less4j.XML;
+ * @pre import org.less4j.XML;
  *import org.less4j.Simple;
  *import java.util.Iterator;
  *import java.io.File;
@@ -202,7 +202,7 @@ public class XML {
          * @param first text after the opening tag 
          * @param follow text after the closing tag
          * 
-         * @synopsis new XML.Element("a", new String[]{
+         * @pre new XML.Element("a", new String[]{
          *    "href", "#", "name", "top"
          *    }, "go to top", "\r\n");
          *    
@@ -260,7 +260,7 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name) {
-            return addChild(new Element(name, null));
+            return addChild(newElement(name, null));
         }
         /**
          * ...
@@ -269,7 +269,7 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name, String first) {
-            XML.Element child = addChild(new Element(name, null));
+            XML.Element child = addChild(newElement(name, null));
             child.first = first;
             return child;
         }
@@ -280,7 +280,7 @@ public class XML {
          * @return
          */
         public XML.Element addChild (String name, String[] attrs) {
-            return addChild(new Element(
+            return addChild(newElement(
                 name, (HashMap) Simple.dict(new HashMap(), attrs)
                 ));
         }
@@ -293,7 +293,7 @@ public class XML {
         public XML.Element addChild (
             String name, String[] attrs, String first, String follow
             ) {
-            XML.Element child = addChild(new Element(
+            XML.Element child = addChild(newElement(
                 name, (HashMap) Simple.dict(new HashMap(), attrs)
                 ));
             child.first = first;
@@ -305,7 +305,7 @@ public class XML {
          * 
          * @param cdata
          * 
-         * @synopsis XML.Element parent = new XML.Element("tag");
+         * @pre XML.Element parent = new XML.Element("tag");
          * parent.addCdata("first text inside the parent");
          * parent.addChild("child");
          * parent.addCdata("text following ..."
@@ -328,7 +328,7 @@ public class XML {
         /**
          * Returns the element's local name.
          * 
-         * @synopsis (new XML.Element("urn:NameSpace tag")).getLocalName();
+         * @pre (new XML.Element("urn:NameSpace tag")).getLocalName();
          * 
          */
         public String getLocalName () {
@@ -344,7 +344,7 @@ public class XML {
          * @param index of the child in this element's children.
          * @return an <code>XML.Element</code> of null
          * 
-         * @synopsis (new XML.Element("tag")).getChild(3);
+         * @pre (new XML.Element("tag")).getChild(3);
          */
         public Element getChild (int index) {
             if (children == null)
@@ -359,7 +359,7 @@ public class XML {
          * @param name of the child.
          * @return an <code>XML.Element</code> or null
          * 
-         * @synopsis (new XML.Element("tag")).getChild("name");
+         * @pre (new XML.Element("tag")).getChild("name");
          */
         public Element getChild (String name) {
             Element child;
@@ -415,7 +415,7 @@ public class XML {
          * @param name of the children.
          * @return an <code>Iterator</code> of <code>XML.Element</code>
          * 
-         * @synopsis Iterator named = element.getChildren(
+         * @pre Iterator named = element.getChildren(
          *    Simple.set({"a", "A"})
          *    );
          */
@@ -429,7 +429,7 @@ public class XML {
          * @param name of the attribute
          * @return the value of the named attribute as a string
          * 
-         * @synopsis (new XML.Element("tag")).getAttribute("name");
+         * @pre (new XML.Element("tag")).getAttribute("name");
          */
         public String getAttribute (String name) {
             if (attributes == null)
@@ -444,7 +444,7 @@ public class XML {
          * @param name
          * @param value
          * 
-         * @synopsis (new XML.Element("tag")).setAttribute("name", "value");
+         * @pre (new XML.Element("tag")).setAttribute("name", "value");
          */
         public void setAttribute (String name, String value) {
             if (attributes == null) 
@@ -809,7 +809,7 @@ public class XML {
      * through XML data and instead provide practical JSON types that can
      * be validated by a regular JSON expression.
      * 
-     * @synopsis import org.less4j.XML;
+     * @pre import org.less4j.XML;
      *import org.less4j.JSON;
      *import org.less4j.JSONR;
      * 

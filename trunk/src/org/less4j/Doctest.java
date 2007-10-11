@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.PackageDoc;
 import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.ExecutableMemberDoc;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.Parameter;
@@ -118,10 +119,7 @@ import org.mozilla.javascript.*;
  * 
  * @p A third one that raise and exception (and fails): 
  * 
- * @test out("start ..."); 
- *var result = "A".lowerCase().equals("a");
- *out("... stop");
- *return result;
+ * @test return "A".lowerCase().equals("a");
  *
  * @p ...
  * 
@@ -171,53 +169,13 @@ public class Doctest {
     }
 
     protected static final String test_prologue = (
-        "importClass(java.lang.System);\r\n"
-        + "var doctest_out = [];\r\n"
-        + "var doctest_err = [];\r\n"
-        + "var out = function (line) {doctest_out.push(line);};\r\n"
-        + "var err = function (line) {doctest_err.push(line);};\r\n"
-        + "var doctest = function () {\r\n"
-        );
-    
-    protected static final String run_prologue = (
-        "importClass(java.lang.System);\r\n"
-        + "var out = function (line) {\r\n"
-        + "    System.out.println(prefix + line);\r\n"
-        + "};\r\n"
-        + "var err = function (line) {\r\n"
-        + "    System.err.println(prefix + line);\r\n"
-        + "};\r\n"
-        + "var doctest = function () {\r\n"
-        );
-    
-    protected static final String run_epilogue = (
-        "\r\n};\r\n"
-        + "var run_test = function () {\r\n"
-        + "    var result = false;\r\n"
-        + "    try {\r\n"
-        + "        result = doctest();\r\n"
-        + "        out('OK');\r\n"
-        + "    } catch (e) {\r\n"
-        + "        err(e.toString());\r\n"
-        + "    }\r\n"
-        + "    return (result===true);\r\n"
-        + "};"
+        "var doctest = function () {\r\n"
         );
     
     protected static final String test_epilogue = (
         "\r\n};\r\n"
-        + "var doctest_stdout, doctest_stderr;"  
         + "var run_test = function () {\r\n"
-        + "    var result = false;\r\n"
-        + "    try {\r\n"
-        + "        result = doctest();\r\n"
-        + "        out('OK');\r\n"
-        + "    } catch (e) {\r\n"
-        + "        err(e.toString());\r\n"
-        + "    }\r\n"
-        + "    doctest_stdout = doctest_out.join('\\r\\n');\r\n"
-        + "    doctest_stderr = doctest_err.join('\\r\\n');\r\n"
-        + "    return (result===true);\r\n"
+        + "    return (doctest()===true);\r\n"
         + "};"
         );
     
@@ -237,9 +195,6 @@ public class Doctest {
         String test_sources = (
             prologue + test_prologue + source + test_epilogue
             );
-        String run_sources = (
-            prologue + run_prologue + source + run_epilogue
-            );
         (new FileOutputStream(new File(
             base + "/tests/" + hash + ".js"
             ))).write(Simple.encode(test_sources, "UTF-8"));
@@ -255,24 +210,18 @@ public class Doctest {
             org.mozilla.javascript.Function fun = (
                 org.mozilla.javascript.Function
                 ) scope.get("run_test", scope);
-            if (!((Boolean) Context.jsToJava(
-                fun.call(cx, scope, scope, new Object[]{}), Boolean.class
-                )).booleanValue())
-                doctest.addChild(
-                    "div", new String[]{"class", "error"}, "failed", null
-                    );
-            doctest.addChild(
-                "div", new String[]{"class", "stdout"}, 
-                (String) scope.get("doctest_stdout", scope), null
-                );
-            doctest.addChild(
-                "div", new String[]{"class", "stderr"}, 
-                (String) scope.get("doctest_stderr", scope), null
-                );
-        } catch (Exception e) {
-            doctest.addChild(
-                "div", new String[]{"class", "error"}, e.getMessage(), null
-                );
+            try {
+                if (!((Boolean) Context.jsToJava(
+                    fun.call(cx, scope, scope, new Object[]{}), Boolean.class
+                    )).booleanValue())
+                doctest.addChild("div", new String[]{
+                    "class", "error"
+                    }, "failed", null);
+            } catch (RhinoException e) {
+                doctest.addChild("div", new String[]{
+                    "class", "error"
+                    }, e.getMessage(), null);
+            }
         } finally {
             Context.exit();
         }
@@ -354,7 +303,7 @@ public class Doctest {
         return tag.parameterName();
     }
     
-    protected void doMethod(MethodDoc method, XML.Element root) 
+    protected void doMethod(ExecutableMemberDoc method, XML.Element root) 
     throws Exception {
         String name = method.name();
         String signature = name + method.flatSignature();
@@ -395,17 +344,22 @@ public class Doctest {
             arguments = " ()";
         }
         // return
-        String rt = method.returnType().typeName();
-        if (rt == "void")
-            title.getLastChild().follow = arguments;
-        else {
-            title.getLastChild().follow = arguments + " " + u_rarr + " " + rt;
-            if (method.tags("@return").length > 0) {
-                di = dl.addChild("di");
-                di.addChild("dt", "Return");
-                di.addChild(doXML("dd", method.tags("@return")[0].text()));
+        if (method instanceof MethodDoc) {
+            String rt = ((MethodDoc) method).returnType().typeName();
+            if (rt == "void")
+                title.getLastChild().follow = arguments;
+            else {
+                title.getLastChild().follow = (
+                    arguments + " " + u_rarr + " " + rt
+                    );
+                if (method.tags("@return").length > 0) {
+                    di = dl.addChild("di");
+                    di.addChild("dt", "Return");
+                    di.addChild(doXML("dd", method.tags("@return")[0].text()));
+                }
             }
-        }
+        } else
+            title.getLastChild().follow = arguments;
         // throws
         if (method.tags("@throws").length > 0) {
             di = dl.addChild("di");
@@ -473,16 +427,24 @@ public class Doctest {
                 methods.put(methodName, methodsDoc[i].modifiers());
             }
         }
+        XML.Document methodPage;
         for (int i = 0; i < methodsDoc.length; ++i)
             if (methodsDoc[i].isPublic()) {
-                methodName = methodsDoc[i].name();
-                doMethod(
-                    methodsDoc[i], 
-                    ((XML.Document) pages.get(methodName)).root
-                    );
+                methodPage = (XML.Document) pages.get(methodsDoc[i].name());
+                if (i > 0) methodPage.root.addChild("hr");
+                doMethod(methodsDoc[i], methodPage.root);
             }
+        // comments
         html.root.addChild(doXML("p", Class.commentText()));
+        // constructors
+        ExecutableMemberDoc[] constructors = Class.constructors();
+        for (int i=0; i < constructors.length; i++) {
+            doMethod(constructors[i], html.root);
+            html.root.addChild("hr");
+        } 
+        // tags
         doTags(Class.tags(), html.root, className);
+        // index and write method fragments
         html.write(new File(base + "/fragments/" + fqn), "");
         Iterator names = pages.keySet().iterator();
         while (names.hasNext()) {
@@ -509,10 +471,11 @@ public class Doctest {
         for (int i = 0; i < classes.length; ++i) 
             if (classes[i].isPublic()) {
                 doClass(classes[i]);
-                XML.Element di = dl.addChild("di");
-                di.addChild("dt", classes[i].name());
-                di.addChild(doXML("dd", classes[i].commentText()));
-                ;
+                if (classes[i].containingClass() == null) {
+                    XML.Element di = dl.addChild("di");
+                    di.addChild("dt", classes[i].name());
+                    di.addChild(doXML("dd", classes[i].commentText()));
+                }
             }
         html.write(new File(base + "/fragments/" + packageName), "");
     }

@@ -17,54 +17,26 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j;
 
 /**
- * An interface to implement configurable functions dispatched by less4j's 
- * base <code>Controller</code> but also extended <code>Controller</code> 
- * classes.
+ * An interface to implement web services that eventually identify requests,
+ * serve idempotent requests for resources, reply to idempotent GET and POST 
+ * requests with JSON and URL encoded form body that match a regular JSON
+ * pattern, or handle any other HTTP request. 
  * 
- * @synopsis package org.less4j.tests;
+ * @h3 Synopsis
  * 
- *import org.less4j.*;
+ * @p For sample use of <code>Service</code> see its many implementations 
+ * found in less4j.
  * 
- *class HelloWorld implements Function {
- *    public Function singleton = new HelloWorld ();
- *    private JSONR.Type _interface;
- *    public String jsonInterface (Actor $) {
- *        return "{\"hello\":\"world[!]\"}";
- *    }
- *    public boolean less4jConfigure (Actor $) {
- *        try {
- *            _interface = JSONR.compile(jsonInterface($)); 
- *            return true;
- *        } catch (JSON.Error e) {
- *            $.logError(e);
- *            return false;
- *        }
- *    }
- *    public boolean irtd2Identify (Actor $) {
- *        $.identity = Simple.password(10);
- *        $.rights = "";
- *        return true;
- *    }
- *    public Object jsonRegular (Actor $) {
- *        return new JSONR (_interface, 1, 2);
- *    }
- *    public void jsonApplication (Actor $) {
- *        $.jsonResponse(200);
- *    }
- *    public void httpResource (Actor $) {
- *        $.jsonResponse(200, "{\"hello\": \"world!\"}");
- *    }
- *    public void httpContinue (Actor $) {
- *        $.httpResponse(400);
- *    }
- *}
- *
- * @synopsis {
- *  "test": true;
- *  "functions": {
- *    "\/hello-world": "org.less4j.tests.HelloWorld"
- *  }
- *}
+ * @p It is implemented by the base <code>Controller</code> function 
+ * dispatcher and the derived classes found in 
+ * <code>org.less4j.controllers</code>. 
+ * This interface is also implemented by classes packaged in 
+ * <code>org.less4j.functions</code>.
+ * 
+ * @p Note that this interface also supports a WS-* implementation in 
+ * the <code>SOAP</code> class, complete with WSDL generation from regular 
+ * JSON expressions and two-way JSON/SOAP translation. 
+ * 
  */
 public interface Function {
     /**
@@ -80,7 +52,7 @@ public interface Function {
      * this <code>Function</code> at runtime. Functions that extend the 
      * namespace of less4j's configuration must override this method.
      * 
-     * @synopsis public boolean less4jConfigure (Actor $) {
+     * @pre public boolean less4jConfigure (Actor $) {
      *    if (super.less4jConfigure($)) {
      *        // configure your extension here
      *        return true;
@@ -88,6 +60,7 @@ public interface Function {
      *        return false;
      *}
      * 
+     * @param $ the actor at play
      * @return true if the configuration was successfull, false otherwise
      */
     public boolean less4jConfigure (Actor $);
@@ -97,31 +70,31 @@ public interface Function {
      * by default grant no rights to a random user ID made of ten alphanumeric 
      * characters.
      * 
-     * @synopsis public boolean irtd2Identify (Actor $) {
+     * @pre public boolean irtd2Identify (Actor $) {
      *    $.identity = Simple.password(10);
      *    return true;
      *}
      * 
-     * @xml A simpler implementation is to reply unidentified requests
+     * @p A simpler implementation is to reply unidentified requests
      * with a <code>401 Not Authorized</code> response:
      * 
-     * @synopsis public boolean irtd2Identify (Actor $) {
+     * @pre public boolean irtd2Identify (Actor $) {
      *   $.httpError(401)); 
      *   return false; 
      *}</pre>
      * 
-     * @xml Or redirect the user agent to another controller:
+     * @p Or redirect the user agent to another controller:
      * 
-     * @synopsis public boolean irtd2Identify (Actor $) {
+     * @pre public boolean irtd2Identify (Actor $) {
      *   $.http302Redirect("/login"); 
      *   return false; 
      *}
      * 
-     * @xml The simplest implementation is to pass unidentified requests 
+     * @p The simplest implementation is to pass unidentified requests 
      * through, here to handle JSON login with a configurable password
      * for a <code>root</code> access in the root context "/":
      * 
-     * @synopsis public static boolean irtd2Identify (Actor $) {
+     * @pre public static boolean irtd2Identify (Actor $) {
      *   return true;
      *}
      *
@@ -141,9 +114,9 @@ public interface Function {
      *       // not identified, response completed. 
      *}
      * 
-     * @xml ...
+     * @p ...
      *  
-     * @param $ the Actor's state
+     * @param $ the actor's state
      * @return true if the request was identified, false otherwise
      */
     public boolean irtd2Identify (Actor $);
@@ -151,27 +124,27 @@ public interface Function {
      * Complete requests not handled by <code>httpResource</code> or
      * <code>jsonApplication</code>. 
      *
-     * @synopsis public void httpContinue (Actor $) {
+     * @pre public void httpContinue (Actor $) {
      *    return $.httpError(400); // Bad Request
      *}
      *
-     * @xml ...
+     * @p ...
      *
-     * @param $
+     * @param $ the actor's state
      */
     public void httpContinue (Actor $, String method, String contentType);
     /**
      * Reply to idempotent HTTP requests not handled by a configured
      * <code>Function</code> or this controller.
      * 
-     * @synopsis public void httpResource (Actor $) {
+     * @pre public void httpResource (Actor $) {
      *    return $.httpError(404); // Not Found
      *}
      *
-     * @xml This is a method to overload in an application controller that
+     * @p This is a method to overload in an application controller that
      * serve resources in this servlet context to identified users.
      * 
-     * @xml Practically, for database and directory controllers there is
+     * @p Practically, for database and directory controllers there is
      * little else to do short of implementing your own database to URI 
      * namespace mapping for resources. Subclassing this method makes
      * it possible, but most controller will only need a static page
@@ -185,7 +158,7 @@ public interface Function {
      * to validate a GET request's query string or a POSTed JSON request 
      * body. 
      * 
-     * @synopsis public Object jsonRegular (Actor $) {
+     * @pre public Object jsonRegular (Actor $) {
      *    return new JSON();
      *}
      * 
@@ -197,7 +170,7 @@ public interface Function {
      * Control an audited interaction between an identified user and a 
      * JSON application.
      * 
-     * @synopsis public void jsonApplication (Actor $) {
+     * @pre public void jsonApplication (Actor $) {
      *    $.jsonResponse(501); // Not implemented
      *}
      *
