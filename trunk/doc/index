@@ -1,42 +1,49 @@
-<h2>Where Less Code Is More Applications</h2>
-<h3>Download</h3>
+<h2>API Documentation</h2>
 <p>
-  The binaries and source jars from the project's page at Google.
-</p>
-<h3>Apply</h3>
-<p>
-  Deploy the ready-made WAR included, configure for your SQL database and 
-  start to prototype your next web 2.0 service in JavaScript immediately. 
-  From the web browser and in the same language on the server and the client.
+  This library supports an Entreprise Service Bus defined by a stable 
+  stack of standard protocols: HTTP, URL, <code>SHA1</code>, 
+  <code>JSON</code>, <code>SQL</code>, <code>LDAP</code>, <code>XML</code>
+  and ECMA-<code>Script</code>.
 </p>
 <p>
-  ...
+  <code>Function</code> lays out in one interface and seven methods the right 
+  way to program entreprise stateless web 2.0 services in a J2EE servlet. 
+  A practical set of reusable service implementation is included to illustrate, 
+  test and validate this interface design. 
+</p>  
+<p>Each one applies the same <code>Actor</code> or descend from the same 
+  <code>Controller</code>, two types ladden with conveniences to leverage
+  those protocols as they were intended. Sharing nothing but text references 
+  to their network application state, working in small and manageable pieces
+  distributed on the network. 
 </p>
 <p>
-  One obvious way to do REST right with J2EE as it is since version 1.4.2: 
-  stateless, bended like PHP with a healthy dose of JSON dynamism, more 
-  protocols, less Java and XML for legacy only.
-</p>
-<h3>Develop</h3>
+  To support the infrastructure requirements of ESB not addressed by
+  the stack of standard protocols, less4j implements three new network
+  protocols:
+</p> 
+<ul>
+<li>
+  IRTD2 for distributed user agent 
+  identification and authorization in sequence and time. 
+</li>
+<li>  
+  <code>JSONR</code> for better network input validation 
+  and network services descriptions.
+</li>
+<li>  
+  <code>Diva</code> as a relational model for distributed state transitions
+  log.
+</li>
+</ul>
 <p>
-  http://...
-</p>
+  Implemented in diverse services, they provide a sound infrastructures to 
+  track entreprise resource and business processes in the same workflow but 
+  accross distributed services and partitionned legacy applications. 
+</p>  
 <p>
-  <strong>Less4j</strong> is a library that fits in a framework defined
-  by network protocols, with an API designed to leverage those protocols,
-  not try to work around them. So, there are very few interfaces in 
-  less4j's sources because protocols provide already most of the abstractions 
-  required by a network application.
-</p>
-<p>
-  <strong>Less4j</strong> provides simple implementations of a stable 
-  stack of standard protocols: SQL, LDAP, SHA1, HTTP, XML, JSON and a 
-  meaningfull subset of SOAP/RPC. It is made of practical conveniences for 
-  J2EE developers. It was written with legacy support in mind, i.e.: 
-  Java 1.4.2, plain old relational databases and web services.  
-  Last but not least it offers a jumpstart into model driven Web 2.0 
-  application development.
-</p>
-<p>
-  ...
+  Last but not least, note that less4j is technically obsolete by design, 
+  written in Java 1.4.2, more easely downgradable to 1.3 and depending on so
+  little external libraries as to fit its applications in many legacy J2EE 
+  production environments.
 </p>

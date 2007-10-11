@@ -1,4 +1,5 @@
 var javadoc = {
+    title: 'less4j',
     packages: {},
     classes: {},
     index: {},
@@ -31,15 +32,15 @@ javadoc.linkHTML = function (sb, fqn, text) {
 };
 javadoc.indexHTML = function (sb) {
     sb.push('<dl>');
-    sb.push('<di class="packages"><dt>Packages</dt><dd>');
     for (var i=0, L=javadoc.packages.length; i<L; i++) {
-        sb.push('<div>');
+        sb.push('<di><dt>');
         javadoc.linkHTML(
             sb, javadoc.packages[i], javadoc.packages[i]
             );
-        sb.push('</div>');
+        sb.push('</dt><dd>');
+        sb.push('...');
+        sb.push('</dd></di>');
     }
-    sb.push('</dd></di>');
     sb.push('</dl>');
     return sb;
 };
@@ -142,6 +143,7 @@ javadoc.loaded = function (fqn) {
         HTML.update(javadocObject, request.responseText);
         if (fqn == 'index') {
             javadoc.current = null;
+            HTML.update($('javadocPackageName'), javadoc.title);
             HTML.update($('javadocIndex'), javadoc.indexHTML([]).join(''));
         } else {
             var h2 = $$('h2')[0];
@@ -155,8 +157,8 @@ javadoc.loaded = function (fqn) {
                     typeName, [], properties
                     ).join(''));
             }
+            javadoc.objectLink(h2);
         }
-        javadoc.objectLink(h2);
         map(javadoc.objectLink, $$('code', javadocObject));
     };
 };
