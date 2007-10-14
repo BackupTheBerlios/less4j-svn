@@ -144,7 +144,7 @@ public class Doctest {
     protected JSON.Object options;
     protected String base;
     protected JSON.Object index = new JSON.Object();
-    protected JSON.Array packages = new JSON.Array();
+    protected JSON.Object packages = new JSON.Object();
     protected JSON.Object classes = new JSON.Object();
     protected String packageName = null;
     protected String className = null;
@@ -368,6 +368,8 @@ public class Doctest {
         }
         // other tags ...
         doTags(method.tags(), javaMethod, localName);
+        //
+        javaMethod.addChild("hr");
     }
         
     protected void doClass(ClassDoc Class) throws Exception {
@@ -391,8 +393,10 @@ public class Doctest {
         for (int i = 0; i < _interfaces.length; i++)
             interfaces.add(_interfaces[i].qualifiedTypeName());
         properties.put("implements", interfaces);
-        JSON.Object fields = new JSON.Object();
-        properties.put("fields", fields);
+        JSON.Array members = new JSON.Array();
+        properties.put("members", members);
+        JSON.Array constants = new JSON.Array();
+        properties.put("constants", constants);
         classes.put(fqn, properties);
         XML.Document html = new XML.Document();
         html.root = new XML.Element("div", new String[]{
@@ -404,12 +408,17 @@ public class Doctest {
         for (int i = 0; i < fieldsDoc.length; ++i) 
             if (fieldsDoc[i].isPublic()) {
                 doField(fieldsDoc[i]);
-                fields.put(fieldsDoc[i].name(), fieldsDoc[i].modifiers());
+                if (fieldsDoc[i].isStatic())
+                    constants.add(fieldsDoc[i].name());
+                else
+                    members.add(fieldsDoc[i].name());
             }
         // methods
         MethodDoc[] methodsDoc = Class.methods();
-        JSON.Object methods = new JSON.Object();
+        JSON.Array methods = new JSON.Array();
         properties.put("methods", methods);
+        JSON.Array functions = new JSON.Array();
+        properties.put("functions", functions);
         JSON.Object pages = new JSON.Object();
         String methodName;
         for (int i = 0; i < methodsDoc.length; ++i) {
@@ -424,23 +433,26 @@ public class Doctest {
                     );
                 method.root.addChild("h2", className); 
                 pages.put(methodName, method);
-                methods.put(methodName, methodsDoc[i].modifiers());
+                if (methodsDoc[i].isStatic())
+                    functions.add(methodsDoc[i].name());
+                else
+                    methods.add(methodsDoc[i].name());
             }
         }
         XML.Document methodPage;
         for (int i = 0; i < methodsDoc.length; ++i)
             if (methodsDoc[i].isPublic()) {
                 methodPage = (XML.Document) pages.get(methodsDoc[i].name());
-                if (i > 0) methodPage.root.addChild("hr");
                 doMethod(methodsDoc[i], methodPage.root);
             }
         // comments
         html.root.addChild(doXML("p", Class.commentText()));
         // constructors
         ExecutableMemberDoc[] constructors = Class.constructors();
-        for (int i=0; i < constructors.length; i++) {
-            doMethod(constructors[i], html.root);
-            html.root.addChild("hr");
+        for (int i=0; i < constructors.length; i++) { 
+            if (!constructors[i].commentText().equals("")) {
+                doMethod(constructors[i], html.root);
+            }
         } 
         // tags
         doTags(Class.tags(), html.root, className);
@@ -458,25 +470,41 @@ public class Doctest {
         }
     }
     
-    protected void doPackage(PackageDoc Package) throws Exception {
-        packageName = Package.name();
-        packages.add(packageName);
+    protected void doPackage(PackageDoc packageDoc) throws Exception {
+        packageName = packageDoc.name();
+        JSON.Array types = new JSON.Array();
+        packages.put(packageName, types);
         XML.Document html = new XML.Document();
         html.root = new XML.Element("div", new String[]{
             "class", "javaPackage" 
             }, null, null);
         html.root.addChild("h2", "Package Overview");
-        XML.Element dl = html.root.addChild("dl");
-        ClassDoc[] classes = Package.allClasses();
+        XML.Element interfaces = new XML.Element("dl"); 
+        XML.Element implementations = new XML.Element("dl");
+        XML.Element di;
+        ClassDoc[] classes = packageDoc.allClasses();
         for (int i = 0; i < classes.length; ++i) 
             if (classes[i].isPublic()) {
-                doClass(classes[i]);
+                className = classes[i].name();
+                types.add(className);
                 if (classes[i].containingClass() == null) {
-                    XML.Element di = dl.addChild("di");
+                    if (classes[i].isInterface())
+                        di = interfaces.addChild("di");
+                    else
+                        di = implementations.addChild("di");
                     di.addChild("dt", classes[i].name());
                     di.addChild(doXML("dd", classes[i].commentText()));
                 }
+                doClass(classes[i]);
             }
+        if (interfaces.children != null) {
+            html.root.addChild("h3", "Interfaces");
+            html.root.addChild(interfaces);
+        }
+        if (implementations.children != null) {
+            html.root.addChild("h3", "Implementations");
+            html.root.addChild(implementations);
+        }
         html.write(new File(base + "/fragments/" + packageName), "");
     }
     
