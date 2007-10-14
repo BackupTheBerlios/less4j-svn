@@ -31,14 +31,21 @@ javadoc.linkHTML = function (sb, fqn, text) {
     return sb;
 };
 javadoc.indexHTML = function (sb) {
+    var path, interfaces, implementations, exceptions;
     sb.push('<dl>');
-    for (var i=0, L=javadoc.packages.length; i<L; i++) {
+    for (var p in javadoc.packages) {
+        path = p + '.';
         sb.push('<di><dt>');
-        javadoc.linkHTML(
-            sb, javadoc.packages[i], javadoc.packages[i]
-            );
+        javadoc.linkHTML(sb, p, p);
         sb.push('</dt><dd>');
-        sb.push('...');
+        types = javadoc.packages[p];
+        if (types.length > 0) {
+            for (var i=0, k; k=types[i]; i++) {
+                javadoc.linkHTML(sb, path + k, k);
+                sb.push(', ');
+            }
+            sb.pop();
+        }
         sb.push('</dd></di>');
     }
     sb.push('</dl>');
@@ -85,10 +92,20 @@ javadoc.classHTML = function (fqn, sb, properties) {
         sb.pop();
         sb.push('</dd></di>');
     }
-    var fields = properties["fields"];
-    if (fields) {
-        sb.push('<di class="fields"><dt>Fields</dt><dd>');
-        for (var k in fields) {
+    var constants = properties["constants"];
+    if (constants) {
+        sb.push('<di class="constants"><dt>Constants</dt><dd>');
+        for (var i=0, k; k=constants[i]; i++) {
+            javadoc.linkHTML(sb, path + k, k);
+            sb.push(', ');
+        }
+        sb.pop();
+        sb.push('</dd></di>');
+    }
+    var members = properties["members"];
+    if (members) {
+        sb.push('<di class="members"><dt>Members</dt><dd>');
+        for (var i=0, k; k=members[i]; i++) {
             javadoc.linkHTML(sb, path + k, k);
             sb.push(', ');
         }
@@ -98,7 +115,17 @@ javadoc.classHTML = function (fqn, sb, properties) {
     var methods = properties["methods"];
     if (methods) {
         sb.push('<di class="methods"><dt>Methods</dt><dd>');
-        for (var k in methods) {
+        for (var i=0, k; k=methods[i]; i++) {
+            javadoc.linkHTML(sb, path + k, k);
+            sb.push(', ');
+        }
+        sb.pop();
+        sb.push('</dd></di>');
+    }
+    var functions = properties["functions"];
+    if (functions) {
+        sb.push('<di class="functions"><dt>Functions</dt><dd>');
+        for (var i=0, k; k=functions[i]; i++) {
             javadoc.linkHTML(sb, path + k, k);
             sb.push(', ');
         }
@@ -185,6 +212,7 @@ javadoc.historyUpdate = function (fqn) {
 };
 javadoc.historyClear = function () {
     javadoc.history = [];
+    HTML.update($('javadocFound'), '');
     HTML.update($('javadocHistory'), '');
 };
 javadoc.get = function (fqn) {
