@@ -24,23 +24,6 @@ import org.mozilla.javascript.*; // More JavaScript Applications!
  * 
  * @h3 Synopsis
  * 
- * @pre {
- *      "test": false,
- *      "scripts": [
- *        "functions.js", 
- *        "hello-world.js"
- *        ] 
- *      }
- * 
- * @ ... <code>hello-world.js</code> ...
- * 
- * @pre functions["/hello-world"] = less4jFunction (
- *    function application ($) {
- *        $.jsonResponse(200);
- *    }, 
- *    null, '{"hello": "world!"}', 1, 2
- *    );
- * 
  * @p Scripts loaded by servlets of this controller class can supply their
  * own JavaScript implementation of the <code>Controller</code>'s
  * <code>Function</code> interfaces. The purpose is to prototype new Java 
@@ -51,6 +34,25 @@ import org.mozilla.javascript.*; // More JavaScript Applications!
  * configured to the JavaScript prototypes declared by other scripts and
  * registered in the scripted <code>functions</code> mapping.
  *  
+ * @p ... <code>web.xml</code> ...
+ * 
+ * @pre {
+ *      "test": false,
+ *      "scripts": [
+ *        "functions.js", 
+ *        "hello-world.js"
+ *        ] 
+ *      }
+ * 
+ * @p ... <code>hello-world.js</code> ...
+ * 
+ * @pre functions["/hello-world"] = less4jFunction (
+ *    function application ($) {
+ *        $.jsonResponse(200);
+ *    }, 
+ *    null, '{"hello": "world!"}', 1, 2
+ *    );
+ * 
  * @h3 Applications
  * 
  * @p This controller can be used in two different ways to cover a wide
@@ -101,8 +103,6 @@ public class Script extends Controller {
      * Returns a <code>String</code> of the JSONR model that will be used
      * to validate this controller's JSON <code>configuration</code>.
      * 
-     * @h3 Synopsis
-     * 
      * @p Override this method in a derived class of <code>Script</code>
      * to restrict and/or widden the model of your application's 
      * configuration. The default model adds an array of <code>scripts</code>
@@ -131,7 +131,7 @@ public class Script extends Controller {
      *    }
      *     
      * @return a JSONR <code>String</code>
-     * @throws <code>JSON.Error</code>
+     * @throws an exception if the configuration pattern is invalid
      */
     public JSONR.Type configurationPattern () throws JSON.Error {
         return JSONR.compile(_configurationPattern);
@@ -210,7 +210,7 @@ public class Script extends Controller {
      * seal it in staging and production (ie: if <code>$.test</code> 
      * is false).
      * 
-     * @param $
+     * @param $ the Actor at play
      */
     public void scriptReload (Actor $) throws Exception {
         JSON.Object newConfiguration = new JSON.Object();
@@ -228,16 +228,14 @@ public class Script extends Controller {
      * <code>/WEB-INF/functions.js</code> and return true or log an error and 
      * return false.
      * 
-     * @h4 Synopsis
+     * @p The practical purpose of this interface is to override or supply
+     * a configuration in JavaScript, for instance to load more options from
+     * the network or force a limit to posted data.
      * 
      * @pre var less4jConfigure = function ($) {
      *    $.configuration.put("jsonBytes", 65355);
      *}
      *
-     * @p The practical purpose of this interface is to override or supply
-     * a configuration in JavaScript, for instance to load more options from
-     * the network or force a limit to posted data.
-     * 
      * @p Note that the default <code>Controller</code> configuration test
      * cannot be restricted or extended in JavaScript and they should not.
      * 
@@ -255,15 +253,13 @@ public class Script extends Controller {
     protected static final String _irtd2Identify = "irtd2Identify";
     
     /**
-     * Delegate identification to a JavaScript function named "irtd2Identify",
-     * or reply with an HTTP error 404 if no such function exists or if
-     * it raised an exception.
+     * Try to call the JavaScript <code>httpContinue</code> function or -
+     * if none has been defined - fallback of the inherited 
+     * <code>Controller</code>'s method.
      * 
-     * @h4 Synopsis
-     * 
-     * @pre var irtd2Identify = function ($) {
-     *    $.identity = Simple.password(20);
-     *    return true; 
+     * @pre function irtd2Identify ($) {
+     *    $.httpError(401); // Not authorized
+     *    return false; 
      *}
      */
     public boolean irtd2Identify (Actor $) {
@@ -282,7 +278,8 @@ public class Script extends Controller {
                         ), Boolean.class)).booleanValue();
             } catch (Exception e) {
                 $.logError(e);
-                return super.irtd2Identify($);
+                $.httpError(401); // Not authorized
+                return false;
             }
         } finally {
             Context.exit();
@@ -292,8 +289,13 @@ public class Script extends Controller {
     protected static final String _httpContinue = "httpContinue";
     
     /**
-     * ...
+     * Try to call the JavaScript <code>httpContinue</code> function or -
+     * if none has been defined - fallback of the inherited 
+     * <code>Controller</code>'s method.
      *
+     * @param $ the Actor at play
+     * @param method the HTTP request's method
+     * @param contentType the request body's MIME Content-Type
      */
     public void httpContinue (Actor $, String method, String contentType) {
         Scriptable scriptScope = (Scriptable) 
@@ -319,8 +321,11 @@ public class Script extends Controller {
     protected static final String _httpResource = "httpResource";
     
     /**
-     * ...
+     * Try to call the JavaScript <code>httpResource</code> function or -
+     * if none has been defined - fallback of the inherited 
+     * <code>Controller</code>'s method.
      * 
+     * @param $ the Actor at play
      */
     public void httpResource (Actor $) {
         Scriptable scriptScope = (Scriptable) 
@@ -346,13 +351,9 @@ public class Script extends Controller {
     protected static final String _jsonRegular = "jsonRegular";
     
     /**
-     * If one has been declared try to call the JavaScript function 
-     * named "jsonRegular" in this controller's scope and return the
-     * <code>JSON</code> or <code>JSONR</code> interpreter used to parse
-     * and validate requests, or return the configured configured one
-     * if "jsonRegular" is not implemented by the scripts.
-     * 
-     * @h3 Synopsis
+     * Try to call the JavaScript <code>jsonRegular</code> function or -
+     * if none has been defined - fallback of the inherited 
+     * <code>Controller</code>'s method.
      * 
      * @p In one of the configured scripts, define:
      * 
@@ -367,6 +368,7 @@ public class Script extends Controller {
      * requests against different models before they are dispatched
      * to a distinct function.@p
      * 
+     * @param $ the Actor at play
      */
     public Object jsonRegular (Actor $) {
         Scriptable scriptScope = (Scriptable) 
@@ -400,14 +402,11 @@ public class Script extends Controller {
      * exception was throwed or 501 if "jsonApplication" is not 
      * implemented by the scripts configured.
      * 
-     * @h3 Synopsis
-     * 
-     * @p In one of the configured scripts, define:
-     * 
      * @pre function jsonApplication ($) {
      *    $.jsonResponse (200, "Hello World!");
      *}
      * 
+     * @param $ the Actor at play
      */
     public void jsonApplication (Actor $) {
         Scriptable scriptScope = (Scriptable) 
