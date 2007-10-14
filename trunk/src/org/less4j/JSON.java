@@ -276,11 +276,17 @@ public class JSON {
         "BigDecimal type error";
     protected static final String INTEGER_TYPE_ERROR = 
         "Integer type error";
+    protected static final String NUMBER_TYPE_ERROR = 
+        "Number type error";
     protected static final String NULL_JSON_STRING = 
         "null JSON string";
     
     protected static final char _done = CharacterIterator.DONE;
     
+    protected static final Number N (java.lang.Object value) throws Error {
+        if (value instanceof Number) {return (Number) value;} 
+        else throw new Error(NUMBER_TYPE_ERROR);
+    }   
     protected static final Integer I (java.lang.Object value) throws Error {
         if (value instanceof Integer) {return (Integer) value;} 
         else throw new Error(INTEGER_TYPE_ERROR);
@@ -350,6 +356,16 @@ public class JSON {
      */
     public static class Object extends HashMap {
         /**
+         * Access an <code>Number</code> value by name.
+         * 
+         * @param name of the value to access
+         * @return an numeric value
+         * @throws if there is no <code>Number</code> value by that named
+         */
+        public final Number N(String name) throws Error {
+            return JSON.N(get(name));
+        }
+        /**
          * Access an <code>Integer</code> value by name.
          * 
          * @param name of the value to access
@@ -369,7 +385,7 @@ public class JSON {
          */
         public final int intValue(String name, int def) {
             if (!containsKey(name)) return def;
-            try {return JSON.I(get(name)).intValue();} 
+            try {return JSON.N(get(name)).intValue();} 
             catch (Error e) {return def;}
         }
         /**
@@ -382,7 +398,7 @@ public class JSON {
          */
         public final long longValue(String name, long def) {
             if (!containsKey(name)) return def;
-            try {return JSON.I(get(name)).longValue();} 
+            try {return JSON.N(get(name)).longValue();} 
             catch (Error e) {return def;}
         }
         /**
@@ -427,7 +443,7 @@ public class JSON {
          */
         public final double doubleValue(String name, double def) {
             if (!containsKey(name)) return def;
-            try {return JSON.F(get(name)).doubleValue();} 
+            try {return JSON.N(get(name)).doubleValue();} 
             catch (Error e) {return def;}
         }
         /**
@@ -553,6 +569,16 @@ public class JSON {
      */
     public static class Array extends ArrayList {
         /**
+         * Access an <code>Number</code> value by index.
+         * 
+         * @param index of the value to access
+         * @return an numeric value
+         * @throws if there is no <code>Number</code> value at that index
+         */
+        public final Number N(int index) throws Error {
+            return JSON.N(get(index));
+        }
+        /**
          * ...
          * 
          * @param index
@@ -571,7 +597,7 @@ public class JSON {
          */
         public final int intValue(int index, int def) {
             if (index >= size()) return def;
-            try {return JSON.I(get(index)).intValue();} 
+            try {return JSON.N(get(index)).intValue();} 
             catch (Error e) {return def;}
         }
         /**
@@ -583,7 +609,7 @@ public class JSON {
          */
         public final long longValue(int index, long def) {
             if (index >= size()) return def;
-            try {return JSON.I(get(index)).longValue();} 
+            try {return JSON.N(get(index)).longValue();} 
             catch (Error e) {return def;}
         }
         /**
@@ -627,7 +653,7 @@ public class JSON {
          */
         public final double doubleValue(int index, double def) {
             if (index >= size()) return def;
-            try {return JSON.F(get(index)).doubleValue();} 
+            try {return JSON.N(get(index)).doubleValue();} 
             catch (Error e) {return def;}
         }
         /**
