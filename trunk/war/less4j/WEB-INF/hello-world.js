@@ -15,10 +15,17 @@ along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 /**
- * The usual suspect application: an "hello world!" function with one line.
+ * The usual suspect application: an "hello world!" function in four lines.
  * 
  * @author Laurent Szyster
  */
-functions["/hello-world"] = jsonRegularFunction (
-    function ($) {return 200;}, '{"hello": "world[!]"}', 2, 4
-    );
+functions["/hello-world"] = new Service({
+    jsonInterface: function ($) {
+        return '{"who": "^world$", "hello": null}';
+    },
+    jsonApplication: function ($) {
+        $.json.put("hello", $.json.S("who") + "!");
+        $.jsonResponse(200);
+    }
+});
+        

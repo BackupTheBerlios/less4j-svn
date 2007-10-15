@@ -38,8 +38,12 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
       <param-name>less4j</param-name>
       <param-value><![CDATA[
       {
-        "test": false, 
-        "scripts": ["functions.js", "hello-world.js"]
+        "test": true, 
+        "scripts": ["functions.js", "hello-world.js", "job.js"],
+        "functions": {
+            "/soap": "org.less4j.SOAP",
+            "/doPurchaseOrder": "org.less4j.tests.TestSOAP"
+            }
         }
       ]]></param-value>
     </init-param>

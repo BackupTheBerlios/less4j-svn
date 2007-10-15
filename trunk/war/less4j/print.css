@@ -1,0 +1,50 @@
+.screen {display: none;}
+
+input, textarea {
+    font-family: "Courier New", fixed; 
+    font-size: 1.2em;
+    background-color:#fff; 
+    border: none;
+    padding: 0em 0em 0em 0em ;
+    margin: 0em 0em 0em 0em ;
+    width: 100%;
+    height: 100%;
+}
+input.error {
+    font-family: "Courier New", fixed; 
+    font-size: 1.2em;
+	background-color: #ffd;
+	border: none;
+    padding: 0em 0em 0em 0em ;
+    margin: 0em 0em 0em 0em ;
+    width: 100%;
+    height: 100%;
+	color: orange;
+}
+
+.strong { font-weight: bold; }
+
+div.actions { text-align: right; }
+span.action { 
+	color: #3333FF;
+	font-weight: bold;
+	margin-left: 0.5em;
+    text-decoration:none;
+    cursor:pointer;
+	}
+
+div.field { 
+	padding: 0.25em; 
+	margin: 0.0em 0.0em 1.0em 0.0em;
+    background-color: #ddd;
+	}
+span.field { 
+	padding: 0.25em; 
+	margin: -0.25em 0.0em -0.25em 0.0em;
+    background-color: #ddd;
+	}
+.field {
+    background-color: #fff;
+}
+
+h3 {page-break-before: always;}

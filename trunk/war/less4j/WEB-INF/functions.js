@@ -16,61 +16,91 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 importPackage(Packages.org.less4j); // Rhino rules!
 
+// prototype a basic Service implementation
+
+var Service = function (implementation) {
+    for (var i in implementation) this[i] = implementation[i];
+};
+Service.prototype.less4jConfigure = function ($) {
+    return true;
+};
+Service.prototype.irtd2Identify = function ($) {
+    $.httpError(401);
+    return false;
+};
+Service.prototype.jsonInterface = function ($) {
+    return "null";
+};
+Service.prototype.httpResource = function ($) {
+    $.jsonResponse(200, this.jsonInterface($));
+};
+Service.prototype.jsonRegular = function ($) {
+    var model = this.jsonInterface ($);
+    if (model == "null")
+        return new JSON();
+    else
+        return new JSONR(JSONR.compile(model));
+};
+Service.prototype.jsonApplication = function ($) {
+    $.jsonResponse(200);
+};
+
+// re-implement the Controller in JavaScript
+
 var functions = {};
 
-function jsonRegularFunction (fun, jsonr, containers, iterations) {
-    fun.jsonr = jsonr;
-    if (jsonr == null) {
-        fun.jsonRegular = function ($) {
-            return new JSON(containers, iterations);
-        }
-    } else {
-        var type = JSONR.compile(jsonr);
-        fun.jsonRegular = function ($) {
-            return new JSONR(type, containers, iterations);
-        }
-    }
-    return fun;
-}
-
-var httpResources = {}
-
 function less4jConfigure ($) {
-    var sb = ['{'];
-    for (var k in functions) {
-        sb.push(JSON.encode(k));
-        sb.push(':');
-        sb.push(functions[k].jsonr);
-        sb.push(',')
-    }
-    if (sb.length > 1)
-        sb[sb.length] = '}';
-    else
-        sb[0] = "{}";
-    httpResources["/"] = sb.join('');
+    Service.controller = this;
     return true;
 }
 
-function irtd2Identify ($) {
-    if ($.about == null) { // the root is the anonymous identifier
-        $.identity = Simple.password(10);
-        return true;
-    } else {
-        $.httpError(401) // Not authorized
-        return false;
+function jsonInterface ($) {
+    var fun, k, sb = ['{'];
+    var funs = Service.controller.functions.keySet().iterator();
+    while (funs.hasNext()) {
+        k = funs.next();
+        sb.push(JSON.encode(k));
+        sb.push(':');
+        sb.push(Service.controller.functions.get(k).jsonInterface($));
+        sb.push(',');
     }
+    for (k in functions) {
+        sb.push(JSON.encode(k));
+        sb.push(':');
+        fun = functions[k];
+        if (!fun.less4jConfigure($) && !$.test)
+            return false;
+            
+        sb.push(fun.jsonInterface($));
+        sb.push(',');
+    }
+    sb.pop();
+    if (sb.length > 0) {
+        sb.push('}');
+        return sb.join('');
+    } else
+        return '{}';
+}
+
+function irtd2Identify ($) {
+    var fun = functions[$.about];
+    if (fun == null) {
+        $.jsonResponse (401);
+        return false
+    }
+    return fun.irtd2Identify($);
 }
 
 function httpResource ($) {
-    var res;
     if ($.about == null)
-       res = httpResources["/"];
-    else
-       res = httpResources[$.about];
-    if (res == null)
-        $.httpError(404);
-    else
-        $.httpResponse(200, res, "text/javascript", "UTF-8");
+        $.jsonResponse (200, jsonInterface($));
+    else {
+        var fun = functions[$.about];
+        if (fun == null)
+            $.httpError(404);
+        else
+            fun.httpResource($);
+    }
 }
 
 function jsonRegular ($) { // dispatch a function
@@ -83,17 +113,41 @@ function jsonRegular ($) { // dispatch a function
 
 function jsonApplication ($) { // dispatch a function
     var fun = functions[$.about];
-    if (fun != null) {
-        $.jsonResponse(fun($));
-    } else if ($.about == null)
-        if ($.json.containsKey("expression")) { // evaluate an expression
-            $.json.put("result", eval("("+$.json.S("expression")+")"));
-            $.jsonResponse(200);
-        } else if ($.json.containsKey("script")) {
-            $.json.put("result", eval("{"+$.json.S("script")+"}"));
-            $.jsonResponse(200);
-        } else
-            $.jsonResponse(400, '"404 Bad Request"'); // Bad Request
+    if (fun != null)
+        fun.jsonApplication($); // delegate ...
     else
-        $.jsonResponse(400, '"404 Bad Request"'); // Bad Request
+        $.jsonResponse(501); // Not implemented
 }
+
+// add the three basic functions for a practical Rhino controller
+
+functions["/login"] = new Service ({
+    irtd2Identify: function ($) {
+        return true;
+    },
+    jsonInterface: function ($) {
+        return '{"login": ".+", "password": ".+"}';
+    },
+    jsonApplication: function ($) {
+        $.identity = $.json.S("login");
+        $.rights = "";
+        $.irtd2Digest();
+        $.jsonResponse(200, true); // Ok
+    }
+});
+
+functions["/eval"] = new Service ({
+    jsonInterface: function ($) {return '""';},
+    jsonApplication: function ($) {
+        $.json.put("result", eval("("+$.json.S("arg0")+")"));
+        $.jsonResponse(200); // Ok
+    }
+});
+
+functions["/exec"] = new Service ({
+    jsonInterface: function ($) {return '""';},
+    jsonApplication: function ($) {
+        $.json.put("result", eval("{"+$.json.S("arg0")+"}"));
+        $.jsonResponse(200); // Ok
+    }
+});

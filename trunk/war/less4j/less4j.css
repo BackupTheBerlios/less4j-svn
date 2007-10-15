@@ -14,8 +14,58 @@ a:active {color: #6666FF;}
 
 body {margin: auto; width: 760px;}
 
-input, textarea {font-family: 'Courier New'; font-size: 10pt;}
+input textarea {
+	font-family: 'Courier New', 'Lucida Console', Courier, Fixed; 
+	font-size: 10pt;
+	}
+
+.options {text-align: right;}
 
 .hidden {display: none;}
 
 .fitwidth {width: 100%}
+
+span.null {
+	padding-left: 4px;
+	padding-right: 4px;
+	}
+span.boolean {
+	padding-left: 4px;
+	padding-right: 4px;
+	}
+span.string {
+	padding-left: 4px;
+	padding-right: 4px;
+	}
+span.number {
+	padding-left: 4px;
+	padding-right: 4px;
+	}
+div.array {
+	}
+div.array span {
+	border-top: 1px solid #DDDDDD;
+	border-left: 1px solid #DDDDDD;
+	}
+span.name {
+	font-weight: bold; 
+	padding-right: 4px;
+	}
+div.property {
+    padding-left: 4px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid #DDDDDD;
+	}
+div.object {
+    margin-right: 4px;
+	border-left: 1px solid #DDDDDD;
+	border-top: 1px solid #DDDDDD;
+	border-right: 1px solid #DDDDDD;
+	}
+
+.cli {
+	font-family: 'Courier New', 'Lucida Console', Courier, Fixed; 
+}
+#expression {
+	border-bottom: 1px solid lightgrey
+	}
