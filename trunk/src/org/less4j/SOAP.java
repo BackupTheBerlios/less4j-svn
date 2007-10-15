@@ -84,7 +84,7 @@ import java.util.Iterator;
  * 
  * @div <h3>WSDL for JSONR</h3>
  * 
- * <p>This <code>Function</code> implementation supports a subset of WSDL
+ * <p>This <code>Service</code> implementation supports a subset of WSDL
  * mapped from a regular JSON expressions. It is restricted to RPC, SOAP 
  * encoding and the XSD equivalents of JSON types. But it supports complex 
  * types as practically as interroperable XML schemas allow.</p>
@@ -206,7 +206,7 @@ import java.util.Iterator;
  * 
  * <p>And I like money too.</p>
  */
-public class SOAP implements Function {
+public class SOAP implements Service {
     
     private static final String _name = "name";
     private static final String _Request = "Request";

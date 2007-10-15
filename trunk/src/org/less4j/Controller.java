@@ -59,7 +59,7 @@ import java.util.Iterator;
  * @p This implementation of <code>HttpServlet</code> fits the common use 
  * case of a web controller that aggregates functions on a set of resource 
  * like file folders, an SQL database or an LDAP direcory.  
- * It dispatches HTTP requests to configured <code>Function</code> by 
+ * It dispatches HTTP requests to configured <code>Service</code> by 
  * request URL's <code>PATH_INFO</code> and provides the practical 
  * configuration options required to move from development to production 
  * and allow system maintenance. 
@@ -68,11 +68,11 @@ import java.util.Iterator;
  * to implement their own HTTP resource controllers. Look in the package
  * <code>org.less4j.controllers</code> for example of controllers.
  */
-public class Controller extends HttpServlet implements Function {
+public class Controller extends HttpServlet implements Service {
     
     /**
      * A <code>HashMap</code> of URL <code>PATH_INFO</code> keys to less4j
-     * <code>Function</code>.
+     * <code>Service</code>.
      */
     public HashMap functions = null;
     
@@ -290,8 +290,8 @@ public class Controller extends HttpServlet implements Function {
                 JSON.strb(sb, path);
                 sb.append(':');
                 Class fun =  Class.forName(classes.S(path));
-                Function function = (
-                    (Function) fun.getDeclaredField(_singleton).get(fun)
+                Service function = (
+                    (Service) fun.getDeclaredField(_singleton).get(fun)
                     );
                 $.about = path;
                 if (!function.less4jConfigure($) && !$.test)
@@ -306,7 +306,7 @@ public class Controller extends HttpServlet implements Function {
                     sb.append(':');
                     fun = Class.forName(classes.S(path));
                     function = (
-                        (Function) fun.getDeclaredField(_singleton).get(fun)
+                        (Service) fun.getDeclaredField(_singleton).get(fun)
                         );
                     $.about = path;
                     if (!function.less4jConfigure($) && !$.test)
@@ -327,7 +327,7 @@ public class Controller extends HttpServlet implements Function {
     }
 
     /**
-     * Returns a JSON string mapping the URL path of the <code>Function</code>
+     * Returns a JSON string mapping the URL path of the <code>Service</code>
      * configured to their JSONR pattern. 
      */
     public String jsonInterface (Actor $) {
@@ -340,7 +340,7 @@ public class Controller extends HttpServlet implements Function {
 
     /**
      * Dispatch IRTD2 identified requests to one of the interfaces of either 
-     * a configured <code>Function</code> or this <code>Controller</code>.
+     * a configured <code>Service</code> or this <code>Controller</code>.
      */
     public void service (ServletRequest req, ServletResponse res) {
         Actor $ = new Actor (
@@ -348,16 +348,16 @@ public class Controller extends HttpServlet implements Function {
             (HttpServletRequest) req, 
             (HttpServletResponse) res
             );
-        Function function;
+        Service function;
         if ($.about == null || !functions.containsKey($.about))
             function = this;
         else {
-            function = (Function) functions.get($.about);
+            function = (Service) functions.get($.about);
         } 
         if ($.irtd2Digested(
                 $.configuration.intValue(_irtd2Timeout, 3600)
                 ) || function.irtd2Identify($)) {
-            if ($.digested != null) 
+            if ($.digested != null)
                 $.irtd2Digest();
             String method = $.request.getMethod();
             if (method.equals(_GET)) {
@@ -416,7 +416,7 @@ public class Controller extends HttpServlet implements Function {
     
     /**
      * Reply to idempotent HTTP requests not handled by a configured
-     * <code>Function</code> with the JSON interfaces description of the
+     * <code>Service</code> with the JSON interfaces description of the
      * functions supported if the request exactly matches this servlet
      * context path (ie: its root), or replies a <code>404 Not 
      * Found</code> error.
@@ -456,7 +456,7 @@ public class Controller extends HttpServlet implements Function {
     
     /**
      * Reply with an HTTP error 501 to JSON application requests not handled
-     * by the configured <code>Function</code>s.
+     * by the configured <code>Service</code>s.
      * 
      * @param $ the Actor's state
      */

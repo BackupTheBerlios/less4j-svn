@@ -26,7 +26,7 @@ import org.mozilla.javascript.*; // More JavaScript Applications!
  * 
  * @p Scripts loaded by servlets of this controller class can supply their
  * own JavaScript implementation of the <code>Controller</code>'s
- * <code>Function</code> interfaces. The purpose is to prototype new Java 
+ * <code>Service</code> interfaces. The purpose is to prototype new Java 
  * controller and functions in JavaScript first and from a web prompt.
  * 
  * @p The less4j framework comes with a <code>functions.js</code> script

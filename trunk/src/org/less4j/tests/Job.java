@@ -5,9 +5,9 @@ import org.less4j.*;
 /**
  * A job function.
  */
-public class Job implements Function {
+public class Job implements Service {
 
-    public static Function singleton = new Job ();
+    public static Service singleton = new Job ();
     
     private JSONR.Type _interface;
     

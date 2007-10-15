@@ -38,18 +38,18 @@ package org.less4j;
  * JSON expressions and two-way JSON/SOAP translation. 
  * 
  */
-public interface Function {
+public interface Service {
     /**
-     * The only instance of a <code>Function</code>.
+     * The only instance of a <code>Service</code>.
      */
-    public static Function singleton = null;
+    public static Service singleton = null;
     /**
-     * Return a JSONR string describing this <code>Function</code> interface. 
+     * Return a JSONR string describing this <code>Service</code> interface. 
      */
     public String jsonInterface (Actor $);
     /**
      * Test wether this controller's configuration actually supports 
-     * this <code>Function</code> at runtime. Functions that extend the 
+     * this <code>Service</code> at runtime. Functions that extend the 
      * namespace of less4j's configuration must override this method.
      * 
      * @pre public boolean less4jConfigure (Actor $) {
@@ -135,7 +135,7 @@ public interface Function {
     public void httpContinue (Actor $, String method, String contentType);
     /**
      * Reply to idempotent HTTP requests not handled by a configured
-     * <code>Function</code> or this controller.
+     * <code>Service</code> or this controller.
      * 
      * @pre public void httpResource (Actor $) {
      *    return $.httpError(404); // Not Found

@@ -848,6 +848,8 @@ public class Actor {
         return true;
     }
     
+    private static final String _arg0 = "arg0";
+    
     /**
      * Try to read and parse the body of a POST request, assuming it 
      * contains a content of type <code>application/json</code> encoded
@@ -863,19 +865,20 @@ public class Actor {
      * per request. Here's a good place to do it once for all JSON
      * applications.
      * 
+     * @param limit on the response body's content length
      * @param interpreter
      * @return true if successfull, false otherwise
      */
     public boolean jsonPOST(int limit, Object interpreter) {
         byte[] body = httpPOST(limit);
+        Object object;
         if (body == null) 
             return false; 
         if (interpreter instanceof JSON) {
             JSON intr = (JSON) interpreter;
             try {
                 // parse JSON when the buffer is filled but not overflowed
-                json = intr.object(new String(body, _UTF_8));
-                return (json != null);
+                object = intr.eval(new String(body, _UTF_8));
             } catch (Exception e) {
                 logError(e);
                 return false;
@@ -883,8 +886,7 @@ public class Actor {
         } else if (interpreter instanceof JSONR) {
             JSONR intr = (JSONR) interpreter;
             try {
-                json = intr.object(new String(body, _UTF_8));
-                return true;
+                object = intr.eval(new String(body, _UTF_8));
             } catch (Exception e) {
                 logError(e);
                 return false;
@@ -893,6 +895,13 @@ public class Actor {
             // logError(new Exception("Not a JSON or JSONR interpreter"));
             return false;
         }
+        if (object != null && object instanceof JSON.Object)
+            json = (JSON.Object) object;
+        else {
+            json = new JSON.Object();
+            json.put(_arg0, object);
+        }
+        return true;
     }
     
     /**
