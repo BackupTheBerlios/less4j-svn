@@ -18,10 +18,8 @@
   </head>
   <body>
     <div class="container">
-      <div class="column span-23 first" onclick="javadoc.goHome();">
-        <h1 
-          id="javadocPackageName" 
-          class="package action"
+      <div class="column span-23 first">
+        <h1 id="javadocPackageName" class="package"
           >less4j</h1>
       </div>
       <div id="javadocSidebar" class="column span-7 colborder quiet">
@@ -37,15 +35,17 @@
           onchange="javadoc.search(this.value);"
           value="Search the documentation by name"
           /></div>
+        <div id="javadocMenu" class="corner-up-right">
+          <span
+            class="action" onclick="javadoc.historyClear();"
+            >Clear</span>
+          <span 
+            class="action" onclick="javadoc.goHome();"
+            >Home</span>
+        </div>
         <div id="javadocFound">
         </div>
         <div id="javadocIndex">
-        </div>
-        <div id="javadocMenu" class="corner-up-right">
-          <span
-            class="action"
-            onclick="javadoc.historyClear();"
-            >clear</span>
         </div>
         <div id="javadocHistory"></div>
       </div>

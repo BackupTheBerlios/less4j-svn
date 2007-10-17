@@ -6,10 +6,10 @@
   and ECMA-<code>Script</code>.
 </p>
 <p>
-  <code>Function</code> lays out in one interface and seven methods the right 
+  The <code>Service</code> interface lays out in seven methods the right 
   way to program entreprise stateless web 2.0 services in a J2EE servlet. 
-  A practical set of reusable service implementation is included to illustrate, 
-  test and validate this interface design. 
+  A practical set of reusable controllers and functions is included to 
+  illustrate, test and validate this interface design. 
 </p>  
 <p>Each one applies the same <code>Actor</code> or descend from the same 
   <code>Controller</code>, two types ladden with conveniences to leverage
@@ -42,8 +42,5 @@
   accross distributed services and partitionned legacy applications. 
 </p>  
 <p>
-  Last but not least, note that less4j is technically obsolete by design, 
-  written in Java 1.4.2, more easely downgradable to 1.3 and depending on so
-  little external libraries as to fit its applications in many legacy J2EE 
-  production environments.
+  ...
 </p>
