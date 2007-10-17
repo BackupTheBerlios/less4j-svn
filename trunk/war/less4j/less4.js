@@ -14,6 +14,8 @@ You should have received a copy of the GNU General Public License
 along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
+/*
+
 var css = function (selector, root) {
     css.selected = CSS.select(selector, root);
     return css;
@@ -31,6 +33,8 @@ css.extend('show', function (el) {
     CSS.remove(el, ['hide']);
     });
 
+*/
+
 HTTP.except = function (key, e) {
     HTML.insert(
        $('httpExceptions'), 
@@ -47,6 +51,14 @@ HTML.onload.push(function () {
     less4js.describeServices('script');
 });
 
+JSON.errors['401'] = function NotAuthorized (status, request) {
+    var hide = ['hide'];
+    CSS.remove($('Login'), hide);
+    CSS.add($('Subject'), hide);
+    CSS.add($('Object'), hide);
+    // map (function(el){CSS.add(el, ['hide'])},[$('Subject'), $('Object')]);
+}
+
 var less4js = {};
 
 less4js.services = {};
@@ -56,11 +68,9 @@ less4js.login = function () {
         'script/login', 
         {
             'username': $('username').value,
-            'password': $('password').value,
+            'password': $('password').value
             }, 
-        function ok (req) {
-            css.hide([$('Login')]);
-            css.show([$('Subject'), $('Object')]);
+        function () {
             less4js.describeServices ('script');
         });
 }
@@ -77,16 +87,20 @@ less4js.describeServices = function (url) {
             sb.push('</span></div>');
         }
         HTML.update($('servicesMenu'), sb.join(''));
-        css.show([$('Subject'), $('Object')]);
+        var hide = ['hide'];
+        CSS.add($('Login'), hide);
+        CSS.remove($('Subject'), hide);
+        CSS.remove($('Object'), hide);
+        // css.show([$('Subject'), $('Object')]);
     });
 };
 
 less4js.Controller = Protocols(JSON.Regular);
 
-less4js.toggle = function (from, to) {
-    var hide = ['hide'];
-    CSS.add($(from), hide);
-    CSS.remove($(to), hide);
+less4js.toggle = function (_from, _to) {
+    var _hide = ['hide'];
+    CSS.add($(_from), _hide);
+    CSS.remove($(_to), _hide);
 };
 
 less4js.fitTextToArea = function (el, outlined) {
@@ -128,20 +142,27 @@ less4js.postView = function () {
     JSON.POST(
         'script' + $('serviceName').value,
         less4js.control.json,
-        JSON.update('jsonrViewOutput', 'output')
-        );
+        function (req) {
+            var pre = HTML.cdata(
+                JSON.pprint([], JSON.decode(req.responseText)).join('')
+                );
+            HTML.update($('jsonrViewOutput'), '<pre>' + pre + '</pre>');
+        });
 }
 
-function jsbeauty (source) {
-    var lines, i, s;
-    lines = eval(source).toString().split('\n');
-    lines[0] = '';
-    lines.pop();
-    for (i=1; s=lines[i]; i++) {
-        lines[i] = lines[i].substr(4) + '\r\n';
+if ((function(){}).toString)
+    function jsbeauty (source) {
+        var lines, i, s;
+        lines = eval(source).toString().split('\n');
+        lines[0] = '';
+        lines.pop();
+        for (i=1; s=lines[i]; i++) {
+            lines[i] = lines[i].substr(4) + '\r\n';
+        }
+        return lines.join('');
     }
-    return lines.join('');
-}
+else
+    function jsbeauty (source) {return source};
 
 less4js.loadSources = function (name) {
     JSON.POST(
@@ -158,6 +179,7 @@ less4js.loadSources = function (name) {
         + 'return result;'
         + '})()',
         function ok (request) {
+            var beautified;
             var json = JSON.decode(request.responseText)['result'];
             for (var k in json) {
                 less4js.fitTextToArea($(k), jsbeauty(json[k]));
@@ -165,7 +187,3 @@ less4js.loadSources = function (name) {
         });
 };
 
-JSON.errors['401'] = function NotAuthorized (status, request) {
-    css.hide([$('Subject'), $('Object')]);
-    css.show([$('Login')]);
-}

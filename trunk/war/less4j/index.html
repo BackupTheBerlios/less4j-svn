@@ -28,7 +28,7 @@
           </div>
           <div 
             id="Login" 
-            class="column span-12 last hide"
+            class="column span-12 last"
             style="padding: 1.5em 0.0em 1.5em 0.0em; background-color: #eee;"
             >
             <div class="column span-1 first">
@@ -39,7 +39,7 @@
                 id="username" 
                 class="input" 
                 type="text" 
-                value="user name"
+                value="user_name"
                 />
             </div>
             <div class="column span-4">
@@ -47,25 +47,22 @@
                 id="password" 
                 class="input" 
                 type="password" 
-                value="password"
+                value="pass_word"
                 />
             </div>
             <div class="actions column span-2 last">
               <a 
-                href="#login"
+                href="#"
                 class="action"
                 onclick="less4js.login();"
                 >Log in</a>
             </div>
           </div>
-          <div class="actions quiet">
-            &copy; 2006-2007 <a href="http://laurentszyster.be/"
-            >Laurent Szyster</a> - Version 0.40</div> 
         </div>
       </div>
-      <div id="Subject" class="screen column span-7 colborder hide">
+      <div id="Subject" class="screen column span-7 colborder">
         <div id="Services">
-          <h3>Services</h3>
+          <h2>Service</h2>
           <div 
             class="box" style="margin-bottom: 0.0em;"
             ><input 
@@ -78,9 +75,6 @@
             class="quiet actions" 
             style="margin-bottom: 1.5em;"
             ><a 
-              href="#Reload" 
-              class="action"
-              >Reload</a><a 
               href="#Copy" 
               class="action"
               >Copy</a><a
@@ -89,21 +83,8 @@
               >Rename</a></div>
           <div id="servicesMenu"></div>
         </div>
-        <hr />
-        <div id="ServletConfiguration">
-          <h3>Servlet Configuration</h3>
-          <div id="controller" class="box" style="margin-bottom: 0.0em;"
-          </div>
-          <div 
-            class="quiet actions"
-            style="margin-bottom: 1.5em;"
-            ><span 
-            class="action"
-            >Reload</span></div>
-        </div>
-        <div id="httpExceptions"></div>
       </div>
-      <div id="Object" class="quiet column span-16 last hide">
+      <div id="Object" class="quiet column span-16 last">
         <div id="Model">
           <h2 class="screen"
             ><strong>Model</strong>
@@ -114,7 +95,6 @@
               class="action" onclick="less4js.toggle('Model', 'Control');"
               >Control</span>
           </h2>
-          <div class="actions">...</div>
           <div class="box" style="height: 6.0em;">
             <textarea 
               id="jsonrModel" class="input source" rows="4"
@@ -138,9 +118,10 @@
           <div class="box">
             <div id="jsonrViewInput"></div>
             <div class="actions"
-              ><span 
+              ><a 
+                href="#"
                 class="action" onclick="less4js.postView();"
-              >POST</span></div>
+              >POST</a></div>
           </div>
           <h3>Output</h3>
           <div id="jsonrViewOutput"></div>
@@ -178,6 +159,11 @@
           </div>
         </div>
       </div>
+      <hr />
+      <div class="actions quiet">
+        &copy; 2006-2007 <a href="http://laurentszyster.be/"
+        >Laurent Szyster</a> - Version 0.40</div> 
+      <div id="httpExceptions"></div>
     </div>
     <script type="text/javascript" src="protocols.js"></script>
     <script type="text/javascript" src="jsonr.js"></script>
