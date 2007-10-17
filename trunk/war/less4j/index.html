@@ -18,34 +18,92 @@
   </head>
   <body>
     <div class="container">
-      <div id="context" class="column span-24 first">
-        <h1>less4j</h1>
-      </div>
-      <div class="quiet">
-        &copy; 2006-2007 <a href="http://laurentszyster.be/"
-        >Laurent Szyster</a> - Version 0.40</div> 
-      <div id="subject" class="screen column span-7 colborder">
-        <div 
-          class="field" style="padding: 0.5em 0.5em 0.5em 0.5em; height: 1.5em;" 
-          ><input 
-            id="serviceName" 
-            class="input" 
-            type="text" 
-            value=""
-            /></div>
-        <div id="serviceActions" class="quiet actions">
-          <span class="action">Copy</span>
-          <span class="action">Rename</span>
+      <div id="header" class="column span-24">
+        <div id="application" class="column span-8 first">
+          <h1>less4j</h1>
         </div>
-        <h3>Services</h3>
-        <div id="servicesMenu"></div>
-        <div id="serviceActions" class="quiet actions">
-          <span class="action">Reload</span>
+        <div id="context" class="column span-16 last">
+          <div class="column span-4 first">
+              &nbsp;
+          </div>
+          <div 
+            id="Login" 
+            class="column span-12 last hide"
+            style="padding: 1.5em 0.0em 1.5em 0.0em; background-color: #eee;"
+            >
+            <div class="column span-1 first">
+              &nbsp;
+            </div>
+            <div class="column span-4">
+              <input 
+                id="username" 
+                class="input" 
+                type="text" 
+                value="user name"
+                />
+            </div>
+            <div class="column span-4">
+              <input 
+                id="password" 
+                class="input" 
+                type="password" 
+                value="password"
+                />
+            </div>
+            <div class="actions column span-2 last">
+              <a 
+                href="#login"
+                class="action"
+                onclick="less4js.login();"
+                >Log in</a>
+            </div>
+          </div>
+          <div class="actions quiet">
+            &copy; 2006-2007 <a href="http://laurentszyster.be/"
+            >Laurent Szyster</a> - Version 0.40</div> 
+        </div>
+      </div>
+      <div id="Subject" class="screen column span-7 colborder hide">
+        <div id="Services">
+          <h3>Services</h3>
+          <div 
+            class="box" style="margin-bottom: 0.0em;"
+            ><input 
+              id="serviceName" 
+              class="input" 
+              type="text" 
+              value=""
+              /></div>
+          <div 
+            class="quiet actions" 
+            style="margin-bottom: 1.5em;"
+            ><a 
+              href="#Reload" 
+              class="action"
+              >Reload</a><a 
+              href="#Copy" 
+              class="action"
+              >Copy</a><a
+              href="#Rename" 
+              class="action"
+              >Rename</a></div>
+          <div id="servicesMenu"></div>
         </div>
         <hr />
+        <div id="ServletConfiguration">
+          <h3>Servlet Configuration</h3>
+          <div id="controller" class="box" style="margin-bottom: 0.0em;"
+          </div>
+          <div 
+            class="quiet actions"
+            style="margin-bottom: 1.5em;"
+            ><span 
+            class="action"
+            >Reload</span></div>
+        </div>
         <div id="httpExceptions"></div>
       </div>
-      <div id="object" class="quiet column span-16 last">
+      <div id="Object" class="quiet column span-16 last hide">
         <div id="Model">
           <h2 class="screen"
             ><strong>Model</strong>
@@ -56,7 +114,8 @@
               class="action" onclick="less4js.toggle('Model', 'Control');"
               >Control</span>
           </h2>
-          <div class="field" style="height: 3.0em;">
+          <div class="actions">...</div>
+          <div class="box" style="height: 6.0em;">
             <textarea 
               id="jsonrModel" class="input source" rows="4"
               onblur="less4js.updateViewInput();"
@@ -75,7 +134,16 @@
               class="action" onclick="less4js.toggle('View', 'Control');"
               >Control</span>
           </h2>
-          <div class="box" id="jsonrViewInput"></div>
+          <h3>Input</h3>
+          <div class="box">
+            <div id="jsonrViewInput"></div>
+            <div class="actions"
+              ><span 
+                class="action" onclick="less4js.postView();"
+              >POST</span></div>
+          </div>
+          <h3>Output</h3>
+          <div id="jsonrViewOutput"></div>
         </div>
         <h3 class="print">Control</h3>
         <div id="Control" class="hide">
@@ -89,23 +157,23 @@
             <strong>Control</strong> 
           </h2>
           <h3 class="quiet">less4jConfigure ($) &rarr; boolean</h3>
-          <div class="field" style="height: 3.0em;">
+          <div class="box" style="height: 2.0em;">
             <textarea id="less4jConfigure" class="input source"></textarea>
           </div>
           <h3 class="quiet">irtd2Identify ($) &rarr; boolean</h3>
-          <div class="field" style="height: 3.0em;">
+          <div class="box" style="height: 3.0em;">
             <textarea id="irtd2Identify" class="input source"></textarea>
           </div>
           <h3 class="quiet">jsonApplication ($)</h3>
-          <div class="field" style="height: 3.0em;">
+          <div class="box" style="height: 3.0em;">
             <textarea id="jsonApplication" class="input source"></textarea>
           </div>
           <h3 class="quiet">httpResource ($)</h3>
-          <div class="field" style="height: 3.0em;">
+          <div class="box" style="height: 3.0em;">
             <textarea id="httpResource" class="input source"></textarea>
           </div>
           <h3 class="quiet">httpContinue ($, httpMethod, mimeType)</h3>  
-          <div class="field" style="height: 3.0em;">
+          <div class="box" style="height: 3.0em;">
             <textarea id="httpContinue" class="input source"></textarea>
           </div>
         </div>

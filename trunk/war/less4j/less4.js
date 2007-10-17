@@ -19,8 +19,8 @@ var css = function (selector, root) {
     return css;
 };
 css.extend = function (name, fun) {
-    css[name] = function () {
-        map(fun, css.selected); 
+    css[name] = function (selected) {
+        map(fun, selected || css.selected); 
         return css;
     };
 };
@@ -51,6 +51,20 @@ var less4js = {};
 
 less4js.services = {};
 
+less4js.login = function () {
+    JSON.POST(
+        'script/login', 
+        {
+            'username': $('username').value,
+            'password': $('password').value,
+            }, 
+        function ok (req) {
+            css.hide([$('Login')]);
+            css.show([$('Subject'), $('Object')]);
+            less4js.describeServices ('script');
+        });
+}
+
 less4js.describeServices = function (url) {
     JSON.GET(url, null, function (req) {
         less4js.services = JSON.decode(req.responseText);
@@ -63,6 +77,7 @@ less4js.describeServices = function (url) {
             sb.push('</span></div>');
         }
         HTML.update($('servicesMenu'), sb.join(''));
+        css.show([$('Subject'), $('Object')]);
     });
 };
 
@@ -109,6 +124,14 @@ less4js.updateViewInput = function () {
 	// show('jsonrViewTab');
 }
 
+less4js.postView = function () {
+    JSON.POST(
+        'script' + $('serviceName').value,
+        less4js.control.json,
+        JSON.update('jsonrViewOutput', 'output')
+        );
+}
+
 function jsbeauty (source) {
     var lines, i, s;
     lines = eval(source).toString().split('\n');
@@ -142,25 +165,7 @@ less4js.loadSources = function (name) {
         });
 };
 
-less4js.copyService = function (name, source) {
-    JSON.GET(
-        'script/eval', 
-        '(function () {'
-        + 'var fun = new Service (functions["' + source + '"]||{});'
-        + 'functions["' + name + '"] = fun;'
-        + 'return {'
-            + '"less4jConfigure": fun.less4jConfigure.toSource(),'
-            + '"irtd2Identify": fun.irtd2Identify.toSource(),'
-            + '"jsonApplication": fun.jsonApplication.toSource(),'
-            + '"httpResource": fun.httpResource.toSource(),'
-            + '"httpContinue": fun.httpContinue.toSource(),'
-            + '"jsonrModel": fun.jsonInterface($)'
-            + '};'
-        + '})()',
-        function ok (request) {
-            var json = JSON.decode(request.responseText);
-            for (var k in json) {
-                $(k).value = /^[^{]+[{](.*)[}]$/.exec(json[k])[1];
-            };
-        });
-};
+JSON.errors['401'] = function NotAuthorized (status, request) {
+    css.hide([$('Subject'), $('Object')]);
+    css.show([$('Login')]);
+}
