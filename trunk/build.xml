@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="less4j" default="jar">
+  <property file="build.properties"/>
+  <target name="compile">
+    <delete dir="build"/>
+    <mkdir dir="./build"/>
+    <javac 
+      classpath="./lib/smalljs.jar;./lib/servlet-api.jar;./lib/xp.jar"
+      srcdir="./src" 
+      destdir="./build" 
+      target="1.4" 
+      source="1.4"
+      debug="on"
+      />
+  </target>
+  <target name="jar" depends="compile">
+    <jar jarfile="./less4j.jar" basedir="./build"/>
+  </target>
+  <target name="doc">
+    <delete dir="doc/fragments"/>
+    <javadoc 
+      docletpath="./less4j.jar;./lib/smalljs.jar;./lib/xp.jar"
+      doclet="org.less4j.Doctest"
+      packagenames="org.less4j, org.less4j.functions, org.less4j.controllers" 
+      source="1.4" 
+      sourcepath="src" 
+      classpath="./less4j.jar;lib/smalljs.jar;./lib/xp.jar;lib/servlet-api.jar;/jdk1.5.0_11/lib/tools.jar" 
+      access="public" 
+      >
+      <!--
+      destdir="doc" 
+      doctitle="less4j" 
+      author="true"
+      version="true"
+      use="true"
+      nodeprecated="true"
+      splitindex="true"
+      -->
+    </javadoc>
+  </target>
+</project>

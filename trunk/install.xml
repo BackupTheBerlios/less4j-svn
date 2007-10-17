@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="less4j">
+  <property file="install.properties"/>
+  <target name="tomcat">
+    <copy file="./lib/smalljs.jar" todir="${tomcat}${sharedlib}"/>
+    <copy file="./less4j.jar" todir="${tomcat}${webapps}/less4j/WEB-INF/lib"/>
+  </target>
+</project>

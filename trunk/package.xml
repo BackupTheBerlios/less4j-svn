@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="less4j">
+  <property file="install.properties"/>
+  <target name="tomcat">
+    <copy todir="war/less4j" overwrite="yes">
+      <fileset dir="${tomcat}webapps/less4j"/>
+    </copy>
+    <copy file="lib/xp.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
+    <copy file="lib/smalljs.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
+    <copy file="less4j.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
+    <jar jarfile="less4j.war" basedir="war/less4j"/>
+  </target>
+</project>
