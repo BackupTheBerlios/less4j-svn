@@ -85,7 +85,7 @@ function jsonInterface ($) {
 function irtd2Identify ($) {
     var fun = functions[$.about];
     if (fun == null) {
-        $.jsonResponse (401);
+        $.jsonResponse (401, false);
         return false
     }
     return fun.irtd2Identify($);
@@ -126,10 +126,10 @@ functions["/login"] = new Service ({
         return true;
     },
     jsonInterface: function ($) {
-        return '{"login": ".+", "password": ".+"}';
+        return '{"username": "[^ ]+", "password": "[^ ]+"}';
     },
     jsonApplication: function ($) {
-        $.identity = $.json.S("login");
+        $.identity = $.json.S("username");
         $.rights = "";
         $.irtd2Digest();
         $.jsonResponse(200, true); // Ok
