@@ -10,7 +10,7 @@
 @import 'lib/reset.css';
 @import 'lib/typography.css';
 @import 'lib/grid.css';
-/* @import 'lib/forms.css';
+/* @import 'lib/forms.css'; */
 
 
 /* Plugins:
@@ -18,11 +18,11 @@
    See the readme files for each plugin. Example:
    @import 'plugins/buttons/buttons.css'; */
   
-@import 'plugins/buttons/buttons.css';  
+/* @import 'plugins/buttons/buttons.css' */
    
 /* See the grid:
    Uncomment the line below to see the grid and baseline. */
 
-/* .container { background: url(lib/grid.png); }  */
+/* .container { background: url(lib/grid.png); } */
    
    

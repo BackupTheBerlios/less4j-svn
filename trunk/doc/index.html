@@ -23,25 +23,28 @@
           >less4j</h1>
       </div>
       <div id="javadocSidebar" class="column span-7 colborder quiet">
-        <div>
-          &copy; 2006-2007 <a href="http://laurentszyster.be/"
-          >Laurent Szyster</a> - Version 0.40 
-        </div>
-        <div style="height: 4.5em;"><input 
-          id="javadocSearch" 
-          class="text" 
-          type="text" 
-          style="width: 258px;"
-          onchange="javadoc.search(this.value);"
-          value="Search the documentation by name"
-          /></div>
-        <div id="javadocMenu" class="corner-up-right">
-          <span
-            class="action" onclick="javadoc.historyClear();"
-            >Clear</span>
-          <span 
-            class="action" onclick="javadoc.goHome();"
-            >Home</span>
+        <div class="clear" style="margin-bottom: 1.5em;">
+          <div class="form column span-6 last"><input 
+            id="javadocSearch" 
+            class="pcre" 
+            type="text" 
+            onchange="javadoc.search(this.value);"
+            value="search the documentation by name"
+            /></div>
+          <div class="actions column span-4 last push-0">
+            <div class="column span-2">
+              <button 
+                class="action"
+                onclick="javadoc.historyClear();"
+                >clear</button>
+            </div>
+            <div class="column span-2 last">
+              <button 
+                class="action"
+                onclick="javadoc.goHome();"
+                >home</button>
+            </div>
+          </div>
         </div>
         <div id="javadocFound">
         </div>
@@ -50,6 +53,10 @@
         <div id="javadocHistory"></div>
       </div>
       <div id="javadocObject" class="column span-15 last">
+      </div>
+      <div class="column span-23 quiet"><hr />
+        &copy; 2006-2007 <a href="http://laurentszyster.be/"
+        >Laurent Szyster</a> - Version 0.40 
       </div>
     </div>
     <script type="text/javascript" src="protocols.js"></script>
