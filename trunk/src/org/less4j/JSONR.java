@@ -36,23 +36,23 @@ import java.text.StringCharacterIterator;
  * formated dates, collections, relations, regular dictionaries and
  * relevant namespaces.
  * 
- * @div <h3>Synopsis</h3>
+ * @h3 Synopsis
  * 
- * <pre>JSONR pattern = new JSONR("["my model", "is a constant"]");
+ * @pre JSONR pattern = new JSONR("["my model", "is a constant"]");
  *try {
  *    Object value = pattern.eval("[\"my model\", \"is a constant\"]);
  *    Object value = pattern.eval("[\"will this fail?\", true]);
  *} catch (JSONR.Error e) {
  *    System.out.println(e.str());
- *}</pre>
+ *}
  * 
- * <h4>JSON Regular Evaluation</h4>
+ * @h3 JSON Regular Evaluation
  * 
- * <p>The <code>JSONR</code> class provides similar interfaces than 
+ * @p The <code>JSONR</code> class provides similar interfaces than 
  * <code>JSON</code> in the form of instance methods to evaluate and
- * validate any JSON values:</p>
+ * validate any JSON values:
  * 
- * <pre>Object map;
+ * @pre Object map;
  *try {
  *    JSONR pattern = new JSONR("{\"pass\": null}");
  *    map = pattern.eval(
@@ -63,32 +63,32 @@ import java.text.StringCharacterIterator;
  *        );
  *} catch (JSONR.Error e) {
  *    System.out.println(e.str());
- *}</pre>
+ *}
  * 
- * <p>But also extend arrays:</p>
+ * @p But also extend arrays:
  * 
- * <pre>JSONR pattern = new JSONR("[\".+\"]");
+ * @pre JSONR pattern = new JSONR("[\".+\"]");
  *JSON.Array list = new JSON.Array(); 
  *JSONR.Error e = pattern.extend(
  *    list, "[\"my model\": \"is a constant\"]"
  *    );
  *if (e != null)    
- *    System.out.println(e.str());</pre>
+ *    System.out.println(e.str());
  * 
- * <p>Or update maps:</p>
+ * @p Or update maps:
  *  
- * <pre>JSONR pattern = new JSONR("[\".+\"]");
+ * @pre JSONR pattern = new JSONR("[\".+\"]");
  *JSON.Object map = new JSON.Object();
  *JSONR.Error e = pattern.update(
  *    map, "{\"will this fail?\": true}"
  *    );
  *if (e != null)    
- *    System.out.println(e.str());</pre>
+ *    System.out.println(e.str());
  * 
- * <p>And do it eventually with lower safety limits than the maximums on
- * the number of containers (JSON.Array or JSON.Object) and iterations.</p>
+ * @p And do it eventually with lower safety limits than the maximums on
+ * the number of containers (JSON.Array or JSON.Object) and iterations.
  * 
- * <pre>JSONR.Error e;
+ * @pre JSONR.Error e;
  *JSON.Array list = new JSON.Array();
  *JSONR pattern = new JSONR("[0]", 1, 7);
  *e = pattern.extend(list, "[1,2,3,4,5]"
@@ -96,28 +96,26 @@ import java.text.StringCharacterIterator;
  *    System.out.println(e.str());
  *e = pattern.extend(list, "[1,2,3,4,5,6,7,8,9,0]");
  *if (e != null)
- *    System.out.println(e.str());</pre>
+ *    System.out.println(e.str());
  * 
- * <p>Note that the first errors allways stops the evaluation, adding
+ * @p Note that the first errors allways stops the evaluation, adding
  * effective safety limits on the memory allocated to requests by a
- * JSON service.</p>
+ * JSON service.
  * 
- * <h4>Extension Types</h4>
+ * @h3 Extension Types
  * 
- * <p>Some application demand specialized data types, most notably date
+ * @p Some application demand specialized data types, most notably date
  * and time types. This implementation provides only one, the most common
  * JSON extension type:
  * 
- * <table BORDER="1" WIDTH="100%" CELLPADDING="3" CELLSPACING="0" SUMMARY="">
- * <tr>
- *  <td><code>"yyyy-MM-ddTHH:mm:ss"</code></td>
- *  <td>a valid date and type value formated alike, as the defacto standard
- *  JavaScript 1.7 serialization of a date and time instance.</td>
- * </tr>
- * </table>
+ * @p <dl><di>
+ *  <dt><code>"yyyy-MM-ddTHH:mm:ss"</code></dt>
+ *  <dd>a valid date and type value formated alike, as the defacto standard
+ *  JavaScript 1.7 serialization of a date and time instance.</dd>
+ * </di></dl>
  * 
- * <p>As a decent implementation of JSONR, this one is extensible and provides
- * a Java interface and enough singleton to do so easely.</p>
+ * @p As a decent implementation of JSONR, this one is extensible and provides
+ * a Java interface and enough singleton to do so easely.
  */
 public class JSONR extends JSON {
     
@@ -125,19 +123,19 @@ public class JSONR extends JSON {
      * A simple JSONR exception throwed for any type or value error found 
      * by the regular interpreter.
      * 
-     * @div <h3>Synopsis</h3>
+     * @h3 Synopsis
      * 
-     * <p>This class is a shallow copy of JSON.Error to distinguish between
+     * @p This class is a shallow copy of JSON.Error to distinguish between
      * a syntax and a regular error, allowing the interpreter to recover
-     * valid JSON from an invalid JSONR (ie: to do error handling).</p>
+     * valid JSON from an invalid JSONR (ie: to do error handling).
      * 
-     * <pre>String model = "[[true, \"[a-z]+\", null]]";
+     * @pre String model = "[[true, \"[a-z]+\", null]]";
      * String string = "[[false, \"test\", 1.0][true, \"ERROR\", {}]]";
      * try {
      *    Object json = (new JSONR(model)).eval(string)
      *} catch (JSONR.Error e) {
      *    System.out.println(e.toString())
-     *}</pre>
+     *}
      */
     public static class Error extends JSON.Error {
         
@@ -165,13 +163,12 @@ public class JSONR extends JSON {
     /**
      * An interface to extend JSONR with application types.
      * 
-     * @div <h3>Synopsis</h3>
+     * @h3 Synopsis
      * 
-     * <p>Custom type classes must implement the <code>value</code>,
-     * <code>eval</code> and <code>copy</code> methods:</p>
+     * @p Custom type classes must implement the <code>value</code>,
+     * <code>eval</code> and <code>copy</code> methods:
      * 
-     * <blockquote>
-     * <pre>import org.less4j.JSONR;
+     * @pre import org.less4j.JSONR;
      *import java.text.SimpleDateFormat;
      *
      *public static class TypeDateTime implements JSONR.Type {
@@ -201,22 +198,17 @@ public class JSONR extends JSON {
      *    
      *    public Type copy() {return singleton;}
      *    
-     *}</pre>
-     * </blockquote>
+     *}
      * 
-     * <p>can be mapped to this name</p> 
+     * @p can be mapped to this name 
      * 
-     * <blockquote>
-     * <pre>"yyyy-MM-ddTHH:mm:ss"</pre>
-     * </blockquote>
+     * @pre "yyyy-MM-ddTHH:mm:ss"
      * 
-     * to cast a JSON string like
+     * @p to cast a JSON string like
      * 
-     * <blockquote>
-     * <pre>"2006-07-04T12:08:56"</pre>
-     * </blockquote>
+     * @pre "2006-07-04T12:08:56"
      * 
-     * into the appropriate <code>java.util.Date</code> instance.</p>
+     * @p into the appropriate <code>java.util.Date</code> instance.
      */
     public static interface Type {
         /**
@@ -245,10 +237,10 @@ public class JSONR extends JSON {
          * Make a "deep" copy of the <code>Type</code>, something that
          * can safely be passed to a distinct thread.
          * 
-         * <p>Note that is is only required by applications that expect to
+         * @p Note that is is only required by applications that expect to
          * alter their JSONR patterns after compilation, something quite
          * unsual. Applications that don't (the overwhelming majority)
-         * can consider a <code>JSONR.Type</code> as thread-safe.</p>
+         * can consider a <code>JSONR.Type</code> as thread-safe.
          * 
          * @return an unsynchronized copy as a <code>Type</code> 
          */
@@ -542,10 +534,25 @@ public class JSONR extends JSON {
         }
     }
     
+    /**
+     * ...
+     */
     public static final Type BOOLEAN = TypeBoolean.singleton;
+    /**
+     * ...
+     */
     public static final Type INTEGER = TypeInteger.singleton;
+    /**
+     * ...
+     */
     public static final Type DOUBLE = TypeDouble.singleton;
+    /**
+     * ...
+     */
     public static final Type DECIMAL = TypeDecimal.singleton;
+    /**
+     * ...
+     */
     public static final Type STRING = TypeString.singleton;
     
     // the built-in extension types: just JSON's DateTime, ymmv ...
@@ -581,12 +588,12 @@ public class JSONR extends JSON {
     public static final Type DATETIME = TypeDateTime.singleton;
     
     /**
-     * <p>The built-in extension types, currently mapping only one
-     * bizarre yet relevant and unambiguous type name, the obvious:
+     * The built-in extension types.
      * 
-     * <pre>"yyyy-MM-ddTHH:mm:ss"</pre>
+     * @p Map extension types by name, by default only the obvious date and
+     * time type:
      * 
-     * to the <code>JSONR.DATETIME</code> type.</p>
+     * @pre "yyyy-MM-ddTHH:mm:ss"
      * 
      */
     public static HashMap TYPES = new HashMap();
@@ -767,9 +774,7 @@ public class JSONR extends JSON {
      * Recursively validates an object against a <code>JSONR.Type</code>
      * or throw a <code>JSONR.Error</code>.
      * 
-     * <h3>Synopsis</h3>
-     * 
-     * <pre>try {
+     * @pre try {
      *  JSONR.validate(value, type);
      *} catch (JSONR.Error) {
      *  ...
@@ -927,16 +932,38 @@ public class JSONR extends JSON {
         return type;
     }
     
+    /**
+     * ...
+     * 
+     * @param regular
+     * @param extensions
+     * @return
+     */
     public static final 
     Type compile(java.lang.Object regular, Map extensions) {
         return compile(regular, extensions, new HashMap());
     }
     
+    /**
+     * ...
+     * 
+     * @param pattern
+     * @param extensions
+     * @return
+     * @throws JSON.Error
+     */
     public static final Type compile(String pattern, Map extensions)
     throws JSON.Error {
         return compile((new JSON()).eval(pattern), extensions);
     }
     
+    /**
+     * ...
+     * 
+     * @param pattern
+     * @return
+     * @throws JSON.Error
+     */
     public static final Type compile(String pattern)
     throws JSON.Error {
         return compile((new JSON()).eval(pattern), TYPES);
@@ -951,32 +978,78 @@ public class JSONR extends JSON {
     protected static final String NAME_ERROR = 
         "name error";
 
+    /**
+     * ...
+     */
     public Type type = null;
     
+    /**
+     * ...
+     * 
+     * @param type
+     */
     public JSONR(Type type) {super(); this.type = type;}
     
+    /**
+     * ...
+     * 
+     * @param type
+     * @param containers
+     * @param iterations
+     */
     public JSONR(Type type, int containers, int iterations) {
         super(containers, iterations); this.type = type;
     }
     
+    /**
+     * ...
+     * 
+     * @param regular
+     * @throws JSON.Error
+     */
     public JSONR(java.lang.Object regular) throws JSON.Error {
         super(); type = compile(regular, TYPES);
     }
     
+    /**
+     * ...
+     * 
+     * @param regular
+     * @param containers
+     * @param iterations
+     * @throws JSON.Error
+     */
     public JSONR(java.lang.Object regular, int containers, int iterations) 
     throws JSON.Error {
         super(containers, iterations); type = compile(regular, TYPES);
     }
     
+    /**
+     * ...
+     * 
+     * @param pattern
+     * @throws JSON.Error
+     */
     public JSONR(String pattern) throws JSON.Error {
         super(); type = compile(pattern, TYPES);
     }
     
+    /**
+     * ...
+     * 
+     * @param pattern
+     * @param containers
+     * @param iterations
+     * @throws JSON.Error
+     */
     public JSONR(String pattern, int containers, int iterations) 
     throws JSON.Error {
         super(containers, iterations); type = compile(pattern, TYPES);
     }
     
+    /**
+     * ...
+     */
     public java.lang.Object eval(String json) 
     throws JSON.Error {
         buf = new StringBuffer();
@@ -990,6 +1063,9 @@ public class JSONR extends JSON {
         }
     }
     
+    /**
+     * ...
+     */
     public JSON.Error update(Map o, String json) {
         buf = new StringBuffer();
         it = new StringCharacterIterator(json);
@@ -1017,6 +1093,9 @@ public class JSONR extends JSON {
         }
     }
     
+    /**
+     * ...
+     */
     public JSON.Error extend(List a, String json) {
         if (!(type instanceof TypeArray))
             return new Error(JSON.ARRAY_TYPE_ERROR);

@@ -30,10 +30,16 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 
 /**
- * Conveniences to send and receive netstrings efficiently over Java's 
+ * Conveniences to send and receive <a 
+ * href="http://cr.yp.to/proto/netstrings.txt"
+ * >netstrings</a> efficiently over Java's 
  * synchronous socket API.
  * 
  * @h3 Synopsis
+ * 
+ * @p Netstrings provide a safe and efficient way to implement pipelining
+ * network protocols (ie: where requests and responses can be sent and
+ * received in asynchronous batches).
  * 
  * @pre import org.less4j.Netstring;
  *import java.net.Socket;
@@ -41,12 +47,14 @@ import java.nio.ByteBuffer;
  *
  *Socket conn = new Socket("127.0.0.2", 3999)
  *try {
+ *    // send two requests to ansqlite server
  *    Netstring.send(
  *        conn, "[\"CREATE TABLE relation (s, p, o, c)\", []]", "UTF-8"
  *        );
  *    Netstring.send(
  *        conn, "[\"SELECT * FROM relation\", []]", "UTF-8"
  *        );
+ *    // iterate through the responses received
  *    Iterator netstring = new Netstring.recv(conn, 16384, "UTF-8");
  *    while (netstring.hasNext())
  *        System.out.println (netstring.next());
@@ -88,9 +96,9 @@ public class Netstring {
      * socket <code>OutputStream</code> that each byte can waste a few 
      * UDP datagrams and considerably slow down its application.</p>
      * 
-     * @param conn
-     * @param strings
-     * @param encoding
+     * @param conn the <code>Socket</code> connection to send to
+     * @param string to send encoded as 8-bit bytes
+     * @param encoding character set
      * @throws IOException
      */
     static public void 
@@ -194,7 +202,7 @@ public class Netstring {
      *}
      * 
      * @param conn the <code>Socket</code> connection to send to
-     * @param string to encoded as 8-bit bytes and send
+     * @param string to send encoded as 8-bit bytes
      * @param encoding the character set encoding (eg: "UTF-8") 
      * @throws IOException
      */

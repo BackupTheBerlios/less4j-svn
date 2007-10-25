@@ -29,21 +29,24 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Random;
 
 import java.net.URL; 
+import java.net.MalformedURLException;
+
+import java.util.regex.Pattern;
 
 /**
- * A few utilities too simple for language experts, but damn usefull for 
- * application developers.
+ * A few general-purpose conveniences maybe too simple for language experts, 
+ * but damn usefull for application developers.
  */
 public class Simple {
     
     /**
-     * The default file I/O buffer size.
-     * 
-     * @h4 Synopsis
+     * The default file I/O buffer size, 4096 bytes.
      * 
      * @p 4046 bytes is the maximum block size for many file system, so
      * it makes a rather good default size for file I/O buffers.
@@ -51,23 +54,21 @@ public class Simple {
 	public static int fioBufferSize = 4096;
 
     /**
-     * The default network I/O buffer size.
+     * The default network I/O buffer size, 16384 bytes.
      * 
-     * @h4 Synopsis
+     * @p A string of 16KB can represent 3,4 pages of 66 lines and 72 columns 
+     * of ASCII characters. Or more information than what most people can 
+     * read in a few minutes. It is therefore a reasonable maximum to set for 
+     * chunks of I/O in an application web interface updated by its user every 
+     * few seconds.
      * 
-     * @p Sixteen Kilobytes (16384 8-bit bytes) represent 3,4 pages of
-     * 66 lines and 72 columns of ASCII characters. Much more information 
-     * than what most of us can digest in a few minutes. It's a reasonable
-     * maximum to set for an application web interface updated by its
-     * user every few seconds.
+     * @p Sixteen Kilobytes (16384 8-bit bytes) happens to be the defacto 
+     * standard buffer size for TCP peers and networks since it's the maximum 
+     * UDP datagram size in use. Which makes anything smaller than this limit 
+     * a better candidate for the lowest possible IP network latency.
      * 
-     * @p Also, 16KB happens to be the defacto standard buffer size
-     * for TCP peers and networks since it's the maximum UDP datagram size
-     * in use. Which makes anything smaller than this limit a better candidate 
-     * for the lowest possible IP network latency.
-     * 
-     * @p Finally, sixteen KB buffers can hold more than 65 thousand concurrent
-     * responses in one GB of RAM, a figure between one and two orders of 
+     * @p Finally, 16KB buffers can hold more than 65 thousand concurrent
+     * responses in one GB of RAM, a figure between at least one order of 
      * magnitude larger than what you can reasonably expect from a J2EE 
      * container running some commodity hardware. At an average speed of
      * 0.5 millisecond per concurrent request/response 16KB buffers sums
@@ -81,44 +82,95 @@ public class Simple {
     public static int netBufferSize = 16384;
     
     /**
-     * Read byte arrays from a BufferedReader by chunks of 
+     * Read byte arrays from a <code>BufferedReader</code> by chunks of 
      * <code>fioBufferSize</code> until the input stream buffered is
-     * exhausted, accumulate those chunks in a <code>StringBuffer</code>,
+     * closed, accumulate those chunks in a <code>StringBuffer</code>,
      * join them and  then returns a UNICODE string (implicitely using the 
      * default character set encoding). 
-     * 
-     * @h4 Synopsis
      * 
      * @p This is a "low-level" API to support convenience to glob files,
      * URLs resources or any input stream that can be wrapped with a
      * <code>BufferedReader</code>.
      * 
-     * @param br a <code>BufferedReader</code> to glob.
-     * @return a <code>String</code> with all data read
+     * @param reader to to glob.
+     * @return the string read 
      * @throws IOException
      */
-    public static String read (BufferedReader br) throws IOException {
+    protected static String read (BufferedReader reader) throws IOException {
         StringBuffer sb = new StringBuffer();
         try {
             char[] buffer = new char[fioBufferSize];
-            int readLength = br.read(buffer);
+            int readLength = reader.read(buffer);
             while (readLength > 0) {
                 sb.append(buffer, 0, readLength);
-                readLength = br.read(buffer);
+                readLength = reader.read(buffer);
             }
             if (readLength > 0){
                 sb.append(buffer, 0, readLength);
             }
         } finally {
-            br.close();
+            reader.close();
         }
         return sb.toString();
     }
     
     /**
-     * Try to read a complete file into a String.
+     * Try to read a complete <code>InputStream</code> into a 
+     * <code>String</code> using a buffer of <code>fioBufferSize</code>.
      * 
-     * @h4 Synopsis
+     * @pre String resource = Simple.read(System.in);
+     *     
+     * @param stream to read from
+     * @return the string read or <code>null</code>
+     */
+    static public String read (InputStream stream) throws IOException {
+        return read (new BufferedReader(
+            new InputStreamReader(stream), fioBufferSize
+            ));
+     }
+        
+    /**
+     * Try to open and read a complete <code>URL</code> into a 
+     * <code>String</code> using a buffer of <code>fioBufferSize</code>.
+     * 
+     * @pre String resource = Simple.read(new URL("http://w3c.org/"));
+     *     
+     * @p Note that since it does not throw exceptions, this method can
+     * be used to load static class String members, piggy-backing the 
+     * class loader to fetch text resources at runtime. 
+     * 
+     * @param url to read from
+     * @return the string read or <code>null</code>
+     */
+    static public String read (URL url) throws IOException {
+        return read (url.openStream());
+    }
+    
+    private static final Pattern URL_RE = Pattern.compile(
+        "^(http|file|ftp):.+"
+        );
+    
+    /**
+     * Try to open and read a named file into a <code>String</code>
+     * using a buffer of <code>fioBufferSize</code>.
+     * 
+     * @pre String resource = Simple.read("my.xml");
+     *     
+     * @param name the file's name
+     * @return the string read or <code>null</code>
+     * @throws IOException 
+     */
+    static public String read (String name) 
+    throws IOException {
+        return read(new BufferedReader(
+            new FileReader(name), fioBufferSize
+            ));
+    }
+
+    /**
+     * Try to open and read a named file or URL into a <code>String</code>
+     * using a buffer of <code>fioBufferSize</code>, return a default in
+     * case of failure.
      * 
      * @pre String resource = Simple.read("my.xml");
      *     
@@ -127,62 +179,27 @@ public class Simple {
      * class loader to fetch text resources at runtime. 
      * 
      * @param name the file's name
-     * @return a <code>String</code> or <code>null</code> 
+     * @param def the default <code>String</code> to return, may be null
+     * @return the string read or <code>null</code>
      */
-    static public String read (String name) {
+    static public String read (String name, String def) {
         try {
-            return read(new BufferedReader(new FileReader(name)));
+            return read(new BufferedReader(
+                new FileReader(name), fioBufferSize
+                ));
         } catch (IOException e) {
             return null;
         }
     }
 
     /**
-     * Try to read a complete InputStream into a String.
-     * 
-     * @h4 Synopsis
-     * 
-     * @pre String resource = Simple.read(System.in);
-     *     
-     * @param is <code>InputStream</code> to read from
-     * @return a <code>String</code> or <code>null</code>
-     */
-    static public String read (InputStream is) throws IOException {
-        return read (new BufferedReader(new InputStreamReader(is)));
-     }
-        
-    /**
-     * Try to read a complete file into a String.
-     * 
-     * @h4 Synopsis
-     * 
-     * @pre String resource = Simple.read("http://w3c.org/");
-     *     
-     * @p Note that since it does not throw exceptions, this method can
-     * be used to load static class String members, piggy-backing the 
-     * class loader to fetch text resources at runtime. 
-     * 
-     * @param url to read from
-     * @return a <code>String</code> or <code>null</code>
-     */
-    static public String read (URL url) {
-        try {
-            return read (url.openStream());
-        } catch (IOException e) {
-            return null;
-        }
-    }
-    
-    /**
      * Use a <code>ByteBuffer</code> to efficiently merge arrays
      * of byte as one array, sacrife space to gain speed when
      * sending one or more byte strings at once over synchronous
      * TCP streams.
      * 
-     * @h4 Synopsis
-     * 
-     * @param bytes
-     * @return
+     * @param bytes to merge
+     * @return an NIO byte buffer
      */
     public static ByteBuffer buffer (byte[][] bytes) {
         int i, ct = 0;
@@ -193,13 +210,15 @@ public class Simple {
     }
 
     /**
-     * ...
+     * Send to an output stream the content of a byte buffer by chunks of
+     * <code>netBufferSize</code>, starting at a given offset and stopping 
+     * after a given length, yielding to other threads after each chunk.
      * 
-     * @h4 Synopsis
-     * 
-     * @pre ...
-     * 
-     * @h4 Application
+     * @param stream to send output to
+     * @param buffer of bytes to read from
+     * @param offset to start from
+     * @param length of output to send
+     * @throws IOException
      * 
      * @p TCP/IP is a reliable stream protocol (TCP) implemented on top
      * of an unreliable packet protocol (IP) and this has implications
@@ -215,45 +234,47 @@ public class Simple {
      * that try their best to fit the local operating system buffers and the
      * usual network packets sizes.
      * 
-     * @p Note that this is only applicable when the output is expected to
-     * allways be below or in the order of magnitude of the common TPC 
-     * window size, somewhere between 16KB and 64KB.
+     * @p Note also the importance of yielding execution to other threads
+     * after each chunk is sent in order <em>not</em> to overflow the OS
+     * network buffers and avoid as much wait state as possible.
      * 
-     * @param os
-     * @param bb
-     * @param off
-     * @param len
      */
     static public void send (
-        OutputStream os, ByteBuffer bb, int off, int len
+        OutputStream stream, ByteBuffer buffer, int offset, int length
         ) throws IOException {
-        bb.position(off);
+        buffer.position(offset);
         byte[] bytes = new byte[netBufferSize];
-        while (len > netBufferSize) {
+        while (length > netBufferSize) {
+            length -= netBufferSize;
+            buffer.get(bytes);
+            stream.write(bytes);
+            stream.flush();
             Thread.yield();
-            len -= netBufferSize;
-            bb.get(bytes);
-            os.write(bytes);
-            os.flush();
         }
-        bb.get(bytes, 0, len);
-        os.write(bytes, 0, len);
-        os.flush();
-    }
-
-    static public void send (OutputStream os, ByteBuffer bb) 
-    throws IOException {
-        send(os, bb, 0, bb.capacity());
+        buffer.get(bytes, 0, length);
+        stream.write(bytes, 0, length);
+        stream.flush();
     }
 
     /**
-     * Fill the <code>byte</code> buffer with data read from an 
-     * <code>InputStream</code>, starting at position <code>off</code>
+     * Send to an output stream the content of a byte buffer by chunks of
+     * <code>netBufferSize</code>, yielding to other threads after each chunk.
+     * 
+     * @param stream to send output to
+     * @param buffer of bytes to read from
+     * @throws IOException
+     */
+    static public void send (OutputStream stream, ByteBuffer buffer) 
+    throws IOException {
+        send(stream, buffer, 0, buffer.capacity());
+    }
+
+    /**
+     * Fill a <code>byte</code> buffer with data read from an 
+     * <code>InputStream</code>, starting at a given <code>offset</code>
      * until the buffer is full or the stream is closed, then return
      * the position in the buffer after the last byte received (ie:
      * the length of the buffer if it was filled).
-     * 
-     * @h4 Synopsis</code>
      * 
      * @pre import org.less4j.Simple;
      *import java.net.Socket;
@@ -269,25 +290,25 @@ public class Simple {
      *}
      * 
      * 
-     * @param is the <code>InputStream</code> to receive from
-     * @param buffer a <code>byte</code> array to fill
-     * @param off the position to start from
+     * @param stream to receive from
+     * @param buffer of bytes to fill
+     * @param offset to start from
      * @return the position in the buffer after the last byte received
      * @throws IOException
      */
-    static public int recv (InputStream is, byte[] buffer, int off) 
+    static public int recv (InputStream stream, byte[] buffer, int offset) 
     throws IOException {
         int len = 0;
-        while (off < buffer.length) {
-            len = is.read(buffer, off, buffer.length - off);
+        while (offset < buffer.length) {
+            len = stream.read(buffer, offset, buffer.length - offset);
             if (len > -1)
-                off += len; 
+                offset += len; 
             else if (len == 0)
                 Thread.yield(); // ... wait for input, cooperate!
             else 
                 break; // ... end of stream.
         }
-        return off;
+        return offset;
     }
     
 	protected static class ObjectIterator implements Iterator {
@@ -311,6 +332,24 @@ public class Simple {
      * @return the extended <code>List</code>
      */
     public static List list (List sequence, Object[] items) {
+        for (int i=0; i<items.length; i++)
+            sequence.add(items[i]);
+        return sequence;
+    }
+    
+    /**
+     * A convenience to create an <code>ArrayList</code> from an array of 
+     * <code>Objects</code>.
+     * 
+     * @pre ArrayList sequence = Simple.list(
+     *     new Object[]{"a", "b", "c"}
+     *     );
+     * 
+     * @param items to add in the sequence
+     * @return a new <code>ArrayList</code>
+     */
+    public static ArrayList list (Object[] items) {
+        ArrayList sequence = new ArrayList();
         for (int i=0; i<items.length; i++)
             sequence.add(items[i]);
         return sequence;
@@ -366,8 +405,8 @@ public class Simple {
      * @pre HashMap map = Simple.dict(new HashMap(), new Object[]{
      *     "A", "test", 
      *     "B", true, 
-     *     "C": 1.0, 
-     *     "D", null
+     *     "C": new Integer(1), 
+     *     "D", false
      *     });
      * 
      * @p This method is convenient to instanciate or update dictionaries 
@@ -384,33 +423,59 @@ public class Simple {
     }
     
     /**
-     * ...
+     * Update a new <code>HashMap</code> with the keys and values sequence 
+     * found in an even <code>Object</code> array.
+     * 
+     * @pre HashMap map = Simple.dict(new Object[]{
+     *     "A", "test", 
+     *     "B", true, 
+     *     "C": new Integer(1), 
+     *     "D", false
+     *     });
+     * 
+     * @p This method is convenient to instanciate unsynchronized dictionaries 
+     * with a clearer syntax than using a sequence of <code>HashMap.put</code>.
      * 
      * @param map to update
      * @param pairs of key and value to add
-     * @return the updated <code>Map</code>
+     * @return the updated <code>HashMap</code>
      */
-    public static Map dict (Map map, String[][] pairs) {
-        for (int i=0; i<pairs.length; i++) if (pairs[i].length > 1)
-            map.put(pairs[i][0], pairs[i][1]);
+    public static HashMap dict (Object[] pairs) {
+        HashMap map = new HashMap();
+        for (int i=0; i<pairs.length; i=i+2)
+            map.put(pairs[i], pairs[i+1]);
         return map;
     }
     
     /**
      * Iterate through arbitrary values in a <code>Map</code>.
      * 
-     * @pre HashMap map = Simple.dict(new HashMap(), new Object[]{
-     *     "A", "test", 
-     *     "B", true, 
-     *     "C": 1.0, 
-     *     "D", null
-     *     });;
+     * @pre HashMap map = Simple.dict(new Object[]{
+     *    "A", "test", 
+     *    "B", true, 
+     *    "C": new Integer(1), 
+     *    "D", false
+     *    });
      * Iterator values = Simple.iter(map, new Object[]{
-     *     "A", "C", "E"
-     *     };);
+     *    "A", "C", "E"
+     *    });
      * 
      * @p This method is convenient to extract an ordered set of named
      * values from a dictionary using a <code>Object</code> array.
+     * 
+     * @test var map = Simple.dict([
+     *    "A", "test", 
+     *    "B", true, 
+     *    "C", 1, 
+     *    "D", false
+     *    ]);
+     *var values = Simple.iter(map, ["A", "C", "E"]);
+     *return (
+     *    values.next() == "test" &&
+     *    values.next() == 1 &&
+     *    values.next() == null &&
+     *    values.hasNext() == false
+     *    );
      * 
      * @param map the <code>Map</code> to iterate through
      * @param keys and array of keys to iterate through 
@@ -421,34 +486,15 @@ public class Simple {
     }
     
     /**
-     * Encode a <code>unicode</code> string in the given character set 
-     * <code>encoding</code> or use the default if a 
-     * <code>UnsupportedEncodingException</code> was throwed.
-     * 
-     * @h4 Synopsis
-     * 
-     * @pre byte[] encoded = Simple.encode("test", "UTF-8");
-     * 
-     * @param unicode the <code>String</code> to encode
-     * @param encoding the character set name
-     * @return a array of <code>byte</code>
-     */
-    public static byte[] encode(String unicode, String encoding) {
-        try {
-            return unicode.getBytes(encoding);
-        } catch (UnsupportedEncodingException e) {
-            return unicode.getBytes();
-        }
-    }
-    
-    /**
      * Decode a <code>byte</code> array to UNICODE from the given character 
      * set <code>encoding</code> or use the default if a 
      * <code>UnsupportedEncodingException</code> was throwed.
      * 
-     * @pre String decoded = Simple.decode(
-     *    new byte[]{'t', 'e', 's', 't'}, "UTF-8"
-     *    );
+     * @test return Simple.decode(
+     *    [116, 101, 115, 116], "UTF-8"
+     *    ).equals("test"); 
+     * 
+     * // TODO: actually test UTF-8 encoding, not just ASCII-US
      * 
      * @param bytes the <code>byte</code> array to decode 
      * @param encoding the character set name
@@ -459,6 +505,27 @@ public class Simple {
             return new String (bytes, encoding);
         } catch (UnsupportedEncodingException e) {
             return new String (bytes);
+        }
+    }
+    
+    /**
+     * Encode a <code>unicode</code> string in the given character set 
+     * <code>encoding</code> or use the default if a 
+     * <code>UnsupportedEncodingException</code> was throwed.
+     * 
+     * @test return Simple.decode(
+     *    Simple.encode("test", "UTF-8"), "UTF-8"
+     *    ).equals("test");
+     * 
+     * @param unicode the <code>String</code> to encode
+     * @param encoding the character set name
+     * @return a array of <code>byte</code>
+     */
+    public static byte[] encode(String unicode, String encoding) {
+        try {
+            return unicode.getBytes(encoding);
+        } catch (UnsupportedEncodingException e) {
+            return unicode.getBytes();
         }
     }
     
@@ -503,8 +570,15 @@ public class Simple {
      * 
      * @pre Iterator strings = Simple.split("one two three", ' ');
      * 
+     * @test strings = Simple.split("one two three", ' ');
+     *return (
+     *    strings.next() == "one" &&
+     *    strings.next() == "two" &&
+     *    strings.next() == "three"
+     *    );
+     * 
      * @param splitted the <code>String</code> to split
-     * @param splitter the <code>char</char> used to split input
+     * @param splitter the <code>char</code> used to split input
      * @return an <code>Iterator</code> of <code>String</code>
      */
     public static Iterator split (String splitted, char splitter) {
@@ -512,42 +586,46 @@ public class Simple {
     }
 	
     /**
-     * Join the items produced by an <code>Iterator</code> in a 
-     * <code>StringBuffer</code>, using an <code>Object</code> as
-     * separator between items.
+     * Join the serialized objects produced by an <code>Iterator</code> in a 
+     * <code>StringBuffer</code>, using another serializable 
+     * <code>Object</code> as separator between items.
      * 
-     * @pre Iterator iter = Simple.iter(new Object[]{"A", "B", "C"});
-     *StringBuffer joined = Simple.join(", ", iter, new StringBuffer())
+     * @pre StringBuffer buffer = new StringBuffer(); 
+     *Iterator objects = Simple.iter(new Object[]{"A", "B", "C"});
+     *Simple.join(", ", objects, buffer);
      * 
-     * @param separator
-     * @param iter
-     * @param sb
+     * @param separator between joined strings
+     * @param objects to join as strings
+     * @param buffer to append strings and separators to
+     * @return the appended buffer
      */
     public static StringBuffer join (
-        Object separator, Iterator iter, StringBuffer sb
+        Object separator, Iterator objects, StringBuffer buffer
         ) {
-        if (iter.hasNext()) {
-            sb.append(iter.next());
-            while (iter.hasNext()) {
-                sb.append(separator);
-                sb.append(iter.next()); 
+        if (objects.hasNext()) {
+            buffer.append(objects.next());
+            while (objects.hasNext()) {
+                buffer.append(separator);
+                buffer.append(objects.next()); 
             }
         }
-        return sb;
+        return buffer;
     }
     
     /**
-     * If you miss Python's <code>join</code>, here it is ;-) 
+     * Join object's strings with any other type joinable in a 
+     * <code>StringBuffer</code>. 
      * 
-     * @pre Iterator strings = Simple.iter(new Object[]{"A", "B", "C"});
-     *String joined = Simple.join(", ", strings)
+     * @test return Simple.join(
+     *    ", ", Simple.iter(["A", "B", "C"])
+     *    ).equals("A, B, C");
      * 
-     * @param separator 
-     * @param iter 
+     * @param separator between joined objects
+     * @param objects to join as strings
      * @return the joined string
      */
-    public static String join (Object separator, Iterator iter) {
-        return join(separator, iter, new StringBuffer()).toString();
+    public static String join (Object separator, Iterator objects) {
+        return join(separator, objects, new StringBuffer()).toString();
     }
     
     /**

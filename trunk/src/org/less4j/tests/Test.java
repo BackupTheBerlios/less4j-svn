@@ -226,7 +226,7 @@ public class Test {
             filename = (String) filenames.next();
             if (filename.endsWith(".json")) {
                 System.out.print(filename);
-                String input = Simple.read(dir + filename);
+                String input = Simple.read(dir + filename, null);
                 try {
                     Object o = (new JSON()).eval(input);
                     System.out.print(" = ");
@@ -330,7 +330,7 @@ public class Test {
         
         JSON.Object modelJSON;
         JSONR pattern; 
-        String model = Simple.read(dir + "/test.jsonr");
+        String model = Simple.read(dir + "/test.jsonr", null);
         try {
             modelJSON = testModel.object(model);
             pattern = new JSONR(modelJSON.get("meta"));
@@ -358,7 +358,7 @@ public class Test {
             filename = (String) filenames.next();
             if (filename.endsWith(".json")) {
                 System.out.print(filename);
-                String input = Simple.read(dir + filename);
+                String input = Simple.read(dir + filename, null);
                 System.out.print(" = ");
                 try {
                     Object o = pattern.eval(input);

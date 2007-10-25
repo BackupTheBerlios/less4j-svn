@@ -17,25 +17,52 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j;
 
 /**
- * An interface to implement web services that eventually identify requests,
- * serve idempotent requests for resources, reply to idempotent GET and POST 
- * requests with JSON and URL encoded form body that match a regular JSON
- * pattern, or handle any other HTTP request. 
+ * An interface to implement web services that: a) describe their input model
+ * with <a 
+ * href="http://laurentszyster.be/jsonr"
+ * >JSONR</a> expressions; b) eventually identify requests; c) serve idempotent 
+ * requests for HTTP resources; d) reply to GET and POST requests 
+ * with valid JSON or URL encoded form body; e) and maybe handle any other 
+ * types HTTP requests. 
  * 
  * @h3 Synopsis
  * 
- * @p For sample use of <code>Service</code> see its many implementations 
- * found in less4j.
+ * @p Application developers must either derive a new <code>Controller</code> 
+ * class or a new function to be dispatched by one of the existing controllers 
+ * provided.
  * 
- * @p It is implemented by the base <code>Controller</code> function 
- * dispatcher and the derived classes found in 
- * <code>org.less4j.controllers</code>. 
- * This interface is also implemented by classes packaged in 
- * <code>org.less4j.functions</code>.
+ * @pre package org.less4j.functions;
  * 
- * @p Note that this interface also supports a WS-* implementation in 
- * the <code>SOAP</code> class, complete with WSDL generation from regular 
- * JSON expressions and two-way JSON/SOAP translation. 
+ *import org.less4j.Service;
+ *import org.less4j.Actor;
+ *import org.less4j.Simple;
+ *import org.less4j.JSON;
+ *
+ *public class PrivateService implements Service {
+ *    public Service singleton = new Public ();
+ *    public String jsonInterface (Actor $) {
+ *        return "null"; // interface input description 
+ *    }
+ *    public boolean less4jConfigure (Actor $) {
+ *        return true; // allways configured
+ *    }
+ *    public boolean irtd2Identify (Actor $) {
+ *        $.httpError(401); // not authorized
+ *        return false; // not identified
+ *    }
+ *    public Object jsonRegular (Actor $) {
+ *        return new JSON(); // accept any JSON as input
+ *    }
+ *    public void jsonApplication (Actor $) {
+ *        $.jsonResponse(200); // echo the input
+ *    }
+ *    public void httpResource (Actor $) {
+ *        $.jsonResponse(200, jsonInterface($)); // describe the interface
+ *    }
+ *    public void httpContinue (Actor $, String method, String contentType) {
+ *        $.httpError(400); // bad request
+ *    }
+ *}
  * 
  */
 public interface Service {
@@ -44,13 +71,28 @@ public interface Service {
      */
     public static Service singleton = null;
     /**
-     * Return a JSONR string describing this <code>Service</code> interface. 
+     * Return a <a 
+     * href="http://laurentszyster.be/jsonr"
+     * >JSONR</a> string describing this <code>Service</code> interface.
+     * 
+     * @p ...
+     * 
+     * @pre public static String jsonInterface (Actor $) {
+     *   return "null";
+     *}
+     *
+     * @p ...
+     * 
+     * @param $ the actor at play
+     * @return a JSONR string
      */
     public String jsonInterface (Actor $);
     /**
      * Test wether this controller's configuration actually supports 
-     * this <code>Service</code> at runtime. Functions that extend the 
-     * namespace of less4j's configuration must override this method.
+     * this <code>Service</code> at runtime. 
+     * 
+     * @p Functions that extend the namespace of less4j's configuration must 
+     * override this method.
      * 
      * @pre public boolean less4jConfigure (Actor $) {
      *    if (super.less4jConfigure($)) {
@@ -59,6 +101,8 @@ public interface Service {
      *    } else
      *        return false;
      *}
+     *
+     * @p Note that overriden method should be called. 
      * 
      * @param $ the actor at play
      * @return true if the configuration was successfull, false otherwise
@@ -70,23 +114,11 @@ public interface Service {
      * by default grant no rights to a random user ID made of ten alphanumeric 
      * characters.
      * 
-     * @pre public boolean irtd2Identify (Actor $) {
-     *    $.identity = Simple.password(10);
-     *    return true;
-     *}
-     * 
-     * @p A simpler implementation is to reply unidentified requests
+     * @p A simple implementation is to reply unidentified requests
      * with a <code>401 Not Authorized</code> response:
      * 
      * @pre public boolean irtd2Identify (Actor $) {
      *   $.httpError(401)); 
-     *   return false; 
-     *}</pre>
-     * 
-     * @p Or redirect the user agent to another controller:
-     * 
-     * @pre public boolean irtd2Identify (Actor $) {
-     *   $.http302Redirect("/login"); 
      *   return false; 
      *}
      * 
@@ -114,36 +146,73 @@ public interface Service {
      *       // not identified, response completed. 
      *}
      * 
-     * @p ...
-     *  
      * @param $ the actor's state
      * @return true if the request was identified, false otherwise
      */
     public boolean irtd2Identify (Actor $);
     /**
-     * Complete requests not handled by <code>httpResource</code> or
-     * <code>jsonApplication</code>. 
-     *
-     * @pre public void httpContinue (Actor $) {
-     *    return $.httpError(400); // Bad Request
+     * Returns a <code>JSON</code> or <code>JSONR</code> interpreter to 
+     * validate a GET request's query string or a POSTed JSON request body.
+     * Returns <code>null</code> to disable non-idempotent request
+     * handling. 
+     * 
+     * @p For instance, allow any JSON type but limit the numbers of
+     * container objects to 4 and set a maximum of 16 instances:
+     * 
+     * @pre public Object jsonRegular (Actor $) {
+     *    return new JSON(4, 16);
+     *}
+     * 
+     * @p Or constraint the input to a JSONR pattern:
+     * 
+     * @pre private static final JSONR.Type model = JSONR.compile (
+     *    JSON.dict(new Object[]{
+     *        "hello", "^.+$",
+     *        "test", true
+     *        })
+     *    ); 
+     *public Object jsonRegular (Actor $) {
+     *    return new JSONR(model);
+     *}
+     * 
+     * @p To prevent handling of URL encoded form and JSON request, return
+     * <code>null</code>: 
+     * 
+     * @pre public Object jsonRegular (Actor $) {
+     *    return null;
+     *}
+     * 
+     * @param $ the Actor's state
+     * @return <code>null</code>, a <code>JSON</code> or <code>JSONR</code> 
+     *         interpreter
+     */
+    public Object jsonRegular (Actor $);
+    /**
+     * Control an audited interaction between an identified user and a 
+     * JSON application.
+     * 
+     * @p ...
+     * 
+     * @pre public void jsonApplication (Actor $) {
+     *    $.jsonResponse(501); // Not implemented
      *}
      *
      * @p ...
-     *
-     * @param $ the actor's state
+     * 
+     * @param $ the Actor's state
      */
-    public void httpContinue (Actor $, String method, String contentType);
+    public void jsonApplication (Actor $);
     /**
      * Reply to idempotent HTTP requests not handled by a configured
      * <code>Service</code> or this controller.
+     * 
+     * @p This is a method to overload in an application controller that
+     * serve resources in this servlet context to identified users.
      * 
      * @pre public void httpResource (Actor $) {
      *    return $.httpError(404); // Not Found
      *}
      *
-     * @p This is a method to overload in an application controller that
-     * serve resources in this servlet context to identified users.
-     * 
      * @p Practically, for database and directory controllers there is
      * little else to do short of implementing your own database to URI 
      * namespace mapping for resources. Subclassing this method makes
@@ -154,28 +223,21 @@ public interface Service {
      */
     public void httpResource (Actor $);
     /**
-     * Returns a <code>JSON</code> or <code>JSONR</code> interpreter
-     * to validate a GET request's query string or a POSTed JSON request 
-     * body. 
+     * Complete requests not handled by <code>httpResource</code> or
+     * <code>jsonApplication</code>. 
+     *
+     * @p ...
      * 
-     * @pre public Object jsonRegular (Actor $) {
-     *    return new JSON();
-     *}
-     * 
-     * @param $ the Actor's state
-     * @return a <code>JSON</code> or <code>JSONR</code> interpreter
-     */
-    public Object jsonRegular (Actor $);
-    /**
-     * Control an audited interaction between an identified user and a 
-     * JSON application.
-     * 
-     * @pre public void jsonApplication (Actor $) {
-     *    $.jsonResponse(501); // Not implemented
+     * @pre public void httpContinue (Actor $) {
+     *    return $.httpError(400); // Bad Request
      *}
      *
-     * @param $ the Actor's state
+     * @p ...
+     * 
+     * @param $ the actor's state
+     * @param method the request's HTTP method ("GET", "POST", etc)
+     * @param contentType of the request's body
      */
-    public void jsonApplication (Actor $);
+    public void httpContinue (Actor $, String method, String contentType);
 };
 

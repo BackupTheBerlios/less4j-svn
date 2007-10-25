@@ -36,11 +36,21 @@ import java.util.Iterator;
  * 
  * @h3 Synopsis
  * 
+ * @p This implementation of <code>HttpServlet</code> fits the common use 
+ * case of a web controller that aggregates functions on a set of resource 
+ * like file folders, an SQL database or an LDAP direcory. It provides 
+ * the practical configuration options required to move from development 
+ * to production and allow system maintenance. 
+ * 
+ * @p Application developpers can derive from <code>Controller</code>
+ * to implement their own HTTP resource controllers. Look in the package
+ * <code>org.less4j.controllers</code> for example of controllers.
+ * 
  * @p This servlet can be used as-is, controlling access to the configured
  * SQL database and LDAP dictionary via the functions specified.
  * 
- * @p Here's the <code>web.xml</code> deployer of a controller for the 
- * simplest JSON function:
+ * @p For instance, here's the <code>web.xml</code> deployer of a controller 
+ * for the simplest JSON function:
  * 
  * @pre <servlet>
  *  <servlet-name>less4jscript</servlet-name>
@@ -50,23 +60,12 @@ import java.util.Iterator;
  *    <param-value><![CDATA[ {
  *      "test": false, 
  *      "functions": {
- *        "\/hello-world", "org.less4j.tests.HelloWorld"
+ *        "\/helloWorld", "org.less4j.tests.HelloWorld"
  *        }
  *      } ]]></param-value>
  *  </init-param>
  *</servlet>
  * 
- * @p This implementation of <code>HttpServlet</code> fits the common use 
- * case of a web controller that aggregates functions on a set of resource 
- * like file folders, an SQL database or an LDAP direcory.  
- * It dispatches HTTP requests to configured <code>Service</code> by 
- * request URL's <code>PATH_INFO</code> and provides the practical 
- * configuration options required to move from development to production 
- * and allow system maintenance. 
- * 
- * @p Application developpers can derive from <code>Controller</code>
- * to implement their own HTTP resource controllers. Look in the package
- * <code>org.less4j.controllers</code> for example of controllers.
  */
 public class Controller extends HttpServlet implements Service {
     

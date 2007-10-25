@@ -38,66 +38,46 @@ import org.mozilla.javascript.*;
 /**
  * Produce a practical web of XHTML fragment, a JSON index and a JavaScript 
  * test suite, enable developers to document and test their sources in the
- * same &quot;place&quot;.
- * 
- * @h3 Synopsis
- *  
- * @p Here's the ANT job that generated this documentation and test suite: 
- *  
- * @pre <javadoc 
- *    docletpath="./less4j.jar;./lib/xp.jar;"
- *    doclet="org.less4j.Doctest"
- *    packagenames="org.less4j" 
- *    source="1.4" 
- *    sourcepath="src" 
- *    classpath="./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar;/jdk1.5.0_11/lib/tools.jar" 
- *    access="public" 
- *    >
- *    
- * @p To run the tests again and log their outputs: 
- *  
- * @pre java \
- *   --classpath=./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar \
- *   Doctest.java ./tests 1> tests.out 2> tests.err
+ * same place and at the same time they change the code.
  * 
  * @h3 Document
  * 
- * @p For documentation purposes <code>Doctest</code> supports the original 
- * javadoc tags. To enhance your documentation with simple HTML elements, it 
- * maps a <code>@h3</code>, <code>@h4</code>, <code>@p</code> and 
- * <code>@pre</code> tag to the equivalent HTML titles, paragraph and 
- * preformatted text elements. Any other tag yield a <code>div</code> 
- * element with a CSS class named after the tag. 
- * 
- * @p Note that you can still use XHTML markup inside the tagged and 
- * the untagged comment text. Doctest will try to validate it and document 
- * any XML errors.
- * 
- * @p Here is a typical method comment for Doctest:
+ * @p Here is what a brief Doctest comment would look like for java's 
+ * <code>String.equals</code> method:
  * 
  * @pre /**
- * * This should be a short description of the identifier's purpose.
+ * * Compare this <code>String</code> to another one.
  * * 
- * * @param arg0 followed by a comment text
- * * @param arg1 etc ...
- * * @return what exactly
+ * * @param string to compare to 
+ * * @return <code>true</code> if the two strings compared are equals
  * *
- * * @h4 Synopsis
- * * 
- * * @p Include an application example, with sources:
+ * * @p For instance:
  * *
- * * @pre import org.less4j.*;
+ * * @pre "A".equals("A");
  * *
- * *...
+ * * @p A description of <em>this</em> synopsis is not required and good
+ * * synopsis should be obvious enough to avoid one.
  * *
- * * @h4 Tests
- * *
- * * @p Explain tests sources:
- * *
- * * @test return "A".equals("A");
- * *
+ * * @test return (
+ * *    "A".equals("A") == true &&
+ * *    "A".equals("a") == false
+ * *    );
  * * /
  *
+ * @p For documentation purposes <code>Doctest</code> supports the original 
+ * javadoc tags: <code>@param</code>, <code>@return</code> and 
+ * <code>@throws</code>. 
+ * 
+ * @p To simply enhance your documentation with HTML elements without error, 
+ * it maps a <code>@h3</code>, <code>@h4</code>, <code>@p</code> and 
+ * <code>@pre</code> tag to the equivalent HTML titles, paragraph and 
+ * preformatted text elements. Any other tag (including <code>test</code>) 
+ * will yield a <code>div</code> element with a CSS class named after the tag. 
+ * 
+ * @p You can still use XHTML markup inside the tagged and the untagged 
+ * comment text, Doctest will try to validate it and document any XML errors
+ * in its output.
+ * 
  * @p Comments for fields may be quite shorter and lack tests or synopsis,
  * class documentation may include a longer description of its application
  * purposes.
@@ -121,22 +101,31 @@ import org.mozilla.javascript.*;
  * 
  * @test return "A".lowerCase().equals("a");
  *
- * @p ...
+ * @p Note that the tested class is automatically imported by Doctest. Other
+ * classes must be declared in the test script sources using the methods
+ * <code>importPackage</code> or <code>importClass</code>.
+ *  
  * 
- * @pre {
- *    "index": {"identifier": ["fqn"]},
- *    "types": {"type": {
- *        "extends": "type",
- *        "implements": ["type"],
- *        "contains": ["type"],
- *        "fields": {"identifier": "modifiers"},
- *        "methods": {"identifier": "modifiers"}
- *        }},
- *    "packages": {"package": {
- *        "interfaces": ["type"],
- *        "implementations": ["type"]
- *    }
- *}
+ * @h3 Synopsis
+ *  
+ * @p Here's the ANT job that generated this documentation and test suite: 
+ *  
+ * @pre <javadoc 
+ *    docletpath="./less4j.jar;./lib/xp.jar;"
+ *    doclet="org.less4j.Doctest"
+ *    packagenames="org.less4j" 
+ *    source="1.4" 
+ *    sourcepath="src" 
+ *    classpath="./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar;/jdk1.5.0_11/lib/tools.jar" 
+ *    access="public" 
+ *    >
+ *    
+ * @p To run the tests again and log their outputs: 
+ *  
+ * @pre java \
+ *   --classpath=./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar \
+ *   Doctest.java ./tests 1> tests.out 2> tests.err
+ * 
  */
 public class Doctest {
     
@@ -205,12 +194,12 @@ public class Doctest {
         ScriptableObject scope;
         Context cx = Context.enter();
         try {
-            scope = new ImporterTopLevel(cx, true);
-            cx.evaluateString(scope, test_sources, hash, 1, null);
-            org.mozilla.javascript.Function fun = (
-                org.mozilla.javascript.Function
-                ) scope.get("run_test", scope);
             try {
+                scope = new ImporterTopLevel(cx, true);
+                cx.evaluateString(scope, test_sources, hash, 1, null);
+                org.mozilla.javascript.Function fun = (
+                    org.mozilla.javascript.Function
+                    ) scope.get("run_test", scope);
                 if (!((Boolean) Context.jsToJava(
                     fun.call(cx, scope, scope, new Object[]{}), Boolean.class
                     )).booleanValue())
@@ -518,7 +507,7 @@ public class Doctest {
     }
     
     protected boolean doRoot (RootDoc root) throws Exception {
-        options = JSON.dict(root.options());
+        options = JSON.options(root.options());
         base = options.S("-destdir", "doc");
         doDirectory(base);
         doDirectory(base + "/fragments");
@@ -549,6 +538,27 @@ public class Doctest {
     /**
      * The entry point exposed to the <code>javadoc</code> executable.
      * 
+     * @h3 HTML fragments
+     * 
+     * @pre ...
+     * 
+     * @h3 JSON indexes
+     * 
+     * @pre {
+     *    "index": {"identifier": ["fqn"]},
+     *    "types": {"type": {
+     *        "extends": "type",
+     *        "implements": ["type"],
+     *        "contains": ["type"],
+     *        "fields": {"identifier": "modifiers"},
+     *        "methods": {"identifier": "modifiers"}
+     *        }},
+     *    "packages": {"package": {
+     *        "interfaces": ["type"],
+     *        "implementations": ["type"]
+     *    }
+     *}
+     *
      * @param root of the Doclet tree
      * @return true if no exception was throwed, false otherwise
      */

@@ -50,56 +50,27 @@ import com.jclark.xml.sax.ReaderInputStream;
 /**
  * An port of Greg Stein's <a 
  * href="http://www.lyra.org/greg/python/qp_xml.py"
- * >qp_xml.py</a> for Java, producing the simplest and most practical XML 
- * element tree, enhanced by an extensible type system to develop XML 
- * language interpreters.
+ * >qp_xml.py</a> for Java, enhancing James Clark's <a 
+ * href="http://www.jclark.com/xml/xp/index.html"
+ * >XP</a> to build an element tree model more practical than the W3C's DOM.
+ * It also provides a convenient API to develop extensible interpreters and
+ * comes with conveniences to map XML string to JSON arrays and objects. 
+ *
+ * @h3 Simple Object Model
+ *
+ * @p The document object model made of <code>XML.Document</code> and 
+ * <code>XML.Element</code> is the pythonic element tree introduced by 
+ * Greg Stein.
  * 
- * @pre import org.less4j.XML;
- *import org.less4j.Simple;
- *import java.util.Iterator;
- *import java.io.File;
- *import java.io.IOException;
+ * @h3 Agile Interpreters
  *
- *try {
- *    // read an XML file into an element tree
- *    XML.Document document = new XML.Document();
- *    document.read(new File("data.xml"));
- *    // access and update the element tree 
- *    Iterator items = document.root
- *        .getChild("details")
- *        .getChildren(Simple.set(new String[]{"item"}));
- *    int total = 0;
- *    while (items.hasNext()) {
- *        total = total + Integer.parseInt(
- *            ((XML.Element) items.next()).getAttribute("value")
- *            );
- *    }
- *    document.root.addChild("total", Integer.toString(total));
- *    // write the transformed XML to STDOUT
- *    document.write(System.out);
- *} catch (XML.Error e) {
- *    : // handle XML errors
- *} catch (IOException e) {
- *    ; // handle I/O errors
- *}
- *
- * @div <h3>Applications</h3>
- *
- * <p>The minimal Document Object Model (DOM) provided is the defacto standard
- * element tree found across all development environments. It makes simple
- * XML data processing easy and complex one possible.</p>
- *
- * <p>This API support XML namespaces in the simplest possible way,
- * as the later C versions expat implemented them. Qualified names are
- * represented as a string joining the namespace and the local name with
- * a single space character, unqualified names (aka tags) are represented
- * as a string without white spaces.</p>
+ * @p The <code>XML.Type</code> interface supports the reuse of derived 
+ * element and document classes in the development of agile XML interpreters.
  * 
- * <p>The implementation of this <code>XP</code> parser application also 
- * provides an extensible type system for <code>Element</code> nodes
- * that support reuse of classes in the development of XML interpreters,
- * turning the DOM into an AST.</p>
+ * @h3 From XML To JSON
  * 
+ * @p ... <code>XML.Tree</code> ... <code>XML.Regular</code>
+ *
  */
 public class XML {
 
@@ -134,6 +105,9 @@ public class XML {
     /**
      * An interface to extend the tree builder with new classes of element 
      * derived from <code>Element</code>.
+     * 
+     * @param name the fully qualified name of this element
+     * @param attributes a HashMap of names and values
      */
     public static interface Type {
         public Element newElement (String name, HashMap attributes);
@@ -147,9 +121,12 @@ public class XML {
      */
     public static class Element implements XML.Type {
         /**
-         * The fully qualified name of this element, either a simple XML
-         * tag or the concatenation of a namespace and a tag joined by
-         * a white space.
+         * The name of this element.
+         * 
+         * @p Note that qualified names are represented as a string joining 
+         * the namespace and the local name with a single space character, 
+         * while unqualified names (aka tags) are represented as a string 
+         * without white spaces.
          */
         public String name = null;
         /**
@@ -178,6 +155,10 @@ public class XML {
          * Instanciate a new empty <code>Element</code> with name.
          * 
          * @param name the fully qualified name of this element
+         * 
+         * @test return (new XML.Element("tag")).toString().equals(
+         *    "<tag></tag>"
+         *    );
          */
         public Element (String name) {
             this.name = name;
@@ -188,6 +169,12 @@ public class XML {
          * 
          * @param name the fully qualified name of this element
          * @param attributes a <code>HashMap</code> of named attributes
+         * 
+         * @test importPackage(Packages.org.less4j); 
+         *var e = new XML.Element("tag", Simple.dict(["name", "value"]));
+         *return e.toString().equals(
+         *    "<tag name=\"value\"></tag>"
+         *    );
          */
         public Element (String name, HashMap attributes) {
             this.name = name;
@@ -209,6 +196,11 @@ public class XML {
          * @div This constructor is usefull when building element trees
          * from scratch.
          * 
+         * @test importPackage(Packages.org.less4j); 
+         *var e = new XML.Element("tag", ["name", "value"], "first", "follow");
+         *return e.toString().equals(
+         *    "<tag name=\"value\">first</tag>follow"
+         *    );
          */
         public Element (
             String name, String[] attributes, String first, String follow
@@ -222,28 +214,27 @@ public class XML {
             this.follow = follow;
         }
         /**
-         * Let the tree builder instanciate a new <code>Element</code> 
-         * with attributes using this <code>Type</code> interface of
-         * this class' <code>singleton</code>. 
-         * 
-         * @param name the fully qualified name of this element
-         * @param attributes a HashMap of names and values
+         * ...
          */
         public Element newElement (String name, HashMap attributes) {
             return new Element(name, attributes);
         }
         /**
-         * This class <code>Type</code> singleton exposing this class
-         * <code>newElement</code> method. 
-         * 
-         * Java sucks.
+         * ...
          */
-        public static Type TYPE = new Document();
+        public static Type singleton = new Document();
         /**
-         * Add a child element, creating the <code>children</code> array list
+         * Add a child element, creates the <code>children</code> array list
          * if it does not exist yet.
          * 
-         * @param child
+         * @param child to append
+         * @return the child appended.
+         * 
+         * @test var e = new XML.Element("tag");
+         *e.addChild(new XML.Element("child"));
+         *return e.toString().equals(
+         *    "<tag><child></child></tag>"
+         *    );
          */
         public XML.Element addChild (Element child) {
             if (children == null) 
@@ -253,20 +244,34 @@ public class XML {
             return child;
         }
         /**
-         * Add a new named child element, creating the <code>children</code> 
-         * array list if it does not exist yet.
+         * Add a new named and empty child element, creates the 
+         * <code>children</code> array list if it does not exist yet.
          * 
-         * @param name
-         * @return
+         * @param name of the child to append
+         * @return the child appended.
+         * 
+         * @test var e = new XML.Element("tag");
+         *e.addChild("child");
+         *return e.toString().equals(
+         *    "<tag><child></child></tag>"
+         *    );
          */
         public XML.Element addChild (String name) {
             return addChild(newElement(name, null));
         }
         /**
-         * ...
+         * Add a new named child element with text, creates the 
+         * <code>children</code> array list if it does not exist yet.
          * 
-         * @param name
-         * @return
+         * @param name of the child to append
+         * @param first CDATA after the child opening tag 
+         * @return the child appended.
+         * 
+         * @test var e = new XML.Element("tag");
+         *e.addChild("child", "first");
+         *return e.toString().equals(
+         *    "<tag><child>first</child></tag>"
+         *    );
          */
         public XML.Element addChild (String name, String first) {
             XML.Element child = addChild(newElement(name, null));
@@ -274,21 +279,37 @@ public class XML {
             return child;
         }
         /**
-         * ...
+         * Add a new named child element with attributes, creates the 
+         * <code>children</code> array list if it does not exist yet.
          * 
-         * @param name
-         * @return
+         * @param name of the child to append
+         * @param attributes of the child element 
+         * @return the child appended.
+         * 
+         * @test var e = new XML.Element("tag");
+         *e.addChild("child", ["name", "value"]);
+         *return e.toString().equals(
+         *    "<tag><child name=\"value\"></child></tag>"
+         *    );
          */
-        public XML.Element addChild (String name, String[] attrs) {
-            return addChild(newElement(
-                name, (HashMap) Simple.dict(new HashMap(), attrs)
-                ));
+        public XML.Element addChild (String name, String[] attribute) {
+            return addChild(newElement(name, Simple.dict(attribute)));
         }
         /**
-         * ...
+         * Add a new named child element, creates the <code>children</code> 
+         * array list if it does not exist yet.
          * 
-         * @param name
-         * @return
+         * @param name of the child to append
+         * @param attributes of the child element 
+         * @param first CDATA after the child opening tag 
+         * @param follow CDATA after the child closing tag 
+         * @return the child appended.
+         * 
+         * @test var e = new XML.Element("tag");
+         *e.addChild("child", ["name", "value"], "first", "follow");
+         *return e.toString().equals(
+         *    "<tag><child name=\"value\">first</child>follow</tag>"
+         *    );
          */
         public XML.Element addChild (
             String name, String[] attrs, String first, String follow
@@ -305,11 +326,14 @@ public class XML {
          * 
          * @param cdata
          * 
-         * @pre XML.Element parent = new XML.Element("tag");
-         * parent.addCdata("first text inside the parent");
-         * parent.addChild("child");
-         * parent.addCdata("text following ..."
-         * parent.addCdata("... the first child");
+         * @test var e = new XML.Element("tag");
+         *e.addCdata("first");
+         *e.addChild("child");
+         *e.addCdata("follow ...");
+         *e.addCdata(" more");
+         *return e.toString().equals(
+         *    "<tag>first<child></child>follow ... more</tag>"
+         *); 
          */
         public void addCdata (String cdata) {
             if (children == null || children.size() == 0) {
@@ -326,9 +350,12 @@ public class XML {
             }
         }
         /**
-         * Returns the element's local name.
+         * Returns the element's local name, ie: without namespace.
          * 
-         * @pre (new XML.Element("urn:NameSpace tag")).getLocalName();
+         * @return the element's unqualified name
+         * 
+         * @test var e = new XML.Element("urn:NameSpace tag");
+         *return e.getLocalName().equals("tag");
          * 
          */
         public String getLocalName () {
@@ -339,12 +366,19 @@ public class XML {
                 return name;
         }
         /**
-         * A convenience to access child <code>Element</code> by index. 
+         * A convenience to access <code>XML.Element</code> children by index. 
          * 
          * @param index of the child in this element's children.
          * @return an <code>XML.Element</code> of null
          * 
-         * @pre (new XML.Element("tag")).getChild(3);
+         * @test var e = new XML.Element("tag");
+         *e.addChild("zero");
+         *e.addChild("one");
+         *e.addChild("two");
+         *return (
+         *    e.getChild(1).toString().equals("<one></one>") &&
+         *    e.getChild(3) == null
+         *    );
          */
         public Element getChild (int index) {
             if (children == null)
@@ -353,13 +387,20 @@ public class XML {
                 return (Element) children.get(index);
         }
         /**
-         * A convenience to access a first child <code>Element</code> by name,
-         * returns null. 
+         * A convenience to access a first <code>XML.Element</code>'s child 
+         * by name. 
          * 
          * @param name of the child.
          * @return an <code>XML.Element</code> or null
          * 
-         * @pre (new XML.Element("tag")).getChild("name");
+         * @test var e = new XML.Element("tag");
+         *e.addChild("zero");
+         *e.addChild("one");
+         *e.addChild("two");
+         *return (
+         *    e.getChild("one").toString().equals("<one></one>") &&
+         *    e.getChild("three") == null
+         *    );
          */
         public Element getChild (String name) {
             Element child;
@@ -371,6 +412,21 @@ public class XML {
             return null;
         }
         
+        /**
+         * A convenience to access the last child of an 
+         * <code>XML.Element</code>, if any. 
+         * 
+         * @return an <code>XML.Element</code> or null
+         * 
+         * @test var e = new XML.Element("tag");
+         *e.addChild("zero");
+         *e.addChild("one");
+         *e.addChild("two");
+         *return (
+         *    e.getLastChild().toString().equals("<two></two>") &&
+         *    e.getChild(0).getLastChild() == null
+         *    );
+         */
         public Element getLastChild () {
             if (children == null)
                 return null;
@@ -412,11 +468,20 @@ public class XML {
         /**
          * A convenience to iterate through named children.
          * 
-         * @param name of the children.
-         * @return an <code>Iterator</code> of <code>XML.Element</code>
+         * @param names set of the children to iterate.
+         * @return an iterator of <code>XML.Element</code>
          * 
-         * @pre Iterator named = element.getChildren(
-         *    Simple.set({"a", "A"})
+         * @test var e = new XML.Element("tag");
+         *e.addChild("zero");
+         *e.addChild("one");
+         *e.addChild("two");
+         *var named = e.getChildren(
+         *    Simple.set(["zero", "two", "four"])
+         *    );
+         *return (
+         *    named.next().toString().equals("<zero></zero>") &&
+         *    named.next().toString().equals("<two></two>") &&
+         *    named.hasNext() == false
          *    );
          */
         public Iterator getChildren (HashSet names) {
@@ -429,7 +494,11 @@ public class XML {
          * @param name of the attribute
          * @return the value of the named attribute as a string
          * 
-         * @pre (new XML.Element("tag")).getAttribute("name");
+         * @test var e = new XML.Element("tag", Simple.dict(["name", "value"]));
+         *return (
+         *    e.getAttribute("name").equals("value") &&
+         *    e.getAttribute("whatever") == null 
+         *    );
          */
         public String getAttribute (String name) {
             if (attributes == null)
@@ -441,10 +510,12 @@ public class XML {
          * Set the named attribute's value, creating the attributes' map if
          * it does not exist yet.
          * 
-         * @param name
-         * @param value
+         * @param name of the attribute
+         * @param value of the named attribute
          * 
-         * @pre (new XML.Element("tag")).setAttribute("name", "value");
+         * @test var e = new XML.Element("tag");
+         *e.setAttribute("name", "value");
+         *return e.getAttribute("name").equals("value");
          */
         public void setAttribute (String name, String value) {
             if (attributes == null) 
@@ -453,6 +524,8 @@ public class XML {
         }
         /**
          * Break all circular reference for this element and all its children.
+         * 
+         * @p ...
          */
         public void collect () {
             parent = null;
@@ -467,8 +540,17 @@ public class XML {
          * Remove this element and all its children from the tree, folding
          * up the following CDATA and collecting circular references in its
          * branch.
+         * 
+         * @test var doc = new XML.Document();
+         *doc.parse(
+         *    "<tag><one>first</one>follow<two></two><three></three></tag>"
+         *    );
+         *doc.root.getChild("one").remove();
+         *return doc.root.toString().equals(
+         *    "<tag>follow<two></two><three></three></tag>"
+         *    );
          */
-        public void delete () {
+        public void remove () {
             int index = parent.children.indexOf(this);
             if (index == 0) {
                 if (parent.first == null)
@@ -504,14 +586,24 @@ public class XML {
         public void valid (Document doc) throws Error {
             ;
         }
+        /**
+         * Serialize an XML element as an UTF-8 encoded byte string using 
+         * the given map of namespace prefixes.
+         * 
+         * @param ns the map of namespace prefixes
+         * @return an UTF-8 encoded byte string
+         */
         public byte[] encodeUTF8(Map ns) {
             return XML.encodeUTF8(this, ns);
         }
         /**
+         * Serialize an XML element as a UNICODE string, eventually generates 
+         * namespace prefixes.
          * 
+         * @return an XML string
          */
         public String toString() {
-            return Simple.decode(XML.encodeUTF8(this, null), _utf8);
+            return Simple.decode(XML.encodeUTF8(this, new HashMap()), _utf8);
         }
     }
     
@@ -534,11 +626,24 @@ public class XML {
          */
         public HashMap ns;
         /**
-         * Instanciate a new document.
+         * Instanciate a new document without a root element.
+         * 
+         * @param doctype ...
          */
         public Document () {
             pi = new HashMap();
             ns = new HashMap();
+        } 
+        /**
+         * Instanciate a new document with a root element named after the
+         * doctype.
+         * 
+         * @param doctype ...
+         */
+        public Document (String doctype) {
+            pi = new HashMap();
+            ns = new HashMap();
+            root = newElement(doctype, null);
         } 
         public Element newElement (String name, HashMap attributes) {
             return new Element(name, attributes);
@@ -910,7 +1015,7 @@ public class XML {
             if (container != null) { 
                 if (value != null)
                     update(getLocalName(), value, container);
-                delete();
+                remove();
             }
         }
         public Regular getContainer() {
@@ -935,6 +1040,14 @@ public class XML {
     }
     
     private static final String _prefix = "ns";
+    
+    /**
+     * ...
+     * 
+     * @param name
+     * @param ns
+     * @return
+     */
     public static final String prefixed (String name, Map ns) {
         int fqn = name.indexOf(' ');
         if (fqn > -1) {
@@ -953,6 +1066,7 @@ public class XML {
         return name;
     }
     /**
+     * ...
      * 
      * @param os
      * @param element

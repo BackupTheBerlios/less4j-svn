@@ -1173,7 +1173,7 @@ public class JSON {
     /**
      * Instanciate a new <code>JSON.Object</code> with an sequence
      * of name and value String pairs, a convenience to map a 
-     * <code>String[][]</code> array to a dictionary.
+     * <code>String[][]</code> array of options to a dictionary.
      * 
      * @pre JSON.dict(new String[][]{
      *     {"hello", "world"},
@@ -1184,7 +1184,7 @@ public class JSON {
      * @param pairs of key and values
      * @return a new <code>JSON.Object</code>
      */
-    public static final JSON.Object dict (String[][] pairs) {
+    public static final JSON.Object options (String[][] pairs) {
         JSON.Object result = new JSON.Object();
         for (int i=0; i<pairs.length; i++) {
             if (pairs[i].length > 1)
