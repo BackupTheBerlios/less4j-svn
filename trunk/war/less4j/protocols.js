@@ -185,11 +185,14 @@ HTTP.response = function (key, ok, error) {
             HTTP.except(key, "aborted");
         }
         var state = req.readyState;
-        if (state > 1) try {
-            HTTP.observe(key, state);
-        } catch (e) {
-            HTTP.except(key, e.toString());
-        };
+        if (state > 1) {
+            if (HTTP.except) try {
+                HTTP.observe(key, state);
+            } catch (e) {
+                HTTP.except(key, e.toString());
+            } else
+                HTTP.observe(key, state);
+        }
         if (state > 2) try {
             status = req.status; 
         } catch (e) {}; // timeout is an error with status 0
@@ -198,15 +201,20 @@ HTTP.response = function (key, ok, error) {
             HTTP.pending--;
             if (HTTP.pending == 0) HTTP.state(false);
             if (status == 200 || ((status == 0) && req.responseText)) {
-                try {
+                if (HTTP.except) try {
                     ok (req);
                 } catch (e) {
                     HTTP.except(key, e.toString());
+                } else
+                    ok(req);
+            } else if (error) {
+                if (HTTP.except) try {
+                    error (status, req);
+                } catch (e) {
+                    HTTP.except(key, e.toString());
+                } else {
+                    error (status, req);
                 }
-            } else if (error) try {
-                error (status, req);
-            } catch (e) {
-                HTTP.except(key, e.toString());
             }
         }
     }
@@ -224,10 +232,7 @@ HTTP.observe = function (key, state) {
     (HTTP.observe.rs[key]||pass) (state);
 };
 HTTP.observe.rs = {}; // yeah, that's smart ;-)
-HTTP.except = function (key, message) {
-    HTTP.except.ions.push(arguments);
-};
-HTTP.except.ions = []; // remove everything with HTTP.except = pass;
+HTTP.except = null;
 
 var HTML = {onload: []};
 (function () {
@@ -1397,7 +1402,16 @@ var CSS = (function(){
  * @param {Node} root (optional) The start of the query (defaults to document).
  * @return {Array}
  */
-function $$(selector) {return CSS.select(selector);}
+var $$ = function (selector, root) {
+    $$.selected = CSS.select(selector, root);
+    return $$;
+}
+$$.extend = function (name, fun) {
+    $$[name] = function (selected) {
+        map(fun, selected || $$.selected); 
+        return $$;
+    };
+};
 
 HTML.onload.push(
     function () {

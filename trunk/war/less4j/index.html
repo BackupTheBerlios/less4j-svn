@@ -17,23 +17,16 @@
       media="print"></link>
   </head>
   <body>
-    <div class="container">
-      <div id="header" class="column span-24">
+    <div class="container" style="height: 500px;">
+      <div id="header" class="column last">
         <div id="application" class="column span-8 first">
-          <h1>less4j</h1>
+          <h1>less4j/script</h1>
         </div>
         <div id="context" class="column span-16 last">
-          <div class="column span-4 first">
-              &nbsp;
-          </div>
           <div 
             id="Login" 
-            class="column span-12 last"
-            style="padding: 1.5em 0.0em 1.5em 0.0em; background-color: #eee;"
+            class="form column span-10 push-0 last hide"
             >
-            <div class="column span-1 first">
-              &nbsp;
-            </div>
             <div class="column span-4">
               <input 
                 id="username" 
@@ -50,122 +43,185 @@
                 value="pass_word"
                 />
             </div>
-            <div class="actions column span-2 last">
-              <a 
-                href="#"
-                class="action"
+            <div class="column span-2 last">
+              <button
+                class="ok"
                 onclick="less4js.login();"
-                >Log in</a>
+                >log in</button>
             </div>
           </div>
         </div>
       </div>
-      <div id="Subject" class="screen column span-7 colborder"
-        style="height: 100%;"
-        >
+      <div id="Subject" class="column span-7 colborder screen hide">
         <div id="Services">
-          <h2>Service</h2>
-          <div 
-            class="box" style="margin-bottom: 0.0em;"
-            ><input 
-              id="serviceName" 
-              class="input" 
-              type="text" 
-              value=""
-              /></div>
-          <div 
-            class="quiet actions" 
-            style="margin-bottom: 1.5em;"
-            ><a 
-              href="#Copy" 
-              class="action"
-              >Copy</a><a
-              href="#Rename" 
-              class="action"
-              >Rename</a></div>
-          <div id="servicesMenu"></div>
+          <h2>Services</h2>
+          <div class="column span-2 push-0">
+            <button 
+              onclick="JSON.GET('script/reload', true, less4js.refreshServices);"
+              >reload</button>
+          </div>
+          <div id="serviceDynamics"></div>
+          <div id="serviceStatics"></div>
+          <hr />
+          <div class="less4jsModel">
+            <h3>Types</h3>
+          </div>
+          <div class="less4jsView hide">
+            <h3>Data</h3>
+          </div>
+          <div class="less4jsControl hide">
+            <h3>Tests</h3>
+          </div>
         </div>
       </div>
-      <div id="Object" class="quiet column span-16 last">
-        <div id="Model">
-          <h2 class="screen"
-            ><strong>Model</strong>
-            <span class="action"
-              class="action" onclick="less4js.toggle('Model', 'View');"
-              >View</span> 
-            <span class="action"
-              class="action" onclick="less4js.toggle('Model', 'Control');"
-              >Control</span>
-          </h2>
-          <div class="box" style="height: 6.0em;">
+      <div id="Object" class="column span-16 last hide">
+        <h2 style="border-right: solid 0.2em #eef;"
+          ><input 
+          id="serviceName" 
+          type="text" value="/getMethodSource" 
+          /></h2>
+        <div class="actions column span-4 last push-0">
+          <div class="column span-2">
+            <button class="disabled">copy</button>
+          </div>
+          <div class="column span-2 last">
+            <button class="disabled">rename</button>
+          </div>
+        </div>
+        <h3 class="less4jsModel screen"
+          ><span class="selected">Model</span>
+          <span 
+            class="action quiet"
+            onclick="less4js.toggle('less4jsModel', 'less4jsView');"
+            >View</span> 
+          <span 
+            class="action quiet"
+            onclick="less4js.toggle('less4jsModel', 'less4jsControl');"
+            >Control</span>
+          <span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsModel', 'less4jsFlow');"
+            >Flow</span>
+        </h3>
+        <div class="less4jsModel column span-15 last">
+          <div class="form span-15" style="height: 6.0em;">
             <textarea 
-              id="jsonrModel" class="input source" rows="4"
+              id="jsonrModel" rows="4" class="source string"
               onblur="less4js.updateViewInput();"
               ></textarea>
           </div>
           <div id="jsonrModelError"></div>
         </div>
         <h3 class="print">View</h3>
-        <div id="View" class="hide">
-          <h2 class="screen"
-            ><span 
-            class="action" onclick="less4js.toggle('View', 'Model');"
-            >Model</span>
-            <strong>View</strong> 
-            <span 
-              class="action" onclick="less4js.toggle('View', 'Control');"
-              >Control</span>
-          </h2>
-          <h3>Input</h3>
-          <div class="box">
-            <div id="jsonrViewInput"></div>
-            <div class="actions"
-              ><a 
-                href="#"
-                class="action" onclick="less4js.postView();"
-              >POST</a></div>
+        <h3 class="less4jsView screen hide"
+          ><span 
+          class="action quiet" 
+          onclick="less4js.toggle('less4jsView', 'less4jsModel');"
+          >Model</span>
+          <span class="selected">View</span> 
+          <span 
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsView', 'less4jsControl');"
+            >Control</span>
+          <span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsView', 'less4jsFlow');"
+            >Flow</span>
+        </h3>
+        <div class="less4jsView column span-16 last hide">
+          <div id="jsonrViewInput" class="quiet column span-15 form">
           </div>
-          <h3>Output</h3>
+          <hr />
+          <div class="actions column span-2 push-0"><button type="submit" 
+              class="ok" onclick="less4js.postView();"
+              >POST</button></div>
+          <h3>&rarr;</h3>
           <div id="jsonrViewOutput"></div>
         </div>
         <h3 class="print">Control</h3>
-        <div id="Control" class="hide">
-          <h2 class="screen"
-            ><span class="action"
-              class="action" onclick="less4js.toggle('Control', 'Model');"
-              >Model</span>
-            <span class="action"
-              class="action" onclick="less4js.toggle('Control', 'View');"
-              >View</span>
-            <strong>Control</strong> 
-          </h2>
-          <h3 class="quiet">less4jConfigure ($) &rarr; boolean</h3>
-          <div class="box" style="height: 2.0em;">
-            <textarea id="less4jConfigure" class="input source"></textarea>
-          </div>
-          <h3 class="quiet">irtd2Identify ($) &rarr; boolean</h3>
-          <div class="box" style="height: 3.0em;">
-            <textarea id="irtd2Identify" class="input source"></textarea>
-          </div>
-          <h3 class="quiet">jsonApplication ($)</h3>
-          <div class="box" style="height: 3.0em;">
-            <textarea id="jsonApplication" class="input source"></textarea>
-          </div>
-          <h3 class="quiet">httpResource ($)</h3>
-          <div class="box" style="height: 3.0em;">
-            <textarea id="httpResource" class="input source"></textarea>
-          </div>
-          <h3 class="quiet">httpContinue ($, httpMethod, mimeType)</h3>  
-          <div class="box" style="height: 3.0em;">
-            <textarea id="httpContinue" class="input source"></textarea>
+        <h3 class="less4jsControl screen hide"
+          ><span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsControl', 'less4jsModel');"
+            >Model</span>
+          <span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsControl', 'less4jsView');"
+            >View</span>
+          <span class="selected">Control</span> 
+          <span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsControl', 'less4jsFlow');"
+            >Flow</span>
+        </h3>
+        <div class="less4jsControl column span-16 last hide">
+          <div class="form span-15">
+            <h4>less4jConfigure ($) &rarr; boolean</h4>
+            <div class="span-15" style="height: 3.0em;">
+              <textarea 
+                id="less4jConfigure" 
+                class="source string"
+                onchange="less4js.updateSource(this)"
+                ></textarea>
+            </div>
+            <hr />
+            <h4>irtd2Identify ($) &rarr; boolean</h4>
+            <div class="span-15" style="height: 3.0em;">
+              <textarea 
+                id="irtd2Identify" 
+                class="source string"
+                onchange="less4js.updateSource(this)"
+                ></textarea>
+            </div>
+            <hr />
+            <h4>jsonApplication ($)</h4>
+            <div class="span-15" style="height: 3.0em;">
+              <textarea 
+                id="jsonApplication" 
+                class="source string"
+                onchange="less4js.updateSource(this)"
+                ></textarea>
+            </div>
+            <hr />
+            <h4>httpResource ($)</h4>
+            <div class="span-15" style="height: 3.0em;">
+              <textarea 
+                id="httpResource" 
+                class="source string"
+                onchange="less4js.updateSource(this)"
+                ></textarea>
+            </div>
+            <hr />
+            <h4>httpContinue ($, httpMethod, mimeType)</h4>
+            <div class="span-15" style="height: 3.0em;">
+              <textarea 
+                id="httpContinue" 
+                class="source string"
+                onchange="less4js.updateSource(this)"
+                ></textarea>
+            </div>
           </div>
         </div>
+        <h3 class="less4jsFlow screen hide"
+          ><span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsFlow', 'less4jsModel');"
+            >Model</span>
+          <span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsFlow', 'less4jsView');"
+            >View</span>
+          <span
+            class="action quiet" 
+            onclick="less4js.toggle('less4jsFlow', 'less4jsControl');"
+            >Control</span>
+          <span class="selected">Flow</span> 
+        </h3>
       </div>
-      <hr />
-      <div class="actions quiet">
-        &copy; 2006-2007 <a href="http://laurentszyster.be/"
-        >Laurent Szyster</a> - Version 0.40</div> 
-      <div id="httpExceptions"></div>
+      <div class="column span-24 last quiet">
+          &copy; 2006-2007 <a href="http://laurentszyster.be/"
+          >Laurent Szyster</a> - Version 0.40</div> 
+      </div>
     </div>
     <script type="text/javascript" src="protocols.js"></script>
     <script type="text/javascript" src="jsonr.js"></script>

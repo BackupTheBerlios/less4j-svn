@@ -102,11 +102,75 @@ JSON.Regular.initialize = function (name, model, json, extensions) {
     // JSON.Regular.models[name] = this;
     this.model = model;
     this.json = json;
-    this.extensions = extensions;
+    this.extensions = extensions || {};
     this.errors = {};
+    this.templates = {
+        "null": [
+            null, null, '<div class="column span-15">', '</div>'
+            ],
+        "boolean": [
+            null, null, '<div class="column span-1">', '</div>'
+            ],
+        "string": [
+            null, null, 
+            '<div class="column span-15" style="height: 6em;">', '</div>'
+            ],
+        "number": [
+            null, null, '<div class="column span-2">', '</div>'
+            ],
+        "pcre": [
+            null, null, '<div class="column span-5">', '</div>'
+            ],
+        "namespace": [
+            null, null, '<div class="column span-15">', '</div>'
+            ],
+        "relation": [
+            null, null, '<div class="column span-15">', '</div>'
+            ]
+    };
 };
+JSON.Regular.type = function () {
+    var value = (arguments.length > 0) ? arguments[0]: this.model;
+    switch (typeof value) {
+    case "boolean": 
+        return "boolean";
+    case "string": 
+        if (value=="")
+            return "string";
+        else if (this.extensions[value])
+            return value;
+        else if (this.model[value])
+            return "model";
+        else
+            return "pcre";
+    case "number": 
+        return "number";  
+    case "object":
+        if (value===null) 
+            return "null";
+        else {
+            var L=value.length;
+            if (L==null) {
+                var keys = [];
+                for (var k in value) 
+                    if (!(typeof value[k]=="function")) 
+                        keys.push(k);
+                if (keys.length > 1) 
+                    return "namespace";
+                else if (keys.length > 0)
+                    return "dictionary";
+                else
+                    throw "{} is not a valid JSONR pattern";
+            } else if (L==1)
+                return "collection";
+            else
+                return "relation"
+        }
+    }
+};
+
 JSON.Regular.set = function (ns, v) {
-    eval("this.json" + ns + " = v;"); // eval is Evil, unless it does Good
+    eval("this." + ns + " = v;"); // eval is Evil, unless it does Good
     return v;
 };
 JSON.Regular.test = function (el, v) {
@@ -209,7 +273,7 @@ JSON.Regular.htmlBoolean = function (sb, ns, nm, ob) {
     return sb;
 };
 JSON.Regular.htmlString = function (sb, ns, nm, ob) {
-    sb.push('<textarea class="string" name="');
+    sb.push('<textarea class="string" rows="4" name="');
     sb.push(HTML.cdata(nm));
     sb.push('" id="');
     sb.push(HTML.cdata(ns));
@@ -276,7 +340,7 @@ JSON.Regular.htmlPCRE = function (sb, ns, nm, ob, pt) {
     sb.push('<input name="');
     sb.push(HTML.cdata(nm));
     sb.push('" id="');
-    sb.push(HTML.cdata(ns));
+    sb.push(HTML.cdata((ns=="")?nm:ns));
     sb.push('" onblur="{');
     sb.push(HTML.cdata(this._this));
     sb.push(".PCRE(this, /");
@@ -302,7 +366,7 @@ JSON.Regular.htmlCollection = function (sb, md, ns, nm, ob) {
     sb.push('">');
     if (ob != null) for (var i=0, L=ob.length; i<L; i++) 
         this.htmlValue(sb, md+"[0]", ns+"["+i+"]", nm);
-    sb.push('<input type="button" onclick="{');
+    sb.push('<div class="column span-2"><button onclick="{');
     sb.push(HTML.cdata(this._this));
     sb.push(".htmlAdd(this, &quot;");
     sb.push(HTML.cdata(md));
@@ -310,49 +374,41 @@ JSON.Regular.htmlCollection = function (sb, md, ns, nm, ob) {
     sb.push(HTML.cdata(ns));
     sb.push("&quot;, &quot;");
     sb.push(HTML.cdata(nm));
-    sb.push('&quot;);}" value="add" /></div>');
+    sb.push('&quot;);}">add</button></div></div>');
     return sb;
 };
 JSON.Regular.htmlRelation = function (sb, md, ns, nm, ob, pt) {
-    sb.push('<div class="relation ');
-    sb.push(HTML.cdata(nm));
-    sb.push('" id="');
-    sb.push(HTML.cdata(ns));
-    sb.push('">');
+    //sb.push('<div class="relation ');
+    //sb.push(HTML.cdata(nm));
+    //sb.push('" id="');
+    //sb.push(HTML.cdata(ns));
+    //sb.push('">');
     if (ob == null) ob = this.set(ns, []);
     for (var i=0, L=pt.length; i<L; i++) 
         this.htmlValue(sb, md+"["+i+"]", ns+"["+i+"]", nm+i.toString());
-    sb.push("</div>");
+    //sb.push("</div>");
     return sb;
 };
 JSON.Regular.htmlDictionnary = function (sb, md, ns, k, v) {
     ;
 };
 JSON.Regular.htmlNamespace = function (sb, md, ns, nm, ob, keys) {
-    sb.push('<div class="object">');
     if (ob == null) {
-        sb.push('<span class="object" onclick="{HTML.replace(this, ');
+        sb.push('<div class="column span-2 last">')
+        sb.push('<button onclick="{HTML.replace(this.parentNode, ');
         sb.push(HTML.cdata(this._this));
         sb.push(".htmlOpen([], &quot;");
         sb.push(HTML.cdata(md));
         sb.push("&quot;, &quot;");
         sb.push(HTML.cdata(ns));
-        sb.push("&quot;).join(''));}\">open</span>");
+        sb.push("&quot;, &quot;");
+        sb.push(HTML.cdata(nm));
+        sb.push("&quot;).join(''));}\" >open</button></div>");
     } else {
-        var k, c;
-        for (var i=0; i<keys.length; i++) {
-            k = keys[i];
-            c = HTML.cdata(k);
-            sb.push('<div class="');
-            sb.push(c);
-            sb.push('"><span class="name">');
-            sb.push(c);
-            sb.push('</span><span>');
+        for (var i=0, k; k=keys[i]; i++) {
             this.htmlValue(sb, md + "['" + k + "']", ns + "['" + k + "']", k);
-            sb.push("</span></div>");
         }
     }
-    sb.push("</div>");
     return sb;
 };
 JSON.Regular.htmlFocus = function (id) {
@@ -360,45 +416,45 @@ JSON.Regular.htmlFocus = function (id) {
 };
 JSON.Regular.htmlAdd = function (el, md, ns, nm) {
     var id;
-    var ob = eval("this.json" + ns);
+    var ob = eval("this." + ns);
     if (ob == null) ob = this.set(ns, []);
     var i = ob.length;
     var path = ns+"["+i+"]";
-    var pt = eval("this.model" + md + "[0]");
+    var pt = eval("this." + md + "[0]");
     if (typeof pt == "object") {
         if (pt.length == null) {
             ob.push({})
-            HTML.insert(el, this.htmlValue(
+            HTML.insert(el.parentNode, this.htmlValue(
                 [], md + "[0]", path, nm + i.toString()
                 ).join(''), "beforeBegin");
             for (var k in pt) if (!(typeof pt[k]=="function")) break;
             id = path + "['" + k + "']";
         } else {
             ob.push([]);
-            HTML.insert(el, this.htmlValue(
+            HTML.insert(el.parentNode, this.htmlValue(
                 [], md + "[0]", path, nm + i.toString()
                 ).join(''), "beforeBegin");
             id = path + "[0]";
         }
-    } else
-        HTML.insert(el, this.htmlValue(
+    } else {
+        HTML.insert(el.parentNode, this.htmlValue(
             [], md + "[0]", path, nm + i.toString()
             ).join(''), "beforeBegin");
+        id = path;
+    }
     setTimeout('{' + this._this + '.htmlFocus(' 
         + JSON.encode(id)
         + ');}', 10);
 };
 JSON.Regular.htmlOpen = function (sb, md, ns, nm) {
-    var pt = eval("this.model" + md);
-    var ob = eval("this.json" + ns);
+    var pt = eval("this." + md);
+    var ob = eval("this." + ns);
     if (ob == null) ob = this.set(ns, {});
     var keys = [], k;
     for (k in pt) if (!(typeof pt[k]=="function")) keys.push(k);
     this.htmlNamespace(sb, md, ns, nm, ob, keys);
-    var id = JSON.encode(md + "['" + keys[0] + "']");
-    setTimeout('{' + this._this + '.htmlFocus(' 
-        + JSON.encode(id) 
-        + ');}', 10);
+    var id = JSON.encode(ns + "['" + keys[0] + "']");
+    setTimeout('{' + this._this + '.htmlFocus(' + id + ');}', 10);
     return sb;
 };
 JSON.Regular.extensions = {
@@ -407,10 +463,18 @@ JSON.Regular.extensions = {
     }
 };
 JSON.Regular.htmlValue = function (sb, md, ns, nm) {
-    var pt = eval("this.model" + md); // eval is Evil ...
-    var ob = eval("this.json" + ns); // ... unless it does Good
-    var template = JSON.templates[nm]; // map property name to HTML templates
-    if (template) sb.push(template[0]);
+    var pt = eval("this." + md); // eval is Evil ...
+    var ob = eval("this." + ns); // ... unless it does Good
+    var template = (
+        this.templates[nm] || this.templates[this.type(pt)] || []);
+    if (template[0]) 
+        sb.push(template[0]);
+    else if (md!="model") {
+        sb.push('<div class="field"><div class="clear">');
+        sb.push(HTML.cdata(nm));
+        sb.push('</div>');
+    }
+    if (template[2]) sb.push(template[2]);
     switch (typeof pt) {
     case "boolean": 
         this.htmlBoolean(sb, ns, nm, ob); break;
@@ -449,11 +513,15 @@ JSON.Regular.htmlValue = function (sb, md, ns, nm) {
         }
         break;
     }
-    if (template) sb.push(template[1]);
+    if (template[3]) sb.push(template[3]);
+    if (template[1]) 
+        sb.push(template[1]);
+    else
+        sb.push('</div>');
     return sb;
 };
 JSON.Regular.view = function () {
-    return this.htmlValue([], "", "").join('');
+    return this.htmlValue([], "model", "json", this._this).join('');
 };
 JSON.Regular.onInvalid = function (id, v) {
     var el = $(id); 
@@ -482,16 +550,16 @@ JSON.Regular.onValid = function (id) {
  * 
  * <h3>Note About This Implementation</h3>
  * 
- * You will find no DOM manipulations here, just better conventions and
- * a few good conveniences for HTML and CSS applications.
+ * <p>You will find no DOM manipulations here, just better conventions and
+ * a few good conveniences for HTML and CSS applications.</p>
  * 
- * JSON.Regular implements an controller that regenerates HTML view from
+ * <p>JSON.Regular implements an controller that regenerates HTML view from
  * two JavaScript object instances: an instance and its model expressed
- * as a regular JSON expression.
+ * as a regular JSON expression.</p>
  * 
- * Instead of getting tangled in non-trivial DOM manipulations, CSS 
+ * <p>Instead of getting tangled in non-trivial DOM manipulations, CSS 
  * stylesheets and HTML templates are leveraged with Regular JSON 
- * expressions to produce consistant and relevant user interfaces.
+ * expressions to produce consistant and relevant user interfaces.</p>
  * 
  */
 

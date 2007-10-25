@@ -18,6 +18,7 @@
   </target>
   <target name="doc">
     <delete dir="doc/fragments"/>
+    <delete dir="doc/tests"/>
     <javadoc 
       docletpath="./less4j.jar;./lib/smalljs.jar;./lib/xp.jar"
       doclet="org.less4j.Doctest"
