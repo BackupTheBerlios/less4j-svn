@@ -35,15 +35,14 @@ import java.util.HashMap;
 import java.util.Random;
 
 import java.net.URL; 
-import java.net.MalformedURLException;
-
-import java.util.regex.Pattern;
 
 /**
  * A few general-purpose conveniences maybe too simple for language experts, 
  * but damn usefull for application developers.
  */
 public class Simple {
+    
+    protected static final String _utf_8 = "UTF-8";
     
     /**
      * The default file I/O buffer size, 4096 bytes.
@@ -146,10 +145,6 @@ public class Simple {
         return read (url.openStream());
     }
     
-    private static final Pattern URL_RE = Pattern.compile(
-        "^(http|file|ftp):.+"
-        );
-    
     /**
      * Try to open and read a named file into a <code>String</code>
      * using a buffer of <code>fioBufferSize</code>.
@@ -191,7 +186,7 @@ public class Simple {
             return null;
         }
     }
-
+    
     /**
      * Use a <code>ByteBuffer</code> to efficiently merge arrays
      * of byte as one array, sacrife space to gain speed when
