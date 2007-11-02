@@ -110,17 +110,17 @@ public class Netstring {
         while (strings.hasNext()) {
             buffer = Simple.encode((String) strings.next(), encoding);
             digits = Integer.toString(buffer.length).getBytes();
-            chunk += buffer.length + digits.length + 2;
-            netstrings.add(new byte[][]{buffer, digits});
+            chunk = chunk + buffer.length + digits.length + 2;
+            netstrings.add(new byte[][]{digits, buffer});
         }
         ByteBuffer bb = ByteBuffer.allocate(chunk);
         Iterator bytes = netstrings.iterator();
         byte[][] digits_buffer;
         while (bytes.hasNext()) {
-            digits_buffer = (byte[][]) bytes.next(); 
-            bb.put(digits_buffer[0]); // len
+            digits_buffer = (byte[][]) bytes.next();
+            bb.put(digits_buffer[0]); // encoded string's length
             bb.put((byte)58); // :
-            bb.put(digits_buffer[1]); // encoded 8-bit byte string
+            bb.put(digits_buffer[1]); // the bytes string encoded
             bb.put((byte)44); // ,
         }
         Simple.send(conn.getOutputStream(), bb);
@@ -220,26 +220,20 @@ public class Netstring {
     _invalid_epilogue = "invalid netstring epilogue"; 
     private static final String 
     _too_long = "too long netstring";
-    
     static protected class ByteCollector implements Iterator {
-        
         private int _limit;
         private byte[] _buffer;
         private InputStream _is = null;
-        
         public String error = null;
-        
         public ByteCollector (InputStream is, int limit)
         throws IOException {
             _is = is;
             _limit = limit;
             _buffer = new byte[Integer.toString(limit).length() + 1];
         }
-
         public boolean hasNext () {
             return true; // synchronous API can't stall
         }
-        
         public Object next () {
             int read = 0, len, c;
             try {
@@ -280,10 +274,7 @@ public class Netstring {
                 throw new NoSuchElementException(e.toString());
             } // checked exception really sucks.
         }
-        
-        public void remove () {
-            /* how can an iterator API suck more than this one? */
-        }
+        public void remove () {}
     } 
     
     protected static class StringIterator implements Iterator {
@@ -298,7 +289,12 @@ public class Netstring {
             return _byteIterator.hasNext();
         }
         public Object next() {
-            return Simple.decode((byte[]) _byteIterator.next(), _encoding);
+            byte[] buffer = (byte[]) _byteIterator.next();
+            try {
+                return new String(buffer, 0, buffer.length - 1, _encoding);
+            } catch (UnsupportedEncodingException e) {
+                return new String(buffer, 0, buffer.length - 1);
+            }
         }
         public void remove () {/* worse than failure, repeated ... */}
     }
