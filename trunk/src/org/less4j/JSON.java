@@ -1870,7 +1870,7 @@ public class JSON {
      * @param value to represent
      * @return an X-JSON <code>String</code>
      */
-    public static final String repr(java.lang.Object value) {
+    public static final String pprint(java.lang.Object value) {
         return repr(new StringBuffer(), value, _crlf).toString();
     }
     

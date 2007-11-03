@@ -991,7 +991,7 @@ public class Actor {
      */
     public void jsonResponse (int status) {
         if (test)
-            jsonResponse(status, JSON.repr(json));
+            jsonResponse(status, JSON.pprint(json));
         else
             jsonResponse(status, JSON.encode(json));
     }

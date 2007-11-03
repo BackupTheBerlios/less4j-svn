@@ -231,7 +231,7 @@ public class Test {
                     Object o = (new JSON()).eval(input);
                     System.out.print(" = ");
                     String output = JSON.encode(o);
-                    System.out.println(JSON.repr(o));
+                    System.out.println(JSON.pprint(o));
                     jsonBenchmarkEval(input, scale);
                     jsonBenchmarkStr(o, output, scale);
                 } catch (JSON.Error e) {
@@ -363,7 +363,7 @@ public class Test {
                 try {
                     Object o = pattern.eval(input);
                     System.out.print(" = ");
-                    System.out.println(JSON.repr(o));
+                    System.out.println(JSON.pprint(o));
                     jsonrBenchmarkEval(
                         input, scale, pattern
                         );
