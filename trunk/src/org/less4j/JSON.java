@@ -1481,8 +1481,7 @@ public class JSON {
         return sb;
     }
     
-    protected static final String toString (BigDecimal value) {
-        String untrimmed = value.toString();
+    protected static final String trimZero (String untrimmed) {
         int last = untrimmed.length();
         char c;
         while (last > 0) { 
@@ -1514,10 +1513,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append(((Boolean) value).booleanValue() ? _true : _false);
-        else if (value instanceof BigDecimal) 
-            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
-            sb.append(value);
+            sb.append(trimZero(((Number) value).toString()));
         else if (value instanceof String) 
             strb(sb, (String) value);
         else if (value instanceof Character) 
@@ -1662,10 +1659,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append(((Boolean) value).booleanValue() ? _true : _false);
-        else if (value instanceof BigDecimal) 
-            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
-            sb.append(value);
+            sb.append(trimZero(((Number) value).toString()));
         else if (value instanceof String) 
             xjson(sb, (String) value);
         else if (value instanceof Character) 
@@ -1797,10 +1792,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append(((Boolean) value).booleanValue() ? _true : _false);
-        else if (value instanceof BigDecimal) 
-            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
-            sb.append(value);
+            sb.append(trimZero(((Number) value).toString()));
         else if (value instanceof String)
             strb(sb, (String) value);
         else if (value instanceof Character) 
@@ -1940,10 +1933,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append(((Boolean) value).booleanValue() ? _true : _false);
-        else if (value instanceof BigDecimal) 
-            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
-            sb.append(value);
+            sb.append(trimZero(((Number) value).toString()));
         else if (value instanceof String)
             strb(sb, (String) value);
         else if (value instanceof Character) 
