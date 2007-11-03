@@ -28,6 +28,10 @@ import java.text.StringCharacterIterator;
 import java.io.OutputStream;
 import java.io.IOException;
 
+import org.mozilla.javascript.NativeArray;
+import org.mozilla.javascript.NativeObject;
+import org.mozilla.javascript.NativeJavaObject;
+
 /**
  * A relatively strict JSON intepreter to evaluate a UNICODE string 
  * as a tree of basic Java instances with maximum limits on the number
@@ -1477,6 +1481,25 @@ public class JSON {
         return sb;
     }
     
+    protected static final String toString (BigDecimal value) {
+        String untrimmed = value.toString();
+        int last = untrimmed.length();
+        char c;
+        while (last > 0) { 
+            last--;
+            c = untrimmed.charAt(last);
+            switch (c) {
+            case '0': 
+                continue;
+            case '.':
+                return untrimmed.substring(0, last);
+            default: 
+                return untrimmed.substring(0, last + 1);
+            }
+        }
+        return "0";
+    }
+    
     /**
      * Serialize a JSON type in a <code>StringBuffer</code>
      * 
@@ -1491,6 +1514,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append(((Boolean) value).booleanValue() ? _true : _false);
+        else if (value instanceof BigDecimal) 
+            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String) 
@@ -1508,7 +1533,36 @@ public class JSON {
             strb(sb, ((List) value).iterator());
         else if (value instanceof Object[])
             strb(sb, Simple.iter((java.lang.Object[]) value));
-        else {
+        else if (value instanceof NativeArray) {
+            NativeArray array = (NativeArray) value;
+            java.lang.Object[] ids = (array).getIds();
+            if (ids.length == 0)
+                sb.append(_array);
+            else {
+                java.lang.Object[] list = new java.lang.Object[ids.length]; 
+                for (int i=0; i < ids.length; i++) {
+                    list[i] = array.get(i, array);
+                }
+                strb(sb, Simple.iter(list));
+            }
+        } else if (value instanceof NativeObject) {
+            NativeObject object = (NativeObject) value;
+            java.lang.Object[] ids = (object).getIds();
+            if (ids.length == 0)
+                sb.append(_object);
+            else {
+                Arrays.sort(ids);
+                JSON.Object map = new JSON.Object();
+                String key;
+                for (int i=0; i < ids.length; i++) {
+                    key = (String) ids[i];
+                    map.put(key, object.get(key, object));
+                }
+                strb(sb, map, Simple.iter(ids));
+            }
+        } else if (value instanceof NativeJavaObject) {
+            strb(sb, ((NativeJavaObject) value).unwrap());
+        } else {
             Class type = null;
             try {type = value.getClass();} catch (Throwable e) {;}
             if (type == null)
@@ -1608,6 +1662,8 @@ public class JSON {
             sb.append(_null);
         else if (value instanceof Boolean)
             sb.append(((Boolean) value).booleanValue() ? _true : _false);
+        else if (value instanceof BigDecimal) 
+            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String) 
@@ -1625,7 +1681,36 @@ public class JSON {
             xjson(sb, ((List) value).iterator());
         else if (value instanceof Object[])
             xjson(sb, Simple.iter((java.lang.Object[]) value));
-        else {
+        else if (value instanceof NativeArray) {
+            NativeArray array = (NativeArray) value;
+            java.lang.Object[] ids = (array).getIds();
+            if (ids.length == 0)
+                sb.append(_array);
+            else {
+                java.lang.Object[] list = new java.lang.Object[ids.length]; 
+                for (int i=0; i < ids.length; i++) {
+                    list[i] = array.get(i, array);
+                }
+                xjson(sb, Simple.iter(list));
+            }
+        } else if (value instanceof NativeObject) {
+            NativeObject object = (NativeObject) value;
+            java.lang.Object[] ids = (object).getIds();
+            if (ids.length == 0)
+                sb.append(_object);
+            else {
+                Arrays.sort(ids);
+                JSON.Object map = new JSON.Object();
+                String key;
+                for (int i=0; i < ids.length; i++) {
+                    key = (String) ids[i];
+                    map.put(key, object.get(key, object));
+                }
+                xjson(sb, map, Simple.iter(ids));
+            }
+        } else if (value instanceof NativeJavaObject) {
+            xjson(sb, ((NativeJavaObject) value).unwrap());
+        } else {
             Class type = null;
             try {type = value.getClass();} catch (Throwable e) {;}
             if (type == null)
@@ -1711,9 +1796,9 @@ public class JSON {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
-            sb.append((
-                ((Boolean) value).booleanValue() ? "true": "false"
-                ));
+            sb.append(((Boolean) value).booleanValue() ? _true : _false);
+        else if (value instanceof BigDecimal) 
+            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String)
@@ -1731,7 +1816,36 @@ public class JSON {
             repr(sb, ((List) value).iterator(), indent);
         else if (value instanceof Object[])
             repr(sb, Simple.iter((java.lang.Object[]) value), indent);
-        else {
+        else if (value instanceof NativeArray) {
+            NativeArray array = (NativeArray) value;
+            java.lang.Object[] ids = (array).getIds();
+            if (ids.length == 0)
+                sb.append(_array);
+            else {
+                java.lang.Object[] list = new java.lang.Object[ids.length]; 
+                for (int i=0; i < ids.length; i++) {
+                    list[i] = array.get(i, array);
+                }
+                repr(sb, Simple.iter(list), indent);
+            }
+        } else if (value instanceof NativeObject) {
+            NativeObject object = (NativeObject) value;
+            java.lang.Object[] ids = (object).getIds();
+            if (ids.length == 0)
+                sb.append(_object);
+            else {
+                Arrays.sort(ids);
+                JSON.Object map = new JSON.Object();
+                String key;
+                for (int i=0; i < ids.length; i++) {
+                    key = (String) ids[i];
+                    map.put(key, object.get(key, object));
+                }
+                repr(sb, map, Simple.iter(ids), indent);
+            }
+        } else if (value instanceof NativeJavaObject) {
+            repr(sb, ((NativeJavaObject) value).unwrap(), indent);
+        } else {
             Class type = null;
             try {type = value.getClass();} catch (Throwable e) {;}
             if (type == null)
@@ -1825,9 +1939,9 @@ public class JSON {
         if (value == null) 
             sb.append(_null);
         else if (value instanceof Boolean)
-            sb.append((
-                ((Boolean) value).booleanValue() ? "true": "false"
-                ));
+            sb.append(((Boolean) value).booleanValue() ? _true : _false);
+        else if (value instanceof BigDecimal) 
+            sb.append(toString(((BigDecimal) value)));
         else if (value instanceof Number) 
             sb.append(value);
         else if (value instanceof String)
@@ -1847,7 +1961,36 @@ public class JSON {
             sb = pprint(sb, Simple.iter(
                 (java.lang.Object[]) value
                 ), indent, os);
-        else {
+        else if (value instanceof NativeArray) {
+            NativeArray array = (NativeArray) value;
+            java.lang.Object[] ids = (array).getIds();
+            if (ids.length == 0)
+                sb.append(_array);
+            else {
+                java.lang.Object[] list = new java.lang.Object[ids.length]; 
+                for (int i=0; i < ids.length; i++) {
+                    list[i] = array.get(i, array);
+                }
+                pprint(sb, Simple.iter(list), indent, os);
+            }
+        } else if (value instanceof NativeObject) {
+            NativeObject object = (NativeObject) value;
+            java.lang.Object[] ids = (object).getIds();
+            if (ids.length == 0)
+                sb.append(_object);
+            else {
+                Arrays.sort(ids);
+                JSON.Object map = new JSON.Object();
+                String key;
+                for (int i=0; i < ids.length; i++) {
+                    key = (String) ids[i];
+                    map.put(key, object.get(key, object));
+                }
+                pprint(sb, map, Simple.iter(ids), indent, os);
+            }
+        } else if (value instanceof NativeJavaObject) {
+            pprint(sb, ((NativeJavaObject) value).unwrap(), indent, os);
+        } else {
             Class type = null;
             try {type = value.getClass();} catch (Throwable e) {;}
             if (type == null)
