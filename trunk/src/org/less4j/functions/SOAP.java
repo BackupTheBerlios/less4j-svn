@@ -29,28 +29,6 @@ import org.less4j.JSONR;
 import org.less4j.Service;
 import org.less4j.Simple;
 import org.less4j.XML;
-import org.less4j.JSON.Array;
-import org.less4j.JSON.Error;
-import org.less4j.JSON.Object;
-import org.less4j.JSONR.TypeArray;
-import org.less4j.JSONR.TypeBoolean;
-import org.less4j.JSONR.TypeDecimal;
-import org.less4j.JSONR.TypeDecimalAbsolute;
-import org.less4j.JSONR.TypeDecimalRelative;
-import org.less4j.JSONR.TypeDictionary;
-import org.less4j.JSONR.TypeDouble;
-import org.less4j.JSONR.TypeDoubleAbsolute;
-import org.less4j.JSONR.TypeDoubleRelative;
-import org.less4j.JSONR.TypeInteger;
-import org.less4j.JSONR.TypeIntegerAbsolute;
-import org.less4j.JSONR.TypeIntegerRelative;
-import org.less4j.JSONR.TypeNamespace;
-import org.less4j.JSONR.TypeRegular;
-import org.less4j.JSONR.TypeString;
-import org.less4j.JSONR.TypeUndefined;
-import org.less4j.XML.Document;
-import org.less4j.XML.Element;
-import org.less4j.XML.Type;
 
 /**
  * A function that supports a practical subset of SOAP 1.1, just enough
@@ -251,7 +229,7 @@ public class SOAP implements Service {
         return "{\"Request\": \"\", \"Response\": \"\"}";
     }
     
-    private JSONR.TypeNamespace jsonr = null;
+    private JSON.Object jsonr = null;
     
     /**
      * Try to compiles the Regular JSON interface(s) to a 
@@ -264,17 +242,17 @@ public class SOAP implements Service {
      */
     public boolean less4jConfigure(Actor $) {
         try { 
-            jsonr = (JSONR.TypeNamespace) JSONR.compile(jsonInterface($));
+            jsonr = (JSON.Object) JSONR.compile(jsonInterface($)).json();
             String action = $.about.substring(1);
             XML.Element schema = new XML.Element(xsd_schema, null);
             xsd(
                 schema, 
-                (JSONR.Type) jsonr.namespace.get(_Request), 
+                (JSONR.Type) jsonr.get(_Request), 
                 action + _Request
                 );
             xsd(
                 schema,
-                (JSONR.Type) jsonr.namespace.get(_Response), 
+                (JSONR.Type) jsonr.get(_Response), 
                 action + _Response
                 );
         } catch (Throwable e) { // Anything could go wrong here ...
@@ -321,7 +299,7 @@ public class SOAP implements Service {
         Actor $, String method, String contentType
         ) {
         if (
-            method.equals(Controller._POST) && contentType != null &&
+            method.equals("POST") && contentType != null &&
             contentType.startsWith(XML.MIME_TYPE)
             ) try {
             String action = $.about.substring(1) + _Request;
@@ -333,8 +311,8 @@ public class SOAP implements Service {
                 $.logInfo(soap.toString(), "SOAP");
                 $.logInfo(JSON.encode($.json), "INPUT");
             }
-            JSONR.Type type = (JSONR.Type) jsonr.namespace.get(_Request);
-            if (type instanceof JSONR.TypeNamespace)
+            JSONR.Type type = (JSONR.Type) jsonr.get(_Request);
+            if (type.name().equals("namespace"))
                 JSONR.validate($.json, type);
             else
                 JSONR.validate($.json.get(
@@ -357,7 +335,7 @@ public class SOAP implements Service {
             String name = $.about.substring(1); 
             $.httpResponse(200, wsdl(
                 $.url, name, jsonr
-                ).encodeUTF8(), XML.MIME_TYPE, XML._utf8);
+                ).encodeUTF8(), XML.MIME_TYPE, "UTF-8");
         } catch (Throwable e) {
             $.logError(e);
             $.httpError(500);
@@ -372,7 +350,7 @@ public class SOAP implements Service {
      * 
      */
     public Object jsonRegular(Actor $) {
-        return new JSONR((JSONR.Type) jsonr.namespace.get(_Request));
+        return new JSONR((JSONR.Type) jsonr.get(_Request));
     }
     
     /**
@@ -538,58 +516,47 @@ public class SOAP implements Service {
         XML.Element schema, JSONR.Type model, String name
         ) 
     throws Exception {
-        if (model instanceof JSONR.TypeBoolean) {
+        String type = model.name();
+        if (type.equals("boolean")) {
             return new XML.Element(xsd_element, new String[]{
                 _name, name, _type, "xsd:boolean"
                 }, null, null); // string 
-        } else if (model instanceof JSONR.TypeString) {
+        } else if (type.equals("string")) {
             return new XML.Element(xsd_element, new String[]{
                 _name, name, _type, "xsd:string"
                 }, null, null); 
-        } else if (model instanceof JSONR.TypeRegular) {
+        } else if (type.equals("pcre")) {
             return new XML.Element(xsd_element, new String[]{
                 _name, name, _type, "xsd:string"
                 }, null, null); 
-        } else if (
-            model instanceof JSONR.TypeDecimal ||
-            model instanceof JSONR.TypeDecimalAbsolute ||
-            model instanceof JSONR.TypeDecimalRelative
-            ) {
+        } else if (type.startsWith("decimal")) {
             return new XML.Element(xsd_element, new String[]{
                 _name, name, _type, "xsd:decimal"
                 }, null, null);
-        } else if (
-            model instanceof JSONR.TypeInteger ||
-            model instanceof JSONR.TypeIntegerAbsolute ||
-            model instanceof JSONR.TypeIntegerRelative
-            ) {
+        } else if (type.startsWith("integer")) {
             return new XML.Element(xsd_element, new String[]{
                 _name, name, _type, "xsd:int"
                 }, null, null); 
-        } else if (
-            model instanceof JSONR.TypeDouble ||
-            model instanceof JSONR.TypeDoubleAbsolute ||
-            model instanceof JSONR.TypeDoubleRelative
-            ) {
+        } else if (type.startsWith("double")) {
             return new XML.Element(xsd_element, new String[]{
                 _name, name, _type, "xsd:double"
                 }, null, null);
-        } else if (model instanceof JSONR.TypeDictionary) {
+        } else if (type.equals("dictionary")) {
             throw new Exception(
                 "JSONR dictionaries are not supported by XSD"
                 ); 
-        } else if (model instanceof JSONR.TypeNamespace) {
-            JSONR.TypeNamespace type = (JSONR.TypeNamespace) model;
+        } else if (type.equals("namespace")) {
+            JSON.Object ns = (JSON.Object) model.json();
             XML.Element namespace = schema.addChild(
                 xsd_complexType, new String[]{_name, name});
             XML.Element all = namespace.addChild(xsd_all);
-            Object[] names = type.names.toArray(); 
+            Object[] names = ns.keySet().toArray(); 
             Arrays.sort(names);
             String property;
             for (int i=0; i<names.length; i++) {
                 property = (String) names[i];
                 all.addChild(xsd(
-                    schema, (JSONR.Type)type.namespace.get(property), property
+                    schema, (JSONR.Type) ns.get(property), property
                     ));
             }
             return new XML.Element(
@@ -597,10 +564,10 @@ public class SOAP implements Service {
                     _name, name, _type, "tns:" + name
                     }, null, null
                 );
-        } else if (model instanceof JSONR.TypeArray) {
-            JSONR.TypeArray type = (JSONR.TypeArray) model;
-            if (type.types.length == 1) {
-                xsd(schema, (JSONR.Type)type.types[0], name);
+        } else if (type.equals("array")) {
+            JSON.Array types = (JSONR.Array) model.json();
+            if (types.size() == 1) {
+                xsd(schema, (JSONR.Type) types.get(0), name);
                 XML.Element array = schema.addChild(
                     xsd_complexType, new String[]{_name, name + _Array}
                     );
@@ -621,7 +588,7 @@ public class SOAP implements Service {
                 throw new Exception(
                     "JSONR relations are not supported for XSD"
                     ); 
-        } else if (model instanceof JSONR.TypeUndefined) {
+        } else if (type.equals("undefined")) {
             throw new Exception(
                 "JSONR null not the intent of WSDL"
                 );
@@ -703,9 +670,8 @@ public class SOAP implements Service {
      * @return an <code>XML.Document</code> tree ready to be serialized
      */
     public static final XML.Document wsdl (
-        String url, String action, JSONR.Type model
+        String url, String action, JSON.Object jsonr
         ) throws Exception {
-        JSONR.TypeNamespace jsonr = (JSONR.TypeNamespace) model;
         String urn = "urn:" + action;
         XML.Document doc = new XML.Document();
         doc.ns.put(urn, _tns);
@@ -724,9 +690,9 @@ public class SOAP implements Service {
         XML.Element message = doc.root.addChild(
             wsdl_message, new String[]{_name, action + _Request}
             );
-        JSONR.Type inputType = (JSONR.Type) jsonr.namespace.get(_Request);
-        if (inputType instanceof JSONR.TypeNamespace) {
-             HashMap types = ((JSONR.TypeNamespace) inputType).namespace;
+        JSONR.Type inputType = (JSONR.Type) jsonr.get(_Request);
+        if (inputType.name().equals("namespace")) {
+             JSON.Object types = (JSON.Object) inputType.json();
              Iterator names = types.keySet().iterator();
              String name;
              XML.Element element;
@@ -750,7 +716,7 @@ public class SOAP implements Service {
         // SOAP output <message>, RPC style
         XML.Element output = xsd(
             schema, 
-            (JSONR.Type) jsonr.namespace.get(_Response), 
+            (JSONR.Type) jsonr.get(_Response), 
             action + _Response
             );
         message = doc.root.addChild(wsdl_message, new String[]{

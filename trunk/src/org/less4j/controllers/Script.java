@@ -21,10 +21,7 @@ import org.less4j.Controller;
 import org.less4j.JSON;
 import org.less4j.JSONR;
 import org.less4j.Simple;
-import org.less4j.JSON.Array;
-import org.less4j.JSON.Error;
-import org.less4j.JSON.Object;
-import org.less4j.JSONR.Type;
+
 import org.mozilla.javascript.*; // More JavaScript Applications!
 
 /**

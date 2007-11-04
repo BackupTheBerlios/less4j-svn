@@ -245,6 +245,8 @@ public class JSONR extends JSON {
          * @return an unsynchronized copy as a <code>Type</code> 
          */
         public Type copy();
+        public String name();
+        public java.lang.Object json();
     }
     
     protected static final class TypeUndefined implements Type {
@@ -259,6 +261,9 @@ public class JSONR extends JSON {
                 return string;
             }
         public Type copy() {return singleton;}
+        private static final String _name = "undefined";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return null;}
     }
 
     protected static final class TypeBoolean implements Type {
@@ -284,6 +289,9 @@ public class JSONR extends JSON {
                 throw new Error(BOOLEAN_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
+        private static final String _name = "boolean";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return Boolean.FALSE;}
     }
 
     protected static final class TypeInteger implements Type {
@@ -311,6 +319,10 @@ public class JSONR extends JSON {
                 throw new Error(BIGINTEGER_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
+        private static final String _name = "integer";
+        public String name() {return _name;} 
+        private static final Integer _json = new Integer(0);
+        public java.lang.Object json() {return _json;}
     }
 
     protected static final class TypeDouble implements Type {
@@ -336,6 +348,10 @@ public class JSONR extends JSON {
                 throw new Error(DOUBLE_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
+        private static final String _name = "double";
+        public String name() {return _name;} 
+        private static final Double _json = new Double(0);
+        public java.lang.Object json() {return _json;}
     }
 
     protected static final class TypeDecimal implements Type {
@@ -363,6 +379,10 @@ public class JSONR extends JSON {
                 throw new Error(DOUBLE_VALUE_ERROR);
         }
         public final Type copy() {return singleton;}
+        private static final String _name = "decimal";
+        public String name() {return _name;} 
+        private static final BigDecimal _json = new BigDecimal("0");
+        public java.lang.Object json() {return _json;}
     }
 
     protected static final class TypeString implements Type {
@@ -384,6 +404,10 @@ public class JSONR extends JSON {
                 return string;
         }
         public final Type copy() {return singleton;}
+        private static final String _name = "string";
+        public String name() {return _name;} 
+        private static final String _json = "";
+        public java.lang.Object json() {return _json;}
     }
     
     protected static final class TypeRegular implements Type {
@@ -417,6 +441,9 @@ public class JSONR extends JSON {
                 return null;
         }
         public Type copy() {return new TypeRegular(pattern);}
+        private static final String _name = "pcre";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return pattern.pattern();}
     }
 
     protected static final class TypeArray implements Type {
@@ -443,6 +470,9 @@ public class JSONR extends JSON {
             else
                 return new TypeArray(types);
         }
+        private static final String _name = "array";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return JSON.list(types);}
     }
 
     protected static final class TypeDictionary implements Type {
@@ -476,6 +506,9 @@ public class JSONR extends JSON {
             if (this == singleton) return singleton;
             return new TypeDictionary(new Type[]{types[0], types[1]});
         }
+        private static final String _name = "dictionary";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return JSON.dict(types);}
     }
 
     protected static final class TypeNamespace implements Type {
@@ -532,6 +565,13 @@ public class JSONR extends JSON {
             }
             return new TypeNamespace(o);
         }
+        private static final String _name = "namespace";
+        public String name() {return _name;} 
+        public java.lang.Object json() {
+            JSON.Object _json = new JSON.Object();
+            _json.putAll(namespace);
+            return _json;
+        }
     }
     
     /**
@@ -580,6 +620,9 @@ public class JSONR extends JSON {
             }
         }
         public final Type copy() {return singleton;}        
+        private static final String _name = "datetime";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return format.toPattern();}
     }
     
     /**
@@ -626,6 +669,9 @@ public class JSONR extends JSON {
             return test((Integer) INTEGER.eval(string));
         }
         public final Type copy() {return new TypeIntegerAbsolute(limit);}
+        private static final String _name = "integerAbsolute";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return limit;}
     }
 
     protected static final class TypeIntegerRelative implements Type {
@@ -653,6 +699,9 @@ public class JSONR extends JSON {
         public final Type copy() {
             return new TypeIntegerRelative(new Integer(limit));
         }
+        private static final String _name = "integerRelative";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return new Integer(limit);}
     }
 
     private static final Double _double_zero = new Double(0.0);
@@ -682,6 +731,9 @@ public class JSONR extends JSON {
             return test((Double) DOUBLE.eval(string));
         }
         public final Type copy() {return new TypeDoubleAbsolute(limit);}
+        private static final String _name = "doubleAbsolute";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return limit;}
     }
     
     protected static final class TypeDoubleRelative implements Type {
@@ -706,6 +758,9 @@ public class JSONR extends JSON {
             return test((Double) DOUBLE.eval(string));
         }
         public final Type copy() {return new TypeDoubleRelative(limit);}
+        private static final String _name = "doubleRelative";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return new Double(limit);}
     }
     
     private static final BigDecimal _decimal_zero = BigDecimal.valueOf(0);
@@ -740,6 +795,9 @@ public class JSONR extends JSON {
             return test((BigDecimal) DECIMAL.eval(string));
         }
         public final Type copy() {return new TypeDecimalAbsolute(limit);}
+        private static final String _name = "decimalAbsolute";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return limit;}
     }
     
     protected static final class TypeDecimalRelative implements Type {
@@ -768,6 +826,9 @@ public class JSONR extends JSON {
             return test((BigDecimal) DECIMAL.eval(string));
         }
         public Type copy() {return new TypeDecimalRelative(limit);}
+        private static final String _name = "decimalAbsolute";
+        public String name() {return _name;} 
+        public java.lang.Object json() {return limit;}
     }
     
     /**

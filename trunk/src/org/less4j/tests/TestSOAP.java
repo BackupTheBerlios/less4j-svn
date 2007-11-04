@@ -70,9 +70,9 @@ public class TestSOAP extends SOAP {
             while(parts.hasNext()) 
                 name = (String) parts.next();
         }
-        SOAP.wsdl(space.toString(), name, JSONR.compile(
+        SOAP.wsdl(space.toString(), name, (JSON.Object) JSONR.compile(
             singleton.jsonInterface(new Actor())
-            )).write(new File(name + ".xml")); // do you like one-liner too?
+            ).json()).write(new File(name + ".xml")); // do you like one-liner too?
     }
 
 }
