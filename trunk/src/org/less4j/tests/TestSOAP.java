@@ -1,6 +1,8 @@
 package org.less4j.tests;
 
 import org.less4j.*;
+import org.less4j.functions.SOAP;
+
 import java.io.File;
 import java.net.URL;
 import java.util.Iterator;
