@@ -3,17 +3,19 @@
   This library supports an Entreprise Service Bus defined by a stable 
   stack of standard protocols: HTTP, URL, <code>SHA1</code>, 
   <code>JSON</code>, <code>SQL</code>, <code>LDAP</code>, <code>XML</code>
-  and ECMA-<code>Script</code>.
+  and ECMA-<code>Script</code>. Client-side applications of less4j services 
+  can be developped in any environment that support HTTP and JSON.
 </p>
 <p>
   The <code>Service</code> interface lays out in seven methods the right 
-  way to program entreprise stateless web 2.0 services in a J2EE servlet. 
-  A practical set of reusable controllers and functions is included to 
-  illustrate, test and validate this interface design. 
+  way to program entreprise web 2.0 services in a J2EE servlet. A practical 
+  set of reusable controllers and functions is included to illustrate, test 
+  and validate this interface design. 
 </p>  
-<p>Each one applies the same <code>Actor</code> or descend from the same 
+<p>
+  Each one applies the same <code>Actor</code> or descend from the same 
   <code>Controller</code>, two types ladden with conveniences to leverage
-  those protocols as they were intended. Sharing nothing but text references 
+  web protocols as they were intended. Sharing nothing but text references 
   to their network application state, working in small and manageable pieces
   distributed on the network. 
 </p>
@@ -24,23 +26,20 @@
 </p> 
 <ul>
 <li>
-  IRTD2 for distributed user agent 
-  identification and authorization in sequence and time. 
+  <code>IRTD2</code> for distributed user agent identification and 
+  authorization in sequence and time. 
 </li>
 <li>  
-  <code>JSONR</code> for better network input validation 
-  and network services descriptions.
+  <code>JSONR</code> for network services description and input validation.
 </li>
 <li>  
-  <code>Diva</code> as a relational model for distributed state transitions
-  log.
+  <code>DIVA</code> as a relational model for distributed state transitions
+  validation.
 </li>
 </ul>
 <p>
-  Implemented in diverse services, they provide a sound infrastructures to 
-  track entreprise resource and business processes in the same workflow but 
-  accross distributed services and partitionned legacy applications. 
+  Together they provide a sound architecture to audit entreprise resource and 
+  business processes as consistent workflows, accross distributed services and 
+  partitionned legacy applications. 
 </p>  
-<p>
-  ...
-</p>
+
