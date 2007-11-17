@@ -531,7 +531,8 @@ public class JSONR extends JSON {
                 if (!(
                     value instanceof TypeUndefined ||
                     value instanceof TypeArray ||
-                    value instanceof TypeNamespace
+                    value instanceof TypeNamespace ||
+                    value instanceof TypeDictionary
                     ))
                     mandatory.add(name);
                 }
