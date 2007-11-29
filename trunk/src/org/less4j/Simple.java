@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import java.net.URL; 
 
@@ -524,12 +526,12 @@ public class Simple {
         }
     }
     
-    protected static class SplitIterator implements Iterator {
+    protected static class CharSplitIterator implements Iterator {
         private String _splitted;
         private char _splitter;
         private int _current = 0;
         private int _next;
-        public SplitIterator (String splitted, char splitter) {
+        public CharSplitIterator (String splitted, char splitter) {
             _splitted = splitted;
             _splitter = splitter;
             _next = splitted.indexOf(splitter);
@@ -572,14 +574,78 @@ public class Simple {
      *    strings.next() == "three"
      *    );
      * 
-     * @param splitted the <code>String</code> to split
-     * @param splitter the <code>char</code> used to split input
+     * @param text to split
+     * @param pattern used to split input
      * @return an <code>Iterator</code> of <code>String</code>
      */
-    public static Iterator split (String splitted, char splitter) {
-        return new SplitIterator (splitted, splitter);
+    public static Iterator split (String text, char splitter) {
+        return new CharSplitIterator (text, splitter);
     }
 	
+    protected static class ReSplitIterator implements Iterator {
+        private String _splitted;
+        private Matcher _matcher;
+        private int _current = 0;
+        private int _group = 0;
+        private int _groups = 0;
+        public ReSplitIterator (String splitted, Pattern splitter) {
+            _splitted = splitted;
+            _matcher = splitter.matcher(splitted);
+        }
+        public boolean hasNext () {
+            return _matcher != null;
+        }
+        public Object next () {
+            String token;
+            if (_matcher == null) {
+                return null;
+            } else if (_group < _groups) { // groups
+                _group++;
+                token = _matcher.group(_group);
+            } else {
+                _group = 0;
+                if (_matcher.find(_current)) {
+                    token = _splitted.substring(_current, _matcher.start());
+                    _current = _matcher.end();
+                    _groups = _matcher.groupCount();
+                } else {
+                    token = _splitted.substring(_current);
+                    _matcher = null;
+                    _splitted = null;
+                    _groups = 0;
+                }
+            }
+            return token;
+        }
+        public void remove () {/* optional interface? what else now ...*/}
+    }
+
+    /**
+     * Returns an <code>Iterator</code> that splits a string with a regular
+     * expression but - unlike the standard Java API and like Python's re - 
+     * does the right thing and also iterates through the expression groups.
+     * 
+     * @pre Iterator strings = Simple.split(
+     *    "one\t  and  \r\n three", Pattern.compile("\\s+(and|or)\\s+")
+     *    );
+     * 
+     * @test strings = Simple.split(
+     *    "one\t  and  \r\n three", Pattern.compile("\\s+(and|or)\\s+")
+     *    );
+     *return (
+     *    strings.next() == "one" &&
+     *    strings.next() == "and" &&
+     *    strings.next() == "three"
+     *    );
+     * 
+     * @param text to split
+     * @param pattern used to split input
+     * @return an <code>Iterator</code> of <code>String</code>
+     */
+    public static Iterator split (String text, Pattern pattern) {
+        return new ReSplitIterator (text, pattern);
+    }
+    
     /**
      * Join the serialized objects produced by an <code>Iterator</code> in a 
      * <code>StringBuffer</code>, using another serializable 
