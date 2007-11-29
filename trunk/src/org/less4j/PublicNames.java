@@ -36,7 +36,7 @@ public class PublicNames {
      * @param horizon
      * @return
      */
-    public static String validate (
+    public static final String validate (
         String encoded, HashSet field, int horizon
         ) {
         Iterator names = Netunicode.iter(encoded);
@@ -68,7 +68,7 @@ public class PublicNames {
      * @param tree
      * @return
      */
-    public static String validate (
+    public static final String validate (
         String encoded, HashSet field, int horizon, ArrayList tree
         ) {
         Iterator names = Netunicode.iter(encoded);
@@ -104,7 +104,7 @@ public class PublicNames {
      * @param horizon
      * @return
      */
-    public static String validate (
+    public static final String validate (
         ArrayList articulated, HashSet field, int horizon
         ) {
         Iterator names = articulated.iterator();
@@ -134,7 +134,7 @@ public class PublicNames {
             return null;
         }
     }
-       
+    
     /**
      * ...
      */
@@ -173,7 +173,7 @@ public class PublicNames {
     /**
      * ...
      */
-    public static final int HORIZON = 126;
+    public static int HORIZON = 126;
     
     /**
      * ...
