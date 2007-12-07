@@ -22,7 +22,7 @@ package org.less4j;
  * href="http://laurentszyster.be/jsonr"
  * >JSONR</a> expressions; b) eventually identify requests; c) serve idempotent 
  * requests for HTTP resources; d) reply to GET and POST requests 
- * with valid JSON or URL encoded form body; e) and maybe handle any other 
+ * with valid JSON or URL encoded form body; e) and may handle other 
  * types HTTP requests. 
  * 
  * @h3 Synopsis
