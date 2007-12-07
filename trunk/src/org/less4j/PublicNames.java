@@ -41,21 +41,28 @@ public class PublicNames {
         ) {
         Iterator names = Netunicode.iter(encoded);
         if (!names.hasNext()) {
-            if (field.contains(encoded)) return null;
+            if (field.contains(encoded)) {
+                return null;
+            }
             field.add(encoded); return encoded;
         } else {
             String name; ArrayList valid = new ArrayList();
             do {
                 name = validate((String)names.next(), field, horizon);
                 if (name != null) {
-                    valid.add(name); if (field.size() >= horizon) break;
+                    valid.add(name); 
+                    if (field.size() >= horizon) {
+                        break;
+                    }
                 }
             } while (names.hasNext());
             if (valid.size() > 1) {
                 Collections.sort(valid);
                 return Netunicode.encode(valid.iterator());
             }
-            if (valid.size() > 0) return (String)valid.get(0);
+            if (valid.size() > 0) {
+                return (String)valid.get(0);
+            }
             return null;
         }
     }
@@ -73,8 +80,11 @@ public class PublicNames {
         ) {
         Iterator names = Netunicode.iter(encoded);
         if (!names.hasNext()) {
-            if (field.contains(encoded)) return null;
-            field.add(encoded); return encoded;
+            if (field.contains(encoded)) {
+                return null;
+            }
+            field.add(encoded); 
+            return encoded;
         } else {
             String name;
             ArrayList valid = new ArrayList();
@@ -82,17 +92,25 @@ public class PublicNames {
             do {
                 name = validate((String)names.next(), field, horizon, branch);
                 if (name != null) {
-                    if (branch.size() > 1) tree.add(branch);
-                    else tree.add(name);
-                    branch = new ArrayList(); valid.add(name);
-                    if (field.size() >= horizon) break;
+                    if (branch.size() > 1) {
+                        tree.add(branch);
+                    } else {
+                        tree.add(name);
+                    }
+                    branch = new ArrayList(); 
+                    valid.add(name);
+                    if (field.size() >= horizon) {
+                        break;
+                    }
                 }
             } while (names.hasNext());
             if (valid.size() > 1) {
                 Collections.sort(valid);
                 return Netunicode.encode(valid.iterator());
             }
-            if (valid.size() > 0) return (String)valid.get(0);
+            if (valid.size() > 0) {
+                return (String)valid.get(0);
+            }
             return null;
         }
     }
@@ -108,8 +126,9 @@ public class PublicNames {
         ArrayList articulated, HashSet field, int horizon
         ) {
         Iterator names = articulated.iterator();
-        if (!names.hasNext()) return null;
-        else {
+        if (!names.hasNext()) {
+            return null;
+        } else {
             Object item;
             String name;
             ArrayList valid = new ArrayList();
@@ -118,19 +137,26 @@ public class PublicNames {
                 if (item instanceof String) {
                     name = (String)item;
                     if (!field.contains(name)) {
-                        valid.add(name); field.add(name);
-                        if (field.size() >= horizon) break; 
+                        valid.add(name); 
+                        field.add(name);
+                        if (field.size() >= horizon) {
+                            break; 
+                        }
                     }
                 } else if (item instanceof ArrayList) {
                     name = validate((ArrayList)item, field, horizon);
-                    if (name != null) valid.add(name);
+                    if (name != null) {
+                        valid.add(name);
+                    }
                 }
             } while (names.hasNext());
             if (valid.size() > 1) {
                 Collections.sort(valid);
                 return Netunicode.encode(valid.iterator());
             }
-            if (valid.size() > 0) return (String)valid.get(0);
+            if (valid.size() > 0) {
+                return (String)valid.get(0);
+            }
             return null;
         }
     }
