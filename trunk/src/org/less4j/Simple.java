@@ -44,6 +44,35 @@ import java.net.URL;
  */
 public class Simple {
     
+    /**
+     * A simple function interface definition, usefull whenever your
+     * application requires first-class functions that take a single
+     * <code>Object</code> as input state and return <code>null</code> or
+     * a single <code>Object</code> result.
+     */
+    public static interface Function {
+        /**
+         * A method that implements the function's call, taking any 
+         * <code>Object</code> type as input and returning as result
+         * an instance of any type or <code>null</code>.
+         * 
+         * @param input of any <code>Object</code> type
+         * @return an instance of any type or <code>null</code>.
+         * 
+         * @pre class PrintOut implements Simple.Function {
+         *    public Object call (Object input) {
+         *        try {
+         *            System.out.println(input);
+         *        } catch (Throwable e) {
+         *            return e;
+         *        }
+         *        return null;
+         *    }
+         *}
+         */
+        public Object apply (Object input);
+    }
+    
     protected static final String _utf_8 = "UTF-8";
     
     /**
@@ -52,7 +81,7 @@ public class Simple {
      * @p 4046 bytes is the maximum block size for many file system, so
      * it makes a rather good default size for file I/O buffers.
      */
-	public static int fioBufferSize = 4096;
+	public static final int fioBufferSize = 4096;
 
     /**
      * The default network I/O buffer size, 16384 bytes.
@@ -80,7 +109,7 @@ public class Simple {
      * wants the fastest possible network and the smallest possible
      * imbalance between input and output.
      */
-    public static int netBufferSize = 16384;
+    public static final int netBufferSize = 16384;
     
     /**
      * Read byte arrays from a <code>BufferedReader</code> by chunks of 
@@ -124,7 +153,7 @@ public class Simple {
      * @param stream to read from
      * @return the string read or <code>null</code>
      */
-    static public String read (InputStream stream) throws IOException {
+    public static final String read (InputStream stream) throws IOException {
         return read (new BufferedReader(
             new InputStreamReader(stream), fioBufferSize
             ));
@@ -143,7 +172,7 @@ public class Simple {
      * @param url to read from
      * @return the string read or <code>null</code>
      */
-    static public String read (URL url) throws IOException {
+    public static final String read (URL url) throws IOException {
         return read (url.openStream());
     }
     
@@ -157,7 +186,7 @@ public class Simple {
      * @return the string read or <code>null</code>
      * @throws IOException 
      */
-    static public String read (String name) 
+    public static final String read (String name) 
     throws IOException {
         return read(new BufferedReader(
             new FileReader(name), fioBufferSize
@@ -179,7 +208,7 @@ public class Simple {
      * @param def the default <code>String</code> to return, may be null
      * @return the string read or <code>null</code>
      */
-    static public String read (String name, String def) {
+    public static final String read (String name, String def) {
         try {
             return read(new BufferedReader(
                 new FileReader(name), fioBufferSize
@@ -198,7 +227,7 @@ public class Simple {
      * @param bytes to merge
      * @return an NIO byte buffer
      */
-    public static ByteBuffer buffer (byte[][] bytes) {
+    public static final ByteBuffer buffer (byte[][] bytes) {
         int i, ct = 0;
         for (i=0; i<bytes.length; i++) ct += bytes[i].length;
         ByteBuffer bb = ByteBuffer.allocate(ct);
@@ -236,7 +265,7 @@ public class Simple {
      * network buffers and avoid as much wait state as possible.
      * 
      */
-    static public void send (
+    public static final void send (
         OutputStream stream, ByteBuffer buffer, int offset, int length
         ) throws IOException {
         buffer.position(offset);
@@ -261,7 +290,7 @@ public class Simple {
      * @param buffer of bytes to read from
      * @throws IOException
      */
-    static public void send (OutputStream stream, ByteBuffer buffer) 
+    public static final void send (OutputStream stream, ByteBuffer buffer) 
     throws IOException {
         send(stream, buffer, 0, buffer.capacity());
     }
@@ -293,7 +322,7 @@ public class Simple {
      * @return the position in the buffer after the last byte received
      * @throws IOException
      */
-    static public int recv (InputStream stream, byte[] buffer, int offset) 
+    public static final int recv (InputStream stream, byte[] buffer, int offset) 
     throws IOException {
         int len = 0;
         while (offset < buffer.length) {
@@ -328,7 +357,7 @@ public class Simple {
      * @param items to add in the sequence
      * @return the extended <code>List</code>
      */
-    public static List list (List sequence, Object[] items) {
+    public static final List list (List sequence, Object[] items) {
         for (int i=0; i<items.length; i++)
             sequence.add(items[i]);
         return sequence;
@@ -345,7 +374,7 @@ public class Simple {
      * @param items to add in the sequence
      * @return a new <code>ArrayList</code>
      */
-    public static ArrayList list (Object[] items) {
+    public static final ArrayList list (Object[] items) {
         ArrayList sequence = new ArrayList();
         for (int i=0; i<items.length; i++)
             sequence.add(items[i]);
@@ -356,12 +385,12 @@ public class Simple {
      * A convenience to build a <code>HashSet</code> from an array of 
      * <code>Objects</code>.
      * 
-     * @pre HashSet set = Simple.set({"a", "b", "c"});
+     * @pre HashSet set = Simple.set(new String[]{"a", "b", "c"});
      * 
      * @param items to add in the set 
      * @return a <code>HashSet</code>
      */
-    public static HashSet set (Object[] items) {
+    public static final HashSet set (Object[] items) {
         HashSet result = new HashSet();
         for (int i=0; i<items.length; i++)
             result.add(items[i]);
@@ -380,7 +409,7 @@ public class Simple {
 	 * @param objects the array to iterate through
 	 * @return iterator yields all objects in the array
 	 */
-	public static Iterator iter (Object[] objects) {
+	public static final Iterator iter (Object[] objects) {
 		return new ObjectIterator(objects);
 		}
     
@@ -413,7 +442,7 @@ public class Simple {
      * @param pairs of key and value to add
      * @return the updated <code>Map</code>
      */
-    public static Map dict (Map map, Object[] pairs) {
+    public static final Map dict (Map map, Object[] pairs) {
         for (int i=0; i<pairs.length; i=i+2)
             map.put(pairs[i], pairs[i+1]);
         return map;
@@ -437,7 +466,7 @@ public class Simple {
      * @param pairs of key and value to add
      * @return the updated <code>HashMap</code>
      */
-    public static HashMap dict (Object[] pairs) {
+    public static final HashMap dict (Object[] pairs) {
         HashMap map = new HashMap();
         for (int i=0; i<pairs.length; i=i+2)
             map.put(pairs[i], pairs[i+1]);
@@ -478,7 +507,7 @@ public class Simple {
      * @param keys and array of keys to iterate through 
      * @return an <code>Iterator</code>
      */
-    public static Iterator iter (Map map, Object[] keys) {
+    public static final Iterator iter (Map map, Object[] keys) {
         return new MapIterator(map, iter(keys));
     }
     
@@ -497,7 +526,7 @@ public class Simple {
      * @param encoding the character set name
      * @return a UNICODE <code>String</code>
      */
-    public static String decode(byte[] bytes, String encoding) {
+    public static final String decode(byte[] bytes, String encoding) {
         try {
             return new String (bytes, encoding);
         } catch (UnsupportedEncodingException e) {
@@ -518,7 +547,7 @@ public class Simple {
      * @param encoding the character set name
      * @return a array of <code>byte</code>
      */
-    public static byte[] encode(String unicode, String encoding) {
+    public static final byte[] encode(String unicode, String encoding) {
         try {
             return unicode.getBytes(encoding);
         } catch (UnsupportedEncodingException e) {
@@ -578,7 +607,7 @@ public class Simple {
      * @param pattern used to split input
      * @return an <code>Iterator</code> of <code>String</code>
      */
-    public static Iterator split (String text, char splitter) {
+    public static final Iterator split (String text, char splitter) {
         return new CharSplitIterator (text, splitter);
     }
 	
@@ -629,7 +658,8 @@ public class Simple {
      *    "one\t  and  \r\n three", Pattern.compile("\\s+(and|or)\\s+")
      *    );
      * 
-     * @test strings = Simple.split(
+     * @test importClass(Packages.java.util.regex.Pattern)
+     *strings = Simple.split(
      *    "one\t  and  \r\n three", Pattern.compile("\\s+(and|or)\\s+")
      *    );
      *return (
@@ -642,7 +672,7 @@ public class Simple {
      * @param pattern used to split input
      * @return an <code>Iterator</code> of <code>String</code>
      */
-    public static Iterator split (String text, Pattern pattern) {
+    public static final Iterator split (String text, Pattern pattern) {
         return new ReSplitIterator (text, pattern);
     }
     
@@ -660,7 +690,7 @@ public class Simple {
      * @param buffer to append strings and separators to
      * @return the appended buffer
      */
-    public static StringBuffer join (
+    public static final StringBuffer join (
         Object separator, Iterator objects, StringBuffer buffer
         ) {
         if (objects.hasNext()) {
@@ -685,7 +715,7 @@ public class Simple {
      * @param objects to join as strings
      * @return the joined string
      */
-    public static String join (Object separator, Iterator objects) {
+    public static final String join (Object separator, Iterator objects) {
         return join(separator, objects, new StringBuffer()).toString();
     }
     
@@ -694,7 +724,7 @@ public class Simple {
      * ubiquitous identifiers on any devices and in any languages, including
      * American English and all phone slangs.
      */
-    public static char[] ALPHANUMERIC = new char[]{
+    public static final char[] ALPHANUMERIC = new char[]{
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
         'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -709,7 +739,7 @@ public class Simple {
      * @param length of the password to generate
      * @return a string of <code>length</code> characters
      */
-    public static String password (int length) {
+    public static final String password (int length) {
         Random random = new Random();
         char[] characters = new char[length];
         for (int i=0; i<length; i++) 
