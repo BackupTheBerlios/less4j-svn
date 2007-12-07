@@ -548,7 +548,7 @@ public class Controller extends HttpServlet implements Service {
      */
     public static boolean sqlQuery (
         Actor $, String name, String statement, String[] arguments, 
-        int fetch, SQL.ORM model
+        int fetch, SQL.ROM model
         ) {
         if (sqlOpen($)) try {
             Object object = $.sqlQuery(

@@ -397,6 +397,24 @@ public class Actor {
         System.out.println(sb.toString());
     }
     
+    /**
+     * Get a named request cookie value.
+     * 
+     * @param name of the cookie
+     * @return a string or null
+     */
+    public String httpCookie (String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (int i = 0; i < cookies.length; i++) {
+                if (cookies[i].getName().equals(name)) {
+                    return cookies[i].getValue(); 
+                }
+            }
+        }
+        return null;
+    }
+    
     protected static final String irtd2Name = "IRTD2";
     
     protected static Pattern irtd2Split = Pattern.compile(":");
@@ -414,71 +432,28 @@ public class Actor {
      * @p Nevertheless, application developpers should understand what this
      * method does and why it is so usefull for web controllers.
      * 
-     * @p There are four benefits to expect from IRTD2 cookies for
-     * J2EE public applications:
-     * 
-     * <ol>
-     * <li>Remove the weight of statefull sessions in the J2EE container.</li>
-     * <li>Distribute the load of authorization on a cluster of servers 
-     * without adding more contention and latency.</li>
-     * <li>Trace identifed and authorized interactions in sequence.</li>
-     * <li>Audit impersonation exploit by a man-in-the-middle.</li>
-     * </ol>
-     * 
-     * @p Note that it does <em>not</em> prevent cookie theft but it
-     * does the only next-best actually possible for a public network
-     * application: detect and report fraudulent actions.
-     * 
      * @param timeout the limit of an IRTD2 cookie's age, in seconds  
      * @return true if the request failed to be authenticated
      */
     public boolean irtd2Digested (int timeout) {
-        int i;
-        /* get the request's IRTD2 authorization cookies ... */
-        Cookie irtd2Cookie = null;
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) for (i = 0; i < cookies.length; i++) {
-            if (cookies[i].getName().equals(irtd2Name)) {
-                irtd2Cookie = cookies[i]; break;
+        String cookie = httpCookie(irtd2Name);
+        if (cookie == null) {
+            return false;
+        }
+        String[] vector = IRTD2.parse(cookie); 
+        identity = vector[0];
+        rights = vector[1];
+        digest = vector[3];
+        digested = vector[4];
+        int error = IRTD2.digested(vector, time, timeout, salts);
+        if (error == 0) {
+            return true;
+        } else {
+            if (test) {
+                logInfo(IRTD2.errors[error], "IRTD2");
             }
-        }
-        if (irtd2Cookie == null) {
-            if (test) logInfo("Not Found", "IRTD2");
             return false;
         }
-        /* unpack the IRTD2 Cookie */
-        irtd2 = irtd2Cookie.getValue();
-        Iterator tokens = Simple.split(irtd2, ' ');
-        identity = (String) tokens.next();
-        rights = (String) tokens.next();
-        String lastTime = (String) tokens.next();
-        digest = (String) tokens.next();
-        digested = (String) tokens.next();
-        int t = Integer.parseInt(lastTime);
-        int interval = (time - t);
-        if (interval > timeout) {
-            if (test) logInfo(
-                "Timeout " + t + ", " + interval + " > " + timeout, "IRTD2"
-                );
-            return false;
-        } 
-        /* get the IRTD 8-bit bytes from the IRTD2 UNICODE string */
-        byte[] irtd = irtd2.substring(
-            0, identity.length() + 1 + rights.length() + 1 + 
-            lastTime.length() + 1 + digest.length()
-            ).getBytes();
-        /* digest an SHA1 hexadecimal with one of the salts or fail */
-        String d = null;
-        for (i=0; i<salts.length; i++) {
-            SHA1 md = new SHA1();
-            md.update(irtd);
-            md.update(salts[i]);
-            d = md.hexdigest();
-            if (d.equals(digested))
-                return true; // digested in time with salt!
-        }
-        if (test) logInfo("Not Digested", "IRTD2");
-        return false;
     }
     
     /**
@@ -486,46 +461,34 @@ public class Actor {
      * the request into a new cookie bearing the Actor's time, to be sent
      * with the response.
      * 
-     * @pre ...
-     * 
      * @p The cookie value is a formatted string made as follow:
      * 
      * @pre Cookie: IRTD2=identity roles time digested digest; 
      * 
-     * @p where <code>identity</code> and <code>roles</code> are respectively
-     * Public Names and netstrings of 7-bit ASCII characters only, followed
+     * @p where <code>identity</code> and <code>roles</code> are 
+     * 7-bit ASCII characters only but ' ' and ';', followed
      * by the controller's <code>time</code> representation and two SHA1 hex
      * digests: the client's last digest for this cookie and the one computed 
      * from the byte string that precedes it.
      * 
-     * @p This method is usefull in authorization controllers, like user
-     * identification or roles attribution services.
      */
     public void irtd2Digest() {
-        StringBuffer sb = new StringBuffer();
-        SHA1 md = new SHA1();
-        sb.append(identity);
-        sb.append(' ');
-        sb.append(rights);
-        sb.append(' ');
-        sb.append(time);
-        sb.append(' ');
-        if (digested != null) sb.append(digested);
-        String irtd = sb.toString();
-        md.update(irtd.getBytes());
-        md.update(salts[0]);
-        digest = md.hexdigest();
-        sb = new StringBuffer();
-        sb.append(irtd);
-        sb.append(' ');
-        sb.append(digest);
-        irtd2 = sb.toString();
+        String[] vector = new String[]{
+            identity, rights, (new Integer(time)).toString(), digested, null
+            };
+        digest = IRTD2.digest(vector, salts[0]);
+        vector[4] = digest; 
+        irtd2 = Simple.join(" ", Simple.iter(vector));
+    }
+    
+    protected void irtd2SetCookie () {
         // This sucks because of ... 
         Cookie ck = new Cookie(irtd2Name, irtd2);
         ck.setDomain(request.getServerName());
         ck.setPath(context);
         ck.setMaxAge(Integer.MAX_VALUE); // ... devilish details.  
         response.addCookie(ck);
+        // TODO: try to bypass this brain-dead HTTP Cookie API.
     }
     
     protected static final Pattern ascii7bit = Pattern.compile(
@@ -637,6 +600,7 @@ public class Actor {
      * @param code HTTP error to send
      */
     public void httpError (int code) {
+        irtd2SetCookie ();
         try {
             response.sendError(code); logAudit(code);
         } catch (IOException e) {
@@ -657,6 +621,7 @@ public class Actor {
     public void httpResponse (
         int code, ByteBuffer body, String type, String charset
         ) {
+        irtd2SetCookie ();
         response.setStatus(code);
         if (charset != null) type += ";charset=" + charset;
         response.setContentType(type);
@@ -684,6 +649,7 @@ public class Actor {
     public void httpResponse (
         int code, byte[] body, String type, String charset
         ) {
+        irtd2SetCookie ();
         response.setStatus(code);
         if (charset != null) type += ";charset=" + charset;
         response.setContentType(type);
@@ -955,6 +921,7 @@ public class Actor {
      * @param body of the response 
      */
     public void jsonResponse (int status, byte[] body) {
+        irtd2SetCookie();
         /* the response body must be short enough to be buffered fully */
         response.setStatus(status);
         response.setContentType(jsonContentType);
@@ -1103,14 +1070,14 @@ public class Actor {
     
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument values iterator, use an <code>ORM</code>
+     * statement and an argument values iterator, use an <code>ROM</code>
      * to return a <code>JSON.Array</code>, a <code>JSON.Object</code>
      * or null if the result set was empty.
      * 
      * @pre try {
      *    JSON.Array relations = (JSON.Array) $.sqlQuery(
      *        "select * from TABLE where KEY = ? and VALUE > ?", 
-     *        Simple.iterator (new Object[]{"key", new Integer(10)}),
+     *        Simple.iter(new Object[]{"key", new Integer(10)}),
      *        100, SQL.relations
      *        );
      *} catch (SQLException e) {
@@ -1120,13 +1087,13 @@ public class Actor {
      * @param statement to prepare and execute as a query
      * @param arguments an iterator of simple types
      * @param fetch the number of rows to fetch
-     * @param collector the <code>ORM</code> used to map the result set
+     * @param collector the <code>ROM</code> used to map the result set
      * @return a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
      *         <code>null</code>
      * @throws SQLException
      */
     public Object sqlQuery (
-        String statement, Iterator args, int fetch, SQL.ORM collector
+        String statement, Iterator args, int fetch, SQL.ROM collector
         ) 
     throws SQLException {
         if (test) logInfo(statement, "SQL");
