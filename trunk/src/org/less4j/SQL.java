@@ -25,42 +25,43 @@ import java.sql.Statement;
 import java.util.Iterator;
 
 /**
- * Conveniences to query and update an SQL database with a simple object 
- * relational interface to map between JDBC result sets and seven JSON 
- * patterns: table, relations, collection, index, dictionary, one or many 
- * objects.
+ * Conveniences to query and update an SQL database with a simple  
+ * interface to map between JDBC result sets and implementation of seven 
+ * JSON patterns: table, relations, collection, index, dictionary, one or 
+ * many objects.
  * 
  * @div <h3>Applications</h3>
  * 
- * <p>The purpose of less4j's support for SQL is to do the inverse of
- * what ORM are usually intended: to map existing relational data to 
+ * @p The purpose of less4j's support for SQL is to do the inverse of
+ * what ROM are usually intended: to map existing relational data to 
  * a few common JSON object patterns instead of forcing new Java objects 
- * (or C#, PHP, etc ...) into an SQL database.</p>
+ * (or C#, PHP, etc ...) into an SQL database.
  * 
- * <p>Many entreprise applications are defined by the legacy data and 
+ * @p Many entreprise applications are defined by the legacy data and 
  * structures that make up their database. Only greenfield projects
  * in a new company could benefit from an object database but I'm not
  * sure that it is a good idea to serialize Java types (or C#, PHP, etc 
- * ...) in a database.</p>
+ * ...) in a database.
  * 
- * <p>This class is a library of static functions applied by less4j's 
+ * @p This class is a library of static functions applied by less4j's 
  * <code>Actor</code> methods <code>sql*</code>, so unless you want to
  * apply it somewhere else, you should use those higher level methods
- * instead.</p>
+ * instead.
  * 
- * <p>Also, note that this implementation depends on less4j's 
- * <code>JSON</code> and makes little sense out of a web controller.</p>
+ * @p Also, note that this implementation depends on less4j's 
+ * <code>JSON</code> and makes little sense out of a web controller.
  * 
  * @copyright 2006-2007 Laurent Szyster
  */
 public class SQL {
    
     /**
-     * The simplest ORM interface possible for JDBC <code>ResultSet</code>.
+     * The simplest Relation-Object-Mapper (ROM) interface possible for 
+     * JDBC <code>ResultSet</code>.
      * 
      * @div <h3>Synopsis</h3>
      * 
-     *<pre>protected static class _Collection implements ORM {
+     *<pre>protected static final class _Collection implements ROM {
      *    public Object jdbc2 (ResultSet rs) throws SQLException {
      *        JSON.Array collection = null;
      *        if (rs.next()) {
@@ -72,28 +73,30 @@ public class SQL {
      *    }
      *}
      *
-     *public static ORM collection = new _Collection ();</pre>
+     *public static final ROM collection = new _Collection ();</pre>
      *
      * <h3>Applications</h3>
      * 
-     * <p>The benefit of an ORM in a J2EE controller is mainly to paliate the
+     * @p The benefit of an ROM in a J2EE controller is mainly to paliate the
      * complications of JDBC and a brain-dead synchronous share-everything 
      * design. The good ones provide developers a convenient API without leaks 
-     * that allows controllers to release SQL connections asap.</p>
+     * that allows controllers to release SQL connections asap.
      * 
-     * <p>However, I doubt there is any benefit for J2EE applications in 
-     * trying to map instances of arbitrary Java objects in an SQL database. 
+     * @p However, I doubt there is any benefit for J2EE applications in 
+     * trying to map instances of arbitrary Java objects in an SQL database,
+     * what is usually refered to as Object-Relational-Mapping (ORM).
+     *  
      * First because in most case, data is allready available in a schema that
      * just does not map to the application's object model. Second because 
      * when data is not an SQL legacy, there is an opportunity <em>not</em> 
-     * to use a relations as object properties.</p>
+     * to use a relations as object properties.
      * 
-     * <p>So, you won't find anything like Hibernate here. I expect less4j's
+     * @p So, you won't find anything like Hibernate here. I expect less4j's
      * applications to store JSON objects as they are first, then latter
      * update one or more database with indexes and statistics about those
-     * objects.</p>
+     * objects.
      */
-    public static interface ORM {
+    public static interface ROM {
         /**
          * Try to map a <code>ResultSet</code> into a Java <code>Object</code>.
          *  
@@ -110,7 +113,7 @@ public class SQL {
     private static final String _rows = "rows";
     private static final String _columns = "columns";
     
-    protected static class _Table implements ORM {
+    protected static final class _Table implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object object = null;
             JSON.Array rows = null, row;
@@ -136,12 +139,12 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map a JDBC ResultSet with metadata into a
+     * An ROM singleton to map a JDBC ResultSet with metadata into a
      * single JSON.Object with the obvious "columns" and "rows" members.
      */
-    public static ORM table = new _Table ();
+    public static final ROM table = new _Table ();
 
-    protected static class _Relations implements ORM {
+    protected static final class _Relations implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Array rows = null, row;
             if (rs.next()) {
@@ -161,12 +164,12 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map a JDBC ResultSet into a JSON.Array
+     * An ROM singleton to map a JDBC ResultSet into a JSON.Array
      * of JSON.Array, without metadata.
      */
-    public static ORM relations = new _Relations ();
+    public static final ROM relations = new _Relations ();
 
-    protected static class _Collection implements ORM {
+    protected static final class _Collection implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Array collection = null;
             if (rs.next()) {
@@ -179,12 +182,12 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map the first column of a JDBC ResultSet 
+     * An ROM singleton to map the first column of a JDBC ResultSet 
      * into an JSON.Array.
      */
-    public static ORM collection = new _Collection ();
+    public static final ROM collection = new _Collection ();
 
-    protected static class _Index implements ORM {
+    protected static final class _Index implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object index = null;
             if (rs.next()) {
@@ -224,13 +227,13 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map a JDBC ResultSet into an JSON.Object
+     * An ROM singleton to map a JDBC ResultSet into an JSON.Object
      * index of JSON.Array collections, using the first column as key 
      * and the following(s) as value(s).
      */
-    public static ORM index = new _Index ();
+    public static final ROM index = new _Index ();
     
-    protected static class _Dictionary implements ORM {
+    protected static final class _Dictionary implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object dictionary = null;
             if (rs.next()) {
@@ -255,12 +258,12 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map a JDBC ResultSet into an JSON.Object,
+     * An ROM singleton to map a JDBC ResultSet into an JSON.Object,
      * using the first column as key and the following(s) as value(s).
      */
-    public static ORM dictionary = new _Dictionary ();
+    public static final ROM dictionary = new _Dictionary ();
 
-    protected static class _Objects implements ORM {
+    protected static final class _Objects implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Array relations = new JSON.Array();
             if (rs.next()) {
@@ -280,12 +283,12 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map a JDBC ResultSet into a JSON.Array of
+     * An ROM singleton to map a JDBC ResultSet into a JSON.Array of
      * JSON.Object, using column names as keys.
      */
-    public static ORM objects = new _Objects ();
+    public static final ROM objects = new _Objects ();
 
-    protected static class _Object implements ORM {
+    protected static final class _Object implements ROM {
         public Object jdbc2 (ResultSet rs) throws SQLException {
             JSON.Object object = null;
             if (rs.next()) {
@@ -301,14 +304,14 @@ public class SQL {
     }
 
     /**
-     * An ORM singleton to map the first row of a JDBC ResultSet into a
+     * An ROM singleton to map the first row of a JDBC ResultSet into a
      * single JSON.Object, using column names as keys.
      */
-    public static ORM object = new _Object ();
+    public static final ROM object = new _Object ();
 
     /**
      * Try to query the <code>sql</code> JDBC connection with an SQL
-     * statement and an argument iterator, use an <code>ORM</code> to return 
+     * statement and an argument iterator, use an <code>ROM</code> to return 
      * a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
      * <code>null</code> if the result set was empty.
      * 
@@ -328,16 +331,15 @@ public class SQL {
      * @param statement to prepare and execute as a query
      * @param args an iterator through arguments
      * @param fetch the number of rows to fetch
-     * @param collector the <code>ORM</code> used to map the result set
+     * @param collector the <code>ROM</code> used to map the result set
      * @return a <code>JSON.Array</code>, a <code>JSON.Object</code> or 
      *         <code>null</code>
      * @throws SQLException
      */
-    public static Object query (
+    public static final Object query (
         Connection sql, String statement, Iterator args, 
-        int fetch, SQL.ORM collector
-        ) 
-    throws SQLException {
+        int fetch, SQL.ROM collector
+        ) throws SQLException {
         Object result = null;
         PreparedStatement st = null;
         try {
@@ -367,7 +369,7 @@ public class SQL {
      *         or the numbers of rows updated, deleted or inserted.
      * @throws SQLException
      */
-    public static Integer update (Connection sql, String statement) 
+    public static final Integer update (Connection sql, String statement) 
     throws SQLException {
         int result = -1;
         Statement st = null;
@@ -396,10 +398,9 @@ public class SQL {
      * @return an <code>Integer</code>
      * @throws <code>SQLException</code>
      */
-    public static Integer update (
+    public static final Integer update (
         Connection sql, String statement, Iterator args
-        ) 
-    throws SQLException {
+        ) throws SQLException {
         int result = -1;
         PreparedStatement st = null;
         try {
@@ -428,10 +429,9 @@ public class SQL {
      * @return an <code>Integer</code>
      * @throws SQLException
      */
-    public static Integer batch (
+    public static final Integer batch (
         Connection sql, String statement, Iterator params
-        ) 
-    throws SQLException {
+        ) throws SQLException {
         int i, L, result = -1;
         JSON.Array args;
         PreparedStatement st = null;
