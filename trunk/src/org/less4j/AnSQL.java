@@ -74,13 +74,23 @@ public class AnSQL {
      *
      * @h4 Test
      * 
-     * @test importClass(java.lang.System); 
-     *var ansql = new AnSQL("127.0.0.2", 3999);
-     *ansql.requests.add(JSON.encode(JSON.list([
+     * @test var ansql = new AnSQL("127.0.0.2", 3999);
+     *ansql.requests.add(JSON.encode([
      *    "SELECT * FROM contest WHERE prize > ?", [100]
-     *    ])));
+     *    ]));
      *ansql.fetch();
-     *return ansql.responses.S(0) == '"no such table: contest"';
+     *if (ansql.responses) {
+     *    return ansql.responses.S(0) == '"no such table: contest"';
+     *} else {
+     *    throw "network failed";
+     *}
+     * 
+     * @test var ansql = new AnSQL("127.0.0.3", 3999);
+     *ansql.requests.add(JSON.encode([
+     *    "SELECT * FROM contest WHERE prize > ?", [100]
+     *    ]));
+     *ansql.fetch();
+     *return (ansql.responses == null);
      * 
      */
     public JSON.Array responses = null;
@@ -170,10 +180,11 @@ public class AnSQL {
      * 
      * @return
      */
-    public boolean fetch () {
+    public Exception fetch () {
+        Exception error = null;
         if (requests == null || requests.size() == 0) {
             requests = null;
-            return true; // nothing to do, don't die an horrible death ;-)
+            return null; // nothing to do, don't die an horrible death ;-)
         }
         responses = new JSON.Array();
         try {
@@ -182,11 +193,12 @@ public class AnSQL {
                 socket, Simple.netBufferSize, Simple._utf_8
                 );
             Netstring.send(socket, requests.iterator(), Simple._utf_8);
-            for (int i=0, L=requests.size(); i<L; i++)
+            for (int i=0, L=requests.size(); i<L; i++) {
                 responses.add(recv.next());
+            }
         } catch (Exception e) {
             responses.add(e.toString());
-            return false;
+            error = e;
         } finally {
             requests = null;
             try {
@@ -197,6 +209,6 @@ public class AnSQL {
                 socket = null;
             }
         }
-        return true;
+        return error;
     }
 }
