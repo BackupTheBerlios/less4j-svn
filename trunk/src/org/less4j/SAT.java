@@ -32,10 +32,41 @@ import java.util.regex.Pattern;
  */
 public class SAT {
     
+    /**
+     * A convenience to produce a regular expression matching one of
+     * the pattern.
+     * 
+     * @pre String expression = SAT.separators(new String[]{
+     *    "his", "her", "its", "our", "your", "their"
+     *    });
+     * 
+     * @param patterns
+     * @return
+     */
     public static final String separators(String[] patterns) {
-        return null;
+        int L = patterns.length;
+        if (L < 2) {
+            throw new RuntimeException(
+                "The input array must contain at leas two patterns."
+                );
+        }
+        StringBuffer sb = new StringBuffer();
+        sb.append("(?:^|/s+)((?:");
+        sb.append(patterns[0]);
+        for (int i=1; i<L; i++) {
+            sb.append(")|(?:");
+            sb.append(patterns[i]);
+        }
+        sb.append("))(?:$|/s+)");
+        return sb.toString();
     }
     
+    /**
+     * Compile an array of strings into patterns. 
+     * 
+     * @param expressions to compile
+     * @return an array of patterns
+     */
     public static final Pattern[] compile(String[] expressions) {
         Pattern[] patterns = new Pattern[expressions.length];
         for (int i=0; i<expressions.length; i++) {
@@ -58,7 +89,7 @@ public class SAT {
         "(?:(?:^|\\s+)[({\\[]+\\s*)|(?:\\s*[})\\]]+(?:$|\\s+))", // parentheses
         "\\s+[-]+\\s+", // disgression
         "[\"]", // citation
-        "(?:^|\\s+)((?:(?:[A-Z]+[\\S]*)(?:$|\\s+)?)+)", // private names
+        "(?:^|\\s+)(?:(?:([A-Z]+[\\S]*)(?:$|\\s+)?)+)", // private names
         "\\s+", // white spaces
         "['\\\\\\/*+\\-#]" // common hyphens
         });
@@ -122,6 +153,9 @@ public class SAT {
         ArrayList articulated = new ArrayList();
         depth = split(text, articulators, depth, articulated);
         if (depth == articulators.length) {
+            if (articulated.size() == 0) {
+                articulated.add(text);
+            }
             return articulated;
         } else {
             HashSet field = new HashSet();
