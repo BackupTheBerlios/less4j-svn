@@ -14,7 +14,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
-package org.less4j; // less java for more applications
+package org.less4j.protocols; // less java for more applications
 
 import java.io.OutputStream;
 import java.io.InputStream;
@@ -733,6 +733,22 @@ public class Simple {
     };
     
     /**
+     * @p Generate a random string of a given <code>length</code> composed
+     * from the given character set.
+     * 
+     * @param length of the string to generate
+     * @param set of character to compose from
+     * @return a string of <code>length</code> characters
+     */
+    public static final String random (int length, char[] set) {
+        Random random = new Random();
+        char[] characters = new char[length];
+        for (int i=0; i<length; i++) 
+            characters[i] = set[random.nextInt(set.length)];
+        return String.copyValueOf(characters);
+    }
+    
+    /**
      * @p Generate a random password of a given <code>length</code>, using
      * only US ASCII characters.
      * 
@@ -740,11 +756,7 @@ public class Simple {
      * @return a string of <code>length</code> characters
      */
     public static final String password (int length) {
-        Random random = new Random();
-        char[] characters = new char[length];
-        for (int i=0; i<length; i++) 
-            characters[i] = ALPHANUMERIC[random.nextInt(62)];
-        return String.copyValueOf(characters);
+        return random(length, ALPHANUMERIC);
     }
     
 }

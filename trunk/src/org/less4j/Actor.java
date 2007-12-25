@@ -43,6 +43,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;
 
+import org.less4j.protocols.IRTD2;
+import org.less4j.protocols.JSON;
+import org.less4j.protocols.JSONR;
+import org.less4j.protocols.SHA1;
+import org.less4j.protocols.SQL;
+import org.less4j.protocols.Simple;
+
 /**
  * Hold a rich state for each request and provide many conveniences to
  * apply HTTP, JSON, SQL, LDAP and IRTD2.   
@@ -390,7 +397,7 @@ public class Actor {
         sb.append(irtd2);
         sb.append(' ');
         if (test) {
-            JSON.repr(sb, json, JSON._crlf);
+            JSON.outline(sb, json, "\r\n");
         } else {
             JSON.strb(sb, json);
         }

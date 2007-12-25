@@ -2,8 +2,8 @@ package org.less4j.functions;
 
 import org.less4j.Service;
 import org.less4j.Actor;
-import org.less4j.Simple;
-import org.less4j.JSON;
+import org.less4j.protocols.JSON;
+import org.less4j.protocols.Simple;
 
 /**
  * A base class to derive public functions.  

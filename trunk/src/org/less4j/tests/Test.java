@@ -17,6 +17,10 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 package org.less4j.tests; // less java for more applications
 
 import org.less4j.*;
+import org.less4j.protocols.JSON;
+import org.less4j.protocols.JSONR;
+import org.less4j.protocols.SHA1;
+import org.less4j.protocols.Simple;
 
 import java.io.File;
 import java.util.Iterator;

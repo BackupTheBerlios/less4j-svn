@@ -2,6 +2,9 @@ package org.less4j.tests;
 
 import org.less4j.*;
 import org.less4j.functions.SOAP;
+import org.less4j.protocols.JSON;
+import org.less4j.protocols.JSONR;
+import org.less4j.protocols.Simple;
 
 import java.io.File;
 import java.net.URL;

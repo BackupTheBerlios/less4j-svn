@@ -24,11 +24,11 @@ import java.util.Iterator;
 
 import org.less4j.Actor;
 import org.less4j.Controller;
-import org.less4j.JSON;
-import org.less4j.JSONR;
 import org.less4j.Service;
-import org.less4j.Simple;
-import org.less4j.XML;
+import org.less4j.protocols.JSON;
+import org.less4j.protocols.JSONR;
+import org.less4j.protocols.Simple;
+import org.less4j.protocols.XML;
 
 /**
  * A function that supports a practical subset of SOAP 1.1, just enough

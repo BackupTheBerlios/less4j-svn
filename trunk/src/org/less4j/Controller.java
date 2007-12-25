@@ -24,6 +24,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.less4j.protocols.JSON;
+import org.less4j.protocols.JSONR;
+import org.less4j.protocols.SQL;
+import org.less4j.protocols.Simple;
+
 import java.util.HashMap;
 import java.util.Iterator;
 

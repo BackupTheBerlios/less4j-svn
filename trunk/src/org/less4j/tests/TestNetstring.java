@@ -1,6 +1,6 @@
 package org.less4j.tests;
 
-import org.less4j.Netstring;
+import org.less4j.protocols.Netstring;
 
 import java.net.Socket;
 import java.net.InetAddress;

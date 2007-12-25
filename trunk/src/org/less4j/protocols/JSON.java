@@ -14,7 +14,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
-package org.less4j; // less java for more applications
+package org.less4j.protocols; // less java for more applications
 
 import java.util.Map;
 import java.util.List;
@@ -172,9 +172,9 @@ import org.mozilla.javascript.NativeJavaObject;
  * 
  * @p To pretty print an indented representation of a java instance in JSON:
  * 
- * @pre System.out.println(JSON.repr(value));
- *System.out.println(JSON.repr(map));
- *System.out.println(JSON.repr(list));
+ * @pre System.out.println(JSON.outline(value));
+ *System.out.println(JSON.outline(map));
+ *System.out.println(JSON.outline(list));
  * 
  * @p ...
  */
@@ -1736,7 +1736,7 @@ public class JSON {
     protected static final String _crlf = "\r\n";
     protected static final String _indent = "  ";
     
-    protected static final StringBuffer repr(
+    protected static final StringBuffer outline(
         StringBuffer sb, Map map, Iterator it, String indent
         ) {
         java.lang.Object key; 
@@ -1748,23 +1748,23 @@ public class JSON {
         sb.append('{');
         sb.append(indent);
         key = it.next();
-        repr(sb, key, indent);
+        outline(sb, key, indent);
         sb.append(": ");
-        repr(sb, map.get(key), indent);
+        outline(sb, map.get(key), indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
             key = it.next();
-            repr(sb, key, indent);
+            outline(sb, key, indent);
             sb.append(": ");
-            repr(sb, map.get(key), indent);
+            outline(sb, map.get(key), indent);
         }
         sb.append(indent);
         sb.append('}');
         return sb;
     }
     
-    protected static final StringBuffer repr(
+    protected static final StringBuffer outline(
         StringBuffer sb, Iterator it, String indent
         ) {
         if (!it.hasNext()) {
@@ -1774,18 +1774,18 @@ public class JSON {
         sb.append('[');
         indent += _indent;
         sb.append(indent);
-        repr(sb, it.next(), indent);
+        outline(sb, it.next(), indent);
         while (it.hasNext()) {
             sb.append(", ");
             sb.append(indent);
-            repr(sb, it.next(), indent);
+            outline(sb, it.next(), indent);
         }
         sb.append(indent);
         sb.append(']');
         return sb;
     }
     
-    protected static final StringBuffer repr(
+    public static final StringBuffer outline(
         StringBuffer sb, java.lang.Object value, String indent
         ) {
         if (value == null) 
@@ -1799,16 +1799,16 @@ public class JSON {
         else if (value instanceof Character) 
             strb(sb, ((Character) value).toString());
         else if (value instanceof Iterator) 
-            repr(sb, (Iterator) value, indent);
+            outline(sb, (Iterator) value, indent);
         else if (value instanceof Map) {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            repr(sb, object, Simple.iter(names), indent);
+            outline(sb, object, Simple.iter(names), indent);
         } else if (value instanceof List)
-            repr(sb, ((List) value).iterator(), indent);
+            outline(sb, ((List) value).iterator(), indent);
         else if (value instanceof Object[])
-            repr(sb, Simple.iter((java.lang.Object[]) value), indent);
+            outline(sb, Simple.iter((java.lang.Object[]) value), indent);
         else if (value instanceof NativeArray) {
             NativeArray array = (NativeArray) value;
             java.lang.Object[] ids = (array).getIds();
@@ -1819,7 +1819,7 @@ public class JSON {
                 for (int i=0; i < ids.length; i++) {
                     list[i] = array.get(i, array);
                 }
-                repr(sb, Simple.iter(list), indent);
+                outline(sb, Simple.iter(list), indent);
             }
         } else if (value instanceof NativeObject) {
             NativeObject object = (NativeObject) value;
@@ -1834,10 +1834,10 @@ public class JSON {
                     key = (String) ids[i];
                     map.put(key, object.get(key, object));
                 }
-                repr(sb, map, Simple.iter(ids), indent);
+                outline(sb, map, Simple.iter(ids), indent);
             }
         } else if (value instanceof NativeJavaObject) {
-            repr(sb, ((NativeJavaObject) value).unwrap(), indent);
+            outline(sb, ((NativeJavaObject) value).unwrap(), indent);
         } else {
             Class type = null;
             try {type = value.getClass();} catch (Throwable e) {;}
@@ -1848,9 +1848,9 @@ public class JSON {
                 if (component.isPrimitive())
                     strb(sb, value, component);
                 else
-                    repr(sb, Simple.iter((java.lang.Object[]) value), indent);
+                    outline(sb, Simple.iter((java.lang.Object[]) value), indent);
             } else
-                repr(sb, value.toString(), indent);
+                outline(sb, value.toString(), indent);
         }
         return sb;
     }
@@ -1864,7 +1864,7 @@ public class JSON {
      * @return an X-JSON <code>String</code>
      */
     public static final String pprint(java.lang.Object value) {
-        return repr(new StringBuffer(), value, _crlf).toString();
+        return outline(new StringBuffer(), value, _crlf).toString();
     }
     
     protected static final StringBuffer pprint(

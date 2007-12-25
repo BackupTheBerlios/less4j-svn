@@ -14,7 +14,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with this library; if not, write to the Free Software Foundation, 
 Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
-package org.less4j;
+package org.less4j.protocols;
 
 import java.util.Iterator;
 import java.util.HashSet;
@@ -116,15 +116,15 @@ import org.mozilla.javascript.*;
  *    packagenames="org.less4j" 
  *    source="1.4" 
  *    sourcepath="src" 
- *    classpath="./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar;/jdk1.5.0_11/lib/tools.jar" 
+ *    classpath="./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;lib/xp.jar;/jdk1.5.0_11/lib/tools.jar" 
  *    access="public" 
  *    >
  *    
  * @p To run the tests again and log their outputs: 
  *  
  * @pre java \
- *   --classpath=./less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;./lib/xp.jar \
- *   Doctest.java ./tests 1> tests.out 2> tests.err
+ *   -cp libs/less4j.jar;lib/servlet-api.jar;lib/smalljs.jar;lib/xp.jar \
+ *   org.less4j.protocols.Doctest ./tests 1> tests.out 2> tests.err
  * 
  */
 public class Doctest {

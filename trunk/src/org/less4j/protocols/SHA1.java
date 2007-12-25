@@ -46,7 +46,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.less4j;
+package org.less4j.protocols;
 
 /**
  * This class implements the SHA-1 message digest algorithm (copied from
