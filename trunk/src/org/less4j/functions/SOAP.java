@@ -384,7 +384,7 @@ public class SOAP implements Service {
     
     protected static final String 
     _xsi_type = "http://www.w3.org/2001/XMLSchema-instance type";
-    protected static final Map _xsd_types = Simple.dict(
+    protected static final Map _xsd_types = Simple.update(
         new HashMap(), new Object[]{
             "xsd:byte", JSONR.INTEGER,
             "xsd:short", JSONR.INTEGER,
@@ -967,7 +967,7 @@ public class SOAP implements Service {
         "<SOAP-ENV:Body>", _utf8
         );
     
-    protected static final Map _NS = Simple.dict(
+    protected static final Map _NS = Simple.update(
             new HashMap(), new Object[]{
                 "http://www.w3.org/2001/XMLSchema", "xsd",
                 "http://www.w3.org/2001/XMLSchema-instance", "xsi",

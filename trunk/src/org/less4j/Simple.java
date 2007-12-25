@@ -59,8 +59,8 @@ public class Simple {
          * @param input of any <code>Object</code> type
          * @return an instance of any type or <code>null</code>.
          * 
-         * @pre class PrintOut implements Simple.Function {
-         *    public Object call (Object input) {
+         * @pre class Print implements Simple.Function {
+         *    public Object apply (Object input) {
          *        try {
          *            System.out.println(input);
          *        } catch (Throwable e) {
@@ -350,14 +350,14 @@ public class Simple {
      * A convenience to extend a <code>List</code> from an array of 
      * <code>Objects</code>.
      * 
-     * @pre List sequence = Simple.list(
+     * @pre List sequence = Simple.extend(
      *     new ArrayList(), new Object[]{"a", "b", "c"}
      *     );
      * 
      * @param items to add in the sequence
      * @return the extended <code>List</code>
      */
-    public static final List list (List sequence, Object[] items) {
+    public static final List extend (List sequence, Object[] items) {
         for (int i=0; i<items.length; i++)
             sequence.add(items[i]);
         return sequence;
@@ -428,7 +428,7 @@ public class Simple {
      * Update a <code>Map</code> with the keys and values sequence found in
      * an even <code>Object</code> array.
      * 
-     * @pre HashMap map = Simple.dict(new HashMap(), new Object[]{
+     * @pre HashMap map = Simple.update(new HashMap(), new Object[]{
      *     "A", "test", 
      *     "B", true, 
      *     "C": new Integer(1), 
@@ -442,7 +442,7 @@ public class Simple {
      * @param pairs of key and value to add
      * @return the updated <code>Map</code>
      */
-    public static final Map dict (Map map, Object[] pairs) {
+    public static final Map update (Map map, Object[] pairs) {
         for (int i=0; i<pairs.length; i=i+2)
             map.put(pairs[i], pairs[i+1]);
         return map;

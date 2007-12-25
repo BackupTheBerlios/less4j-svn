@@ -207,7 +207,7 @@ public class XML {
             ) {
             this.name = name;
             if (attributes != null)
-                this.attributes = (HashMap) Simple.dict(
+                this.attributes = (HashMap) Simple.update(
                     new HashMap(), attributes
                     );
             this.first = first;
@@ -315,7 +315,7 @@ public class XML {
             String name, String[] attrs, String first, String follow
             ) {
             XML.Element child = addChild(newElement(
-                name, (HashMap) Simple.dict(new HashMap(), attrs)
+                name, (HashMap) Simple.update(new HashMap(), attrs)
                 ));
             child.first = first;
             child.follow = follow;

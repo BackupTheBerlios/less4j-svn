@@ -1211,7 +1211,7 @@ public class JSON {
      * @result a new <code>JSON.Array</code>
      */
     public static final JSON.Array list (java.lang.Object[] items) {
-        return (JSON.Array) Simple.list(new JSON.Array(), items);
+        return (JSON.Array) Simple.extend(new JSON.Array(), items);
     };
     
     /**
