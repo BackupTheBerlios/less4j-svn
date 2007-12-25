@@ -243,7 +243,7 @@ public class Controller extends HttpServlet implements Service {
      */
     public boolean less4jConfigure (Actor $) {
         // Configure the controller's IRTD2, JSONR, SQL and LDAP first ...
-        JSON.Array salts = $.configuration.A(_irtd2Salts, null);
+        JSON.Array salts = $.configuration.getArray(_irtd2Salts, null);
         if (salts == null || salts.size() < 1) {
             salts = new JSON.Array();
             salts.add(Simple.password(20));
@@ -251,7 +251,7 @@ public class Controller extends HttpServlet implements Service {
         }
         if ($.configuration.containsKey(_jsonRegular)) try {
             $.configuration.put(_jsonRegular, JSONR.compile(
-                $.configuration.O(_jsonRegular), JSONR.TYPES
+                $.configuration.getObject(_jsonRegular), JSONR.TYPES
             ));
         } catch (JSON.Error e) {
             $.logError(e); 
@@ -259,7 +259,7 @@ public class Controller extends HttpServlet implements Service {
             }
         if ($.configuration.containsKey(_jdbcDriver)) {
             try {
-                Class.forName($.configuration.S(_jdbcDriver));
+                Class.forName($.configuration.getString(_jdbcDriver));
             } catch (Exception de) {
                 $.logError(de); 
                 return false;
@@ -284,7 +284,7 @@ public class Controller extends HttpServlet implements Service {
         // ... then configure the functions and compile JSONR interfaces.
         functions = new HashMap();
         if ($.configuration.containsKey(_functions)) try {
-            JSON.Object classes = $.configuration.O(_functions);
+            JSON.Object classes = $.configuration.getObject(_functions);
             functions = new HashMap();
             Iterator paths = classes.keySet().iterator();
             if (paths.hasNext()) {
@@ -293,7 +293,7 @@ public class Controller extends HttpServlet implements Service {
                 String path = (String) paths.next();
                 JSON.strb(sb, path);
                 sb.append(':');
-                Class fun =  Class.forName(classes.S(path));
+                Class fun =  Class.forName(classes.getString(path));
                 Service function = (
                     (Service) fun.getDeclaredField(_singleton).get(fun)
                     );
@@ -308,7 +308,7 @@ public class Controller extends HttpServlet implements Service {
                     path = (String) paths.next();
                     JSON.strb(sb, path);
                     sb.append(':');
-                    fun = Class.forName(classes.S(path));
+                    fun = Class.forName(classes.getString(path));
                     function = (
                         (Service) fun.getDeclaredField(_singleton).get(fun)
                         );
@@ -507,15 +507,15 @@ public class Controller extends HttpServlet implements Service {
     public static boolean sqlOpen (Actor $) {
         if ($.configuration.containsKey(_jdbcDriver))
             return $.sqlOpenJDBC(
-                $.configuration.S(
+                $.configuration.getString(
                     _jdbcURL, "jdbc:mysql://127.0.0.1:3306/"
                     ),
-                $.configuration.S(_jdbcUsername, less4j),
-                $.configuration.S(_jdbcPassword, "")
+                $.configuration.getString(_jdbcUsername, less4j),
+                $.configuration.getString(_jdbcPassword, "")
                 );
         else if ($.configuration.containsKey(_j2eeDataSource))
             return $.sqlOpenJ2EE(
-                $.configuration.S(_j2eeDataSource, less4j)
+                $.configuration.getString(_j2eeDataSource, less4j)
                 );
         else {
             $.logError(new Exception(
@@ -790,13 +790,13 @@ public class Controller extends HttpServlet implements Service {
     public static boolean ldapOpen (Actor $) {
         if ($.configuration.containsKey(_ldapUsername))
             return $.ldapOpen(
-                $.configuration.S(_ldapURL, "ldap://127.0.0.1:389/"),
-                $.configuration.S(_ldapUsername, less4j), 
-                $.configuration.S(_ldapPassword, "")
+                $.configuration.getString(_ldapURL, "ldap://127.0.0.1:389/"),
+                $.configuration.getString(_ldapUsername, less4j), 
+                $.configuration.getString(_ldapPassword, "")
                 );
         else
             return $.ldapOpen(
-                $.configuration.S(_ldapURL, "ldap://127.0.0.1:389/")
+                $.configuration.getString(_ldapURL, "ldap://127.0.0.1:389/")
                 );
     }
     

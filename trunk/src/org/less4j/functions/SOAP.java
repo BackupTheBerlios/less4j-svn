@@ -306,7 +306,7 @@ public class SOAP implements Service {
             Document soap = new Document();
             soap.ns = new HashMap(_NS);
             soap.read($.request.getInputStream(), "", null, null);
-            $.json = ((Element) soap.root).json.O(_Body).O(action);  
+            $.json = ((Element) soap.root).json.getObject(_Body).getObject(action);  
             if ($.test) {
                 $.logInfo(soap.toString(), "SOAP");
                 $.logInfo(JSON.encode($.json), "INPUT");
@@ -377,7 +377,7 @@ public class SOAP implements Service {
      * @throws Throwable
      */
     public void call (Actor $, Document message) throws Throwable {
-        response($, "Hello " + $.json.S("arg0") + "!");
+        response($, "Hello " + $.json.getString("arg0") + "!");
     }
     
     // Supporting SOAP implementation, legacy at its best ...
@@ -456,7 +456,7 @@ public class SOAP implements Service {
                     Iterator names = json.keySet().iterator();
                     // move up and rename the first and only array expected
                     if (names.hasNext())
-                        jsonUpdate((Element) parent, json.A(
+                        jsonUpdate((Element) parent, json.getArray(
                             (String) names.next(), null
                             ));
                 } else // Object

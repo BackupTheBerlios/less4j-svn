@@ -353,7 +353,7 @@ public class Test {
             e.printStackTrace();
             return;
         }
-        JSON.Array limits = modelJSON.A("limits", new JSON.Array());
+        JSON.Array limits = modelJSON.getArray("limits", new JSON.Array());
         pattern.containers = limits.intValue(0, 65355);
         pattern.iterations = limits.intValue(1, 65355);
         dir += File.separatorChar; 

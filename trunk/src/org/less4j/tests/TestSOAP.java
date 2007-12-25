@@ -36,9 +36,9 @@ public class TestSOAP extends SOAP {
 
     public void call (Actor $, Document request) throws Throwable {
         response($, purchaseOrder (
-           $.json.S("item"), 
-           $.json.I("quantity").intValue(), 
-           $.json.S("description")
+           $.json.getString("item"), 
+           $.json.getInteger("quantity").intValue(), 
+           $.json.getString("description")
            ));
     }
     

@@ -257,7 +257,7 @@ public class Doctest {
     throws JSON.Error {
         if (!index.containsKey(name))
             index.put(name, new JSON.Array());
-        index.A(name).add(fqn);
+        index.getArray(name).add(fqn);
     }
     
     private static final char u_rarr = 8594;
@@ -508,7 +508,7 @@ public class Doctest {
     
     protected boolean doRoot (RootDoc root) throws Exception {
         options = JSON.options(root.options());
-        base = options.S("-destdir", "doc");
+        base = options.getString("-destdir", "doc");
         doDirectory(base);
         doDirectory(base + "/fragments");
         doDirectory(base + "/tests");

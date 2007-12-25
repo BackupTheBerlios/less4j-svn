@@ -366,7 +366,7 @@ public class JSON {
          * @return an numeric value
          * @throws if there is no <code>Number</code> value by that named
          */
-        public final Number N(String name) throws Error {
+        public final Number getNumber(String name) throws Error {
             return JSON.N(get(name));
         }
         /**
@@ -376,7 +376,7 @@ public class JSON {
          * @return an integer value
          * @throws if there is no <code>Integer</code> value by that named
          */
-        public final Integer I(String name) throws Error {
+        public final Integer getInteger(String name) throws Error {
             return JSON.I(get(name));
         }
         /**
@@ -412,7 +412,7 @@ public class JSON {
          * @return a decimal value
          * @throws if there is no <code>BigDecimal</code> value by that named
          */
-        public final BigDecimal D(String name) throws Error {
+        public final BigDecimal getDecimal(String name) throws Error {
             return JSON.D(get(name));
         }
         /**
@@ -423,7 +423,7 @@ public class JSON {
          * @param def the default value if none is named
          * @return an decimal value
          */
-        public final BigDecimal D(String name, BigDecimal def) {
+        public final BigDecimal getDecimal(String name, BigDecimal def) {
             if (!containsKey(name)) return def;
             try {return JSON.D(get(name));} 
             catch (Error e) {return def;}
@@ -435,7 +435,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Double F(String name) throws Error {
+        public final Double getDouble(String name) throws Error {
             return (JSON.F(get(name)));
         }
         /**
@@ -457,7 +457,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Boolean B(String name) throws Error {
+        public final Boolean getBoolean(String name) throws Error {
             return (JSON.B(get(name)));
         }
         /**
@@ -467,7 +467,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final boolean B(String name, boolean def) {
+        public final boolean booleanValue(String name, boolean def) {
             if (!containsKey(name)) return def;
             try {return JSON.B(get(name)).booleanValue();} 
             catch (Error e) {return def;}
@@ -479,7 +479,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final String S(String name) throws Error {
+        public final String getString(String name) throws Error {
             return (JSON.S(get(name)));
         }
         /**
@@ -489,7 +489,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final String S(String name, String def) {
+        public final String getString(String name, String def) {
             if (!containsKey(name)) return def;
             try {return JSON.S(get(name));} 
             catch (Error e) {return def;}
@@ -501,7 +501,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Array A(String name) throws Error {
+        public final Array getArray(String name) throws Error {
             return (JSON.A(get(name)));
         }
         /**
@@ -511,7 +511,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final Array A(String name, JSON.Array def) {
+        public final Array getArray(String name, JSON.Array def) {
             if (!containsKey(name)) return def;
             try {return (JSON.A(get(name)));} 
             catch (Error e) {return def;}
@@ -523,7 +523,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Object O(String name) throws Error {
+        public final Object getObject(String name) throws Error {
             return (JSON.O(get(name)));
         }
         /**
@@ -533,7 +533,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final Object O(String name, JSON.Object def) {
+        public final Object getObject(String name, JSON.Object def) {
             if (!containsKey(name)) return def;
             try {return (JSON.O(get(name)));} 
             catch (Error e) {return def;}
@@ -557,14 +557,14 @@ public class JSON {
      *    JSON.Array list = (new JSON()).array(
      *        "[null, true, 1, 3.0, 1234e-2, \"test\", [], {}]"
      *    );
-     *    Object o = list.get(0); 
-     *    Boolean b = list.B(1);
-     *    Integer i = list.I(2);
-     *    BigDecimal d = list.D(3);
-     *    Double r = list.F(4);
-     *    JSON.Array a = list.A(5);
-     *    JSON.Object o = list.O(6);
-     *    Boolean b = list.A(5).B(2);
+     *    Object o = list.getObject(0); 
+     *    Boolean b = list.getBoolean(1);
+     *    Integer i = list.getInteger(2);
+     *    BigDecimal d = list.getDecimal(3);
+     *    Double r = list.getDouble(4);
+     *    JSON.Array a = list.getArray(5);
+     *    JSON.Object o = list.getObject(6);
+     *    Boolean b = list.getArray(5).getBoolean(2);
      *} catch (JSON.Error e) {
      *    System.out.println(e.jstr());
      *}
@@ -579,7 +579,7 @@ public class JSON {
          * @return an numeric value
          * @throws if there is no <code>Number</code> value at that index
          */
-        public final Number N(int index) throws Error {
+        public final Number getNumber(int index) throws Error {
             return JSON.N(get(index));
         }
         /**
@@ -589,7 +589,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Integer I(int index) throws Error {
+        public final Integer getInteger(int index) throws Error {
             return (JSON.I(get(index)));
         }
         /**
@@ -623,7 +623,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final BigDecimal D(int index) throws Error {
+        public final BigDecimal getDecimal(int index) throws Error {
             return JSON.D(get(index));
         }
         /**
@@ -633,7 +633,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final BigDecimal D(int index, BigDecimal def) {
+        public final BigDecimal getDecimal(int index, BigDecimal def) {
             if (index >= size()) return def;
             try {return JSON.D(get(index));} 
             catch (Error e) {return def;}
@@ -645,7 +645,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Double F(int index) throws Error {
+        public final Double getDouble(int index) throws Error {
             return (JSON.F(get(index)));
         }
         /**
@@ -667,7 +667,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Boolean B(int index) throws Error {
+        public final Boolean getBoolean(int index) throws Error {
             return (JSON.B(get(index)));
         }
         /**
@@ -677,7 +677,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final boolean B(int index, boolean def) {
+        public final boolean booleanValue(int index, boolean def) {
             if (index >= size()) return def;
             try {return JSON.B(get(index)).booleanValue();} 
             catch (Error e) {return def;}
@@ -689,7 +689,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final String S(int index) throws Error {
+        public final String getString(int index) throws Error {
             return (JSON.S(get(index)));
         }
         /**
@@ -699,7 +699,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final String S(int index, String def) {
+        public final String getString(int index, String def) {
             if (index >= size()) return def;
             try {return JSON.S(get(index));} 
             catch (Error e) {return def;}
@@ -711,7 +711,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final Array A(int index) throws Error {
+        public final Array getArray(int index) throws Error {
             return (JSON.A(get(index)));
         }
         /**
@@ -721,7 +721,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final Array A(int index, JSON.Array def) {
+        public final Array getArray(int index, JSON.Array def) {
             if (index >= size()) return def;
             try {return (JSON.A(get(index)));} 
             catch (Error e) {return def;}
@@ -733,7 +733,7 @@ public class JSON {
          * @return
          * @throws Error
          */
-        public final JSON.Object O(int index) throws Error {
+        public final JSON.Object getObject(int index) throws Error {
             return (JSON.O(get(index)));
         }
         /**
@@ -743,7 +743,7 @@ public class JSON {
          * @param def
          * @return
          */
-        public final JSON.Object O(int index, JSON.Object def) {
+        public final JSON.Object getObject(int index, JSON.Object def) {
             if (index >= size()) return def;
             try {return (JSON.O(get(index)));} 
             catch (Error e) {return def;}

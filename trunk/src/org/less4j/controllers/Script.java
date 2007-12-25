@@ -158,10 +158,10 @@ public class Script extends Controller {
         Context cx = Context.enter();
         try {
             scope = new ImporterTopLevel(cx, !$.test);
-            JSON.Array scripts = $.configuration.A(_scripts);
+            JSON.Array scripts = $.configuration.getArray(_scripts);
             String name, source;
             for (int i=0, L=scripts.size(); i<L; i++) {
-                name = scripts.S(i);
+                name = scripts.getString(i);
                 source = Simple.read(
                     getServletContext().getResource("/WEB-INF/" + name)
                     );

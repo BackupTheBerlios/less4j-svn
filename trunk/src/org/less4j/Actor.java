@@ -232,7 +232,7 @@ public class Actor {
      * @param conf the controller's configuration JSON.Object
      */
     public Actor (JSON.Object conf) {
-        test = conf.B(Controller._test, false);
+        test = conf.booleanValue(Controller._test, false);
         configuration = conf;
     }
     
@@ -247,7 +247,7 @@ public class Actor {
     public Actor (
         JSON.Object conf, HttpServletRequest req, HttpServletResponse res
         ) {
-        test = conf.B(Controller._test, false);
+        test = conf.booleanValue(Controller._test, false);
         configuration = conf;
         request = req;
         response = res;
@@ -255,11 +255,11 @@ public class Actor {
         about = request.getPathInfo();
         context = request.getContextPath() + '/';
         try {
-            JSON.Array _salts = configuration.A(Controller._irtd2Salts);
+            JSON.Array _salts = configuration.getArray(Controller._irtd2Salts);
             int L=_salts.size();
             salts = new byte[L][];
             for (int i=0; i<L; i++)
-                salts[i] = _salts.S(i).getBytes();
+                salts[i] = _salts.getString(i).getBytes();
         } catch (JSON.Error e) {
             logError(e);
         };
@@ -444,16 +444,15 @@ public class Actor {
      */
     public boolean irtd2Digested (int timeout) {
         String cookie = httpCookie(irtd2Name);
-        if (cookie == null) {
+        if (cookie == null || cookie.length() == 0) {
             return false;
         }
         String[] vector = IRTD2.parse(cookie); 
         identity = vector[0];
         rights = vector[1];
-        digest = vector[3];
-        digested = vector[4];
         int error = IRTD2.digested(vector, time, timeout, salts);
         if (error == 0) {
+            digested = vector[4];
             return true;
         } else {
             if (test) {
@@ -480,6 +479,9 @@ public class Actor {
      * 
      */
     public void irtd2Digest() {
+        if (digested == null) {
+            digested = "";
+        }
         String[] vector = new String[]{
             identity, rights, (new Integer(time)).toString(), digested, null
             };
@@ -899,7 +901,7 @@ public class Actor {
      * @return true if the given JSON object matches the signature
      */
     public boolean jsonDigested(String signed, String signature) {
-        String digest = json.S(signature, "");
+        String digest = json.getString(signature, "");
         byte[] buff = JSON.encode(json.get(signed)).getBytes();
         String d = null;
         for (int i=0; i<salts.length; i++) {
