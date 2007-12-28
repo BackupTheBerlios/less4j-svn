@@ -16,10 +16,10 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j.controllers;
 
-import org.less4j.Actor;
-import org.less4j.Controller;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
+import org.less4j.serlvet.Actor;
+import org.less4j.serlvet.Controller;
 import org.less4j.simple.IO;
 
 import org.mozilla.javascript.*; // More JavaScript Applications!
