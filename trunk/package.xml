@@ -8,7 +8,7 @@
     </copy>
     <copy file="lib/xp.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
     <copy file="lib/smalljs.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
-    <copy file="less4j.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
+    <copy file="lib/less4j.jar" todir="war/less4j/WEB-INF/lib" overwrite="yes"/>
     <jar 
       jarfile="lib/less4j.war" 
       basedir="war/less4j"
