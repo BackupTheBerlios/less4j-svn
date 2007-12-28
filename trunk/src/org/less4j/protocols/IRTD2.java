@@ -18,6 +18,9 @@ package org.less4j.protocols;
 
 import java.util.Iterator;
 
+import org.less4j.simple.Objects;
+import org.less4j.simple.Strings;
+
 /**
  * An implementation of IRTD2, a protocol to support distributed 
  * authentication of user agents' identity and rights in time and
@@ -89,7 +92,7 @@ public class IRTD2 {
      *    ) == '["I","R","T","D","2"]';
      */
     public static final String[] parse (String irtd2) {
-        Iterator tokens = Simple.split(irtd2, ' ');
+        Iterator tokens = Strings.split(irtd2, ' ');
         return new String[] {
             (tokens.hasNext()) ? (String) tokens.next() : "", // identity
             (tokens.hasNext()) ? (String) tokens.next() : "", // rights
@@ -153,7 +156,7 @@ public class IRTD2 {
         if (interval > timeout) {
             return 2;
         } 
-        byte[] irtd = Simple.join(" ", Simple.iter(new String[]{
+        byte[] irtd = Strings.join(" ", Objects.iter(new String[]{
             irtd2[0], irtd2[1], irtd2[2], irtd2[3]
             })).getBytes();
         String digest = null;

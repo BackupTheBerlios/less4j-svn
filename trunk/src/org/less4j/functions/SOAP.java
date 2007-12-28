@@ -23,12 +23,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import org.less4j.Actor;
-import org.less4j.Controller;
 import org.less4j.Service;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
-import org.less4j.protocols.Simple;
 import org.less4j.protocols.XML;
+import org.less4j.simple.Bytes;
+import org.less4j.simple.Objects;
 
 /**
  * A function that supports a practical subset of SOAP 1.1, just enough
@@ -384,7 +384,7 @@ public class SOAP implements Service {
     
     protected static final String 
     _xsi_type = "http://www.w3.org/2001/XMLSchema-instance type";
-    protected static final Map _xsd_types = Simple.update(
+    protected static final Map _xsd_types = Objects.update(
         new HashMap(), new Object[]{
             "xsd:byte", JSONR.INTEGER,
             "xsd:short", JSONR.INTEGER,
@@ -883,7 +883,7 @@ public class SOAP implements Service {
                 if (component.isPrimitive())
                     ; // strb(sb, value, component);
                 else
-                    strb(sb, Simple.iter((java.lang.Object[]) value), name);
+                    strb(sb, Objects.iter((java.lang.Object[]) value), name);
             } else
                 strb(sb, value.toString(), name);
         }
@@ -916,10 +916,10 @@ public class SOAP implements Service {
         sb.append("</");
         sb.append(name);
         sb.append('>');
-        return Simple.encode(sb.toString(), _utf8); 
+        return Bytes.encode(sb.toString(), _utf8); 
     }
     
-    protected static final byte[] _response_head = Simple.encode(
+    protected static final byte[] _response_head = Bytes.encode(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + "<SOAP-ENV:Envelope "
             + "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " 
@@ -929,7 +929,7 @@ public class SOAP implements Service {
             + "<SOAP-ENV:Body>", 
         _utf8
         );
-    protected static final byte[] _response_tail = Simple.encode(
+    protected static final byte[] _response_tail = Bytes.encode(
             "</SOAP-ENV:Body>" 
         + "</SOAP-ENV:Envelope>", 
         _utf8
@@ -947,14 +947,14 @@ public class SOAP implements Service {
      * @return
      */
     public static final void response (Actor $, Object body) {
-        $.httpResponse(200, Simple.buffer(new byte[][]{
+        $.httpResponse(200, Bytes.buffer(new byte[][]{
             _response_head, 
             encode(body, $.about.substring(1)+_Response), 
             _response_tail
             }), XML.MIME_TYPE, _utf8);
     } // isn't this one liner elegant?
     
-    protected static final byte[] _response_envelope = Simple.encode(
+    protected static final byte[] _response_envelope = Bytes.encode(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + "<SOAP-ENV:Envelope "
             + "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " 
@@ -963,11 +963,11 @@ public class SOAP implements Service {
             + ">",
         _utf8
         );
-    protected static final byte[] _response_body = Simple.encode(
+    protected static final byte[] _response_body = Bytes.encode(
         "<SOAP-ENV:Body>", _utf8
         );
     
-    protected static final Map _NS = Simple.update(
+    protected static final Map _NS = Objects.update(
             new HashMap(), new Object[]{
                 "http://www.w3.org/2001/XMLSchema", "xsd",
                 "http://www.w3.org/2001/XMLSchema-instance", "xsi",
@@ -990,7 +990,7 @@ public class SOAP implements Service {
     public static final void response (
         Actor $, Object body, XML.Element header
         ) {
-        $.httpResponse(200, Simple.buffer(new byte[][]{
+        $.httpResponse(200, Bytes.buffer(new byte[][]{
             _response_envelope,
             XML.encodeUTF8(header, _NS), 
             _response_body,
@@ -999,7 +999,7 @@ public class SOAP implements Service {
             }), XML.MIME_TYPE, _utf8);
     }
     
-    protected static final byte[] _fault_head = Simple.encode(
+    protected static final byte[] _fault_head = Bytes.encode(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + "<SOAP-ENV:Envelope "
             + "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " 
@@ -1011,7 +1011,7 @@ public class SOAP implements Service {
                     + "<faultstring xsi:type=\"xsd:string\"><![CDATA[",
         _utf8
         );
-    protected static final byte[] _fault_tail = Simple.encode(
+    protected static final byte[] _fault_tail = Bytes.encode(
                     "]]></faultstring>" 
                 + "</SOAP-ENV:Fault>" 
             + "</SOAP-ENV:Body>"
@@ -1032,12 +1032,12 @@ public class SOAP implements Service {
      * @param text
      */
     public static final void fault (Actor $, String message) {
-        $.httpResponse(500, Simple.buffer(new byte[][]{
-            _fault_head, Simple.encode(message, _utf8), _fault_tail
+        $.httpResponse(500, Bytes.buffer(new byte[][]{
+            _fault_head, Bytes.encode(message, _utf8), _fault_tail
             }), XML.MIME_TYPE, _utf8);
     }
 
-    protected static final byte[] _fault_body = Simple.encode(
+    protected static final byte[] _fault_body = Bytes.encode(
             "<SOAP-ENV:Fault>" 
                 + "<faultstring xsi:type=\"xsd:string\"><![CDATA[",
         _utf8
@@ -1058,11 +1058,11 @@ public class SOAP implements Service {
     public static final void fault (
         Actor $, String message, XML.Element header
         ) {
-        $.httpResponse(500, Simple.buffer(new byte[][]{
+        $.httpResponse(500, Bytes.buffer(new byte[][]{
             _response_envelope,
             XML.encodeUTF8(header, _NS), 
             _fault_body, 
-            Simple.encode(message, _utf8), 
+            Bytes.encode(message, _utf8), 
             _fault_tail
             }), XML.MIME_TYPE, _utf8);
     }

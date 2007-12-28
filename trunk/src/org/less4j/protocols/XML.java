@@ -36,6 +36,9 @@ import java.util.Locale;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 
+import org.less4j.simple.Bytes;
+import org.less4j.simple.Objects;
+
 import com.jclark.xml.parse.ProcessingInstructionEvent;
 import com.jclark.xml.parse.StartElementEvent;
 import com.jclark.xml.parse.EndElementEvent;
@@ -207,7 +210,7 @@ public class XML {
             ) {
             this.name = name;
             if (attributes != null)
-                this.attributes = (HashMap) Simple.update(
+                this.attributes = (HashMap) Objects.update(
                     new HashMap(), attributes
                     );
             this.first = first;
@@ -293,7 +296,7 @@ public class XML {
          *    );
          */
         public XML.Element addChild (String name, String[] attribute) {
-            return addChild(newElement(name, Simple.dict(attribute)));
+            return addChild(newElement(name, Objects.dict(attribute)));
         }
         /**
          * Add a new named child element, creates the <code>children</code> 
@@ -315,7 +318,7 @@ public class XML {
             String name, String[] attrs, String first, String follow
             ) {
             XML.Element child = addChild(newElement(
-                name, (HashMap) Simple.update(new HashMap(), attrs)
+                name, (HashMap) Objects.update(new HashMap(), attrs)
                 ));
             child.first = first;
             child.follow = follow;
@@ -603,7 +606,7 @@ public class XML {
          * @return an XML string
          */
         public String toString() {
-            return Simple.decode(XML.encodeUTF8(this, new HashMap()), _utf8);
+            return Bytes.decode(XML.encodeUTF8(this, new HashMap()), _utf8);
         }
     }
     

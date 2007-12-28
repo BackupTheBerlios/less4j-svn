@@ -27,7 +27,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
 import org.less4j.protocols.SQL;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.IO;
+import org.less4j.simple.Objects;
+import org.less4j.simple.Strings;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -246,7 +248,7 @@ public class Controller extends HttpServlet implements Service {
         JSON.Array salts = $.configuration.getArray(_irtd2Salts, null);
         if (salts == null || salts.size() < 1) {
             salts = new JSON.Array();
-            salts.add(Simple.password(20));
+            salts.add(Strings.password(20));
             $.configuration.put(_irtd2Salts, salts);
         }
         if ($.configuration.containsKey(_jsonRegular)) try {
@@ -379,7 +381,7 @@ public class Controller extends HttpServlet implements Service {
                 contentType.startsWith(_application_json)
                 ) {
                 if ($.jsonPOST($.configuration.intValue(
-                    _postBytes, Simple.netBufferSize
+                    _postBytes, IO.netBufferSize
                     ), function.jsonRegular($)))
                     function.jsonApplication($);
                 else
@@ -398,7 +400,7 @@ public class Controller extends HttpServlet implements Service {
      * @return true
      */
     public boolean irtd2Identify (Actor $) {
-        $.identity = Simple.password(10);
+        $.identity = Strings.password(10);
         $.rights = "";
         return true;
     }
@@ -557,7 +559,7 @@ public class Controller extends HttpServlet implements Service {
         ) {
         if (sqlOpen($)) try {
             Object object = $.sqlQuery(
-                statement, Simple.iter($.json, arguments), fetch, model
+                statement, Objects.iter($.json, arguments), fetch, model
                 );
             $.json.put(name, object);
             return (object != null);
@@ -720,7 +722,7 @@ public class Controller extends HttpServlet implements Service {
         boolean success = false;
         if (sqlOpen($)) try {
             $.json.put(name, $.sqlUpdate(
-                statement, Simple.iter($.json, arguments)
+                statement, Objects.iter($.json, arguments)
                 ));
             $.sql.commit();
             success = true;
@@ -814,7 +816,7 @@ public class Controller extends HttpServlet implements Service {
         Actor $, String dn, String[] attributes
         ) {
         if (ldapOpen($)) try {
-            return $.ldapResolve(dn, $.json, Simple.iter(attributes));
+            return $.ldapResolve(dn, $.json, Objects.iter(attributes));
         } finally {
             $.ldapClose();
         } else 
@@ -835,7 +837,7 @@ public class Controller extends HttpServlet implements Service {
         Actor $, String dn, String[] attributes
         ) {
         if (ldapOpen($)) try {
-            return $.ldapUpdate(dn, $.json, Simple.iter(attributes));
+            return $.ldapUpdate(dn, $.json, Objects.iter(attributes));
         } finally {
             $.ldapClose();
         } else return false;
@@ -855,7 +857,7 @@ public class Controller extends HttpServlet implements Service {
         Actor $, String dn, String[] attributes
         ) {
         if (ldapOpen($)) try {
-            return $.ldapCreate(dn, $.json, Simple.iter(attributes));
+            return $.ldapCreate(dn, $.json, Objects.iter(attributes));
         } finally {
             $.ldapClose();
         } else return false;

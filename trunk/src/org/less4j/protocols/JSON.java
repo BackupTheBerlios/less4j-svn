@@ -28,6 +28,9 @@ import java.text.StringCharacterIterator;
 import java.io.OutputStream;
 import java.io.IOException;
 
+import org.less4j.simple.Bytes;
+import org.less4j.simple.IO;
+import org.less4j.simple.Objects;
 import org.mozilla.javascript.NativeArray;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.NativeJavaObject;
@@ -1211,7 +1214,7 @@ public class JSON {
      * @result a new <code>JSON.Array</code>
      */
     public static final JSON.Array list (java.lang.Object[] items) {
-        return (JSON.Array) Simple.extend(new JSON.Array(), items);
+        return (JSON.Array) Objects.extend(new JSON.Array(), items);
     };
     
     /**
@@ -1525,11 +1528,11 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            strb(sb, object, Simple.iter(names));
+            strb(sb, object, Objects.iter(names));
         } else if (value instanceof List)
             strb(sb, ((List) value).iterator());
         else if (value instanceof Object[])
-            strb(sb, Simple.iter((java.lang.Object[]) value));
+            strb(sb, Objects.iter((java.lang.Object[]) value));
         else if (value instanceof NativeArray) {
             NativeArray array = (NativeArray) value;
             java.lang.Object[] ids = (array).getIds();
@@ -1540,7 +1543,7 @@ public class JSON {
                 for (int i=0; i < ids.length; i++) {
                     list[i] = array.get(i, array);
                 }
-                strb(sb, Simple.iter(list));
+                strb(sb, Objects.iter(list));
             }
         } else if (value instanceof NativeObject) {
             NativeObject object = (NativeObject) value;
@@ -1555,7 +1558,7 @@ public class JSON {
                     key = (String) ids[i];
                     map.put(key, object.get(key, object));
                 }
-                strb(sb, map, Simple.iter(ids));
+                strb(sb, map, Objects.iter(ids));
             }
         } else if (value instanceof NativeJavaObject) {
             strb(sb, ((NativeJavaObject) value).unwrap());
@@ -1569,7 +1572,7 @@ public class JSON {
                 if (component.isPrimitive())
                     strb(sb, value, component);
                 else
-                    strb(sb, Simple.iter((java.lang.Object[]) value));
+                    strb(sb, Objects.iter((java.lang.Object[]) value));
             } else
                 strb(sb, value.toString());
         }
@@ -1671,11 +1674,11 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            xjson(sb, object, Simple.iter(names));
+            xjson(sb, object, Objects.iter(names));
         } else if (value instanceof List)
             xjson(sb, ((List) value).iterator());
         else if (value instanceof Object[])
-            xjson(sb, Simple.iter((java.lang.Object[]) value));
+            xjson(sb, Objects.iter((java.lang.Object[]) value));
         else if (value instanceof NativeArray) {
             NativeArray array = (NativeArray) value;
             java.lang.Object[] ids = (array).getIds();
@@ -1686,7 +1689,7 @@ public class JSON {
                 for (int i=0; i < ids.length; i++) {
                     list[i] = array.get(i, array);
                 }
-                xjson(sb, Simple.iter(list));
+                xjson(sb, Objects.iter(list));
             }
         } else if (value instanceof NativeObject) {
             NativeObject object = (NativeObject) value;
@@ -1701,7 +1704,7 @@ public class JSON {
                     key = (String) ids[i];
                     map.put(key, object.get(key, object));
                 }
-                xjson(sb, map, Simple.iter(ids));
+                xjson(sb, map, Objects.iter(ids));
             }
         } else if (value instanceof NativeJavaObject) {
             xjson(sb, ((NativeJavaObject) value).unwrap());
@@ -1715,7 +1718,7 @@ public class JSON {
                 if (component.isPrimitive())
                     strb(sb, value, component);
                 else
-                    xjson(sb, Simple.iter((java.lang.Object[]) value));
+                    xjson(sb, Objects.iter((java.lang.Object[]) value));
             } else
                 xjson(sb, value.toString());
         }
@@ -1804,11 +1807,11 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            outline(sb, object, Simple.iter(names), indent);
+            outline(sb, object, Objects.iter(names), indent);
         } else if (value instanceof List)
             outline(sb, ((List) value).iterator(), indent);
         else if (value instanceof Object[])
-            outline(sb, Simple.iter((java.lang.Object[]) value), indent);
+            outline(sb, Objects.iter((java.lang.Object[]) value), indent);
         else if (value instanceof NativeArray) {
             NativeArray array = (NativeArray) value;
             java.lang.Object[] ids = (array).getIds();
@@ -1819,7 +1822,7 @@ public class JSON {
                 for (int i=0; i < ids.length; i++) {
                     list[i] = array.get(i, array);
                 }
-                outline(sb, Simple.iter(list), indent);
+                outline(sb, Objects.iter(list), indent);
             }
         } else if (value instanceof NativeObject) {
             NativeObject object = (NativeObject) value;
@@ -1834,7 +1837,7 @@ public class JSON {
                     key = (String) ids[i];
                     map.put(key, object.get(key, object));
                 }
-                outline(sb, map, Simple.iter(ids), indent);
+                outline(sb, map, Objects.iter(ids), indent);
             }
         } else if (value instanceof NativeJavaObject) {
             outline(sb, ((NativeJavaObject) value).unwrap(), indent);
@@ -1848,7 +1851,7 @@ public class JSON {
                 if (component.isPrimitive())
                     strb(sb, value, component);
                 else
-                    outline(sb, Simple.iter((java.lang.Object[]) value), indent);
+                    outline(sb, Objects.iter((java.lang.Object[]) value), indent);
             } else
                 outline(sb, value.toString(), indent);
         }
@@ -1889,8 +1892,8 @@ public class JSON {
             sb = pprint(sb, key, indent, os);
             sb.append(": ");
             sb = pprint(sb, map.get(key), indent, os);
-            if (sb.length() > Simple.netBufferSize) {
-                os.write(Simple.encode(sb.toString(), "UTF-8"));
+            if (sb.length() > IO.netBufferSize) {
+                os.write(Bytes.encode(sb.toString(), "UTF-8"));
                 os.flush();
                 sb = new StringBuffer();
             }
@@ -1915,8 +1918,8 @@ public class JSON {
             sb.append(", ");
             sb.append(indent);
             sb = pprint(sb, it.next(), indent, os);
-            if (sb.length() > Simple.netBufferSize) {
-                os.write(Simple.encode(sb.toString(), "UTF-8"));
+            if (sb.length() > IO.netBufferSize) {
+                os.write(Bytes.encode(sb.toString(), "UTF-8"));
                 os.flush();
                 sb = new StringBuffer();
             }
@@ -1945,11 +1948,11 @@ public class JSON {
             Map object = (Map) value;
             java.lang.Object[] names = object.keySet().toArray();
             Arrays.sort(names);
-            sb = pprint(sb, object, Simple.iter(names), indent, os);
+            sb = pprint(sb, object, Objects.iter(names), indent, os);
         } else if (value instanceof List)
             sb = pprint(sb, ((List) value).iterator(), indent, os);
         else if (value instanceof Object[])
-            sb = pprint(sb, Simple.iter(
+            sb = pprint(sb, Objects.iter(
                 (java.lang.Object[]) value
                 ), indent, os);
         else if (value instanceof NativeArray) {
@@ -1962,7 +1965,7 @@ public class JSON {
                 for (int i=0; i < ids.length; i++) {
                     list[i] = array.get(i, array);
                 }
-                pprint(sb, Simple.iter(list), indent, os);
+                pprint(sb, Objects.iter(list), indent, os);
             }
         } else if (value instanceof NativeObject) {
             NativeObject object = (NativeObject) value;
@@ -1977,7 +1980,7 @@ public class JSON {
                     key = (String) ids[i];
                     map.put(key, object.get(key, object));
                 }
-                pprint(sb, map, Simple.iter(ids), indent, os);
+                pprint(sb, map, Objects.iter(ids), indent, os);
             }
         } else if (value instanceof NativeJavaObject) {
             pprint(sb, ((NativeJavaObject) value).unwrap(), indent, os);
@@ -1991,7 +1994,7 @@ public class JSON {
                 if (component.isPrimitive())
                     strb(sb, value, component);
                 else
-                    sb = pprint(sb, Simple.iter(
+                    sb = pprint(sb, Objects.iter(
                         (java.lang.Object[]) value
                         ), indent, os);
             } else
@@ -2012,7 +2015,7 @@ public class JSON {
         java.lang.Object value, OutputStream os
         ) throws IOException {
         StringBuffer sb = pprint(new StringBuffer(), value, "\r\n", os);
-        os.write(Simple.encode(sb.toString(), "UTF-8"));
+        os.write(Bytes.encode(sb.toString(), "UTF-8"));
         os.flush();
     }
 }

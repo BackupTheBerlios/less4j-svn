@@ -48,7 +48,10 @@ import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
 import org.less4j.protocols.SHA1;
 import org.less4j.protocols.SQL;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.Bytes;
+import org.less4j.simple.IO;
+import org.less4j.simple.Objects;
+import org.less4j.simple.Strings;
 
 /**
  * Hold a rich state for each request and provide many conveniences to
@@ -487,7 +490,7 @@ public class Actor {
             };
         digest = IRTD2.digest(vector, salts[0]);
         vector[4] = digest; 
-        irtd2 = Simple.join(" ", Simple.iter(vector));
+        irtd2 = Strings.join(" ", Objects.iter(vector));
     }
     
     protected void irtd2SetCookie () {
@@ -593,7 +596,7 @@ public class Actor {
         
         byte[] body = new byte[contentLength];
         try {
-            Simple.recv(request.getInputStream(), body, 0);
+            IO.recv(request.getInputStream(), body, 0);
         } catch (IOException ioe) {
             logError(ioe); 
             body = null;
@@ -636,8 +639,8 @@ public class Actor {
         response.setContentType(type);
         response.setContentLength(body.capacity());
         try {
-            response.setBufferSize(Simple.netBufferSize);
-            Simple.send(response.getOutputStream(), body);
+            response.setBufferSize(IO.netBufferSize);
+            IO.send(response.getOutputStream(), body);
             response.flushBuffer();
             logAudit(code);
         } catch (IOException e) {
@@ -664,7 +667,7 @@ public class Actor {
         response.setContentType(type);
         response.setContentLength(body.length);
         try {
-            response.setBufferSize(Simple.netBufferSize);
+            response.setBufferSize(IO.netBufferSize);
             response.getOutputStream().write(body);
             response.flushBuffer();
             logAudit(code);
@@ -691,7 +694,7 @@ public class Actor {
     public void httpResponse (
         int code, String body, String type, String charset
         ) {
-        httpResponse(code, Simple.encode(body, charset), type, charset);
+        httpResponse(code, Bytes.encode(body, charset), type, charset);
     }
     
     /**
@@ -936,7 +939,7 @@ public class Actor {
         response.setContentType(jsonContentType);
         response.setContentLength(body.length);
         try {
-            response.setBufferSize(Simple.netBufferSize);
+            response.setBufferSize(IO.netBufferSize);
             response.getOutputStream().write(body);
             response.flushBuffer();
             logAudit(status);
@@ -954,7 +957,7 @@ public class Actor {
      * @param body of the response 
      */
     public void jsonResponse (int status, String body) {
-        jsonResponse(status, Simple.encode(body, _UTF_8));
+        jsonResponse(status, Bytes.encode(body, _UTF_8));
     }
     
     /**

@@ -3,7 +3,7 @@ package org.less4j.functions;
 import org.less4j.Service;
 import org.less4j.Actor;
 import org.less4j.protocols.JSON;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.Strings;
 
 /**
  * A base class to derive public functions.  
@@ -31,7 +31,7 @@ public class Public implements Service {
      * set this request <code>Actor</code>'s right to the empty string.
      */
     public boolean irtd2Identify (Actor $) {
-        $.identity = Simple.password(10);
+        $.identity = Strings.password(10);
         $.rights = "";
         return true;
     }

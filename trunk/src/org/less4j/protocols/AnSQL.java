@@ -19,7 +19,8 @@ package org.less4j.protocols;
 import java.util.Iterator;
 import java.io.IOException;
 import java.net.Socket;
-// import java.net.InetAddress;
+
+import org.less4j.simple.IO;
 
 /**
  * AnSQL implementation to replace JDBC with an protocol that supports the 
@@ -190,9 +191,9 @@ public class AnSQL {
         try {
             socket = new Socket(ip, port);
             Iterator recv = Netstring.recv(
-                socket, Simple.netBufferSize, Simple._utf_8
+                socket, IO.netBufferSize, "UTF-8"
                 );
-            Netstring.send(socket, requests.iterator(), Simple._utf_8);
+            Netstring.send(socket, requests.iterator(), "UTF-8");
             for (int i=0, L=requests.size(); i<L; i++) {
                 responses.add(recv.next());
             }

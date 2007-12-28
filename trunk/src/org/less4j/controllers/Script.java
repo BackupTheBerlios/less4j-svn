@@ -20,7 +20,7 @@ import org.less4j.Actor;
 import org.less4j.Controller;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.IO;
 
 import org.mozilla.javascript.*; // More JavaScript Applications!
 
@@ -162,7 +162,7 @@ public class Script extends Controller {
             String name, source;
             for (int i=0, L=scripts.size(); i<L; i++) {
                 name = scripts.getString(i);
-                source = Simple.read(
+                source = IO.read(
                     getServletContext().getResource("/WEB-INF/" + name)
                     );
                 if (source == null)

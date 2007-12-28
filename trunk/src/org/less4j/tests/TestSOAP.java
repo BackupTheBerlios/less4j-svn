@@ -4,7 +4,7 @@ import org.less4j.*;
 import org.less4j.functions.SOAP;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.Strings;
 
 import java.io.File;
 import java.net.URL;
@@ -69,7 +69,7 @@ public class TestSOAP extends SOAP {
             name = space.substring(4);
         else {
             URL url = new URL(space);
-            Iterator parts = Simple.split(url.getPath(), '/');
+            Iterator parts = Strings.split(url.getPath(), '/');
             while(parts.hasNext()) 
                 name = (String) parts.next();
         }

@@ -29,6 +29,8 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.text.StringCharacterIterator;
 
+import org.less4j.simple.Objects;
+
 /**
  * Compile simple <a href="http://laurentszyster.be/jsonr/index.html">JSON 
  * Regular</a> patterns to evaluate and validate a JSON string against an 
@@ -461,7 +463,7 @@ public class JSONR extends JSON {
             return (new JSONR(this)).eval(string);
         }
         protected final Iterator iterator() {
-            return new Simple.ObjectIterator(types);
+            return Objects.iter(types);
             }
         public static final Type singleton = new TypeArray(new Type[]{});
         public final Type copy() {

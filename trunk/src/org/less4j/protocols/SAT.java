@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.regex.Pattern;
 
+import org.less4j.simple.Strings;
+
 /**
  * Articulate UNICODE text as Public Names and make Public RDF statements.
  * 
@@ -115,7 +117,7 @@ public class SAT {
         String t;
         int L;
         while (depth < bottom) {
-            texts = Simple.split(text, articulators[depth]); 
+            texts = Strings.split(text, articulators[depth]); 
             depth++;
             while (texts.hasNext()) {
                 t = (String) texts.next();

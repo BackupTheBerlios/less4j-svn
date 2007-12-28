@@ -29,6 +29,9 @@ import java.net.Socket;
 
 import java.nio.ByteBuffer;
 
+import org.less4j.simple.Bytes;
+import org.less4j.simple.IO;
+
 /**
  * Conveniences to send and receive <a 
  * href="http://cr.yp.to/proto/netstrings.txt"
@@ -108,7 +111,7 @@ public class Netstring {
         ArrayList netstrings = new ArrayList();
         byte[] digits, buffer;
         while (strings.hasNext()) {
-            buffer = Simple.encode((String) strings.next(), encoding);
+            buffer = Bytes.encode((String) strings.next(), encoding);
             digits = Integer.toString(buffer.length).getBytes();
             chunk = chunk + buffer.length + digits.length + 2;
             netstrings.add(new byte[][]{digits, buffer});
@@ -123,7 +126,7 @@ public class Netstring {
             bb.put(digits_buffer[1]); // the bytes string encoded
             bb.put((byte)44); // ,
         }
-        Simple.send(conn.getOutputStream(), bb);
+        IO.send(conn.getOutputStream(), bb);
     }
     
     /**
@@ -209,7 +212,7 @@ public class Netstring {
     static public void 
     send (Socket conn, String string, String encoding) 
     throws IOException {
-        send(conn, Simple.encode(string, encoding));
+        send(conn, Bytes.encode(string, encoding));
     }
     
     private static final String 
@@ -261,7 +264,7 @@ public class Netstring {
                     throw new NoSuchElementException(_too_long);
                 
                 byte[] bytes = new byte[len + 1];
-                read = Simple.recv(_is, bytes, 0);
+                read = IO.recv(_is, bytes, 0);
                 if (read != len + 1)
                     throw new NoSuchElementException(_unexpected_end);
                 

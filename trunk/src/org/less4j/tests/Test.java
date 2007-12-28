@@ -16,11 +16,11 @@ Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
 
 package org.less4j.tests; // less java for more applications
 
-import org.less4j.*;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
 import org.less4j.protocols.SHA1;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.IO;
+import org.less4j.simple.Objects;
 
 import java.io.File;
 import java.util.Iterator;
@@ -225,12 +225,12 @@ public class Test {
             return;
         
         dir += File.separatorChar; 
-        Iterator filenames = Simple.iter(dirlist);
+        Iterator filenames = Objects.iter(dirlist);
         while (filenames.hasNext()) {
             filename = (String) filenames.next();
             if (filename.endsWith(".json")) {
                 System.out.print(filename);
-                String input = Simple.read(dir + filename, null);
+                String input = IO.read(dir + filename, null);
                 try {
                     Object o = (new JSON()).eval(input);
                     System.out.print(" = ");
@@ -334,7 +334,7 @@ public class Test {
         
         JSON.Object modelJSON;
         JSONR pattern; 
-        String model = Simple.read(dir + "/test.jsonr", null);
+        String model = IO.read(dir + "/test.jsonr", null);
         try {
             modelJSON = testModel.object(model);
             pattern = new JSONR(modelJSON.get("meta"));
@@ -357,12 +357,12 @@ public class Test {
         pattern.containers = limits.intValue(0, 65355);
         pattern.iterations = limits.intValue(1, 65355);
         dir += File.separatorChar; 
-        Iterator filenames = Simple.iter(dirlist);
+        Iterator filenames = Objects.iter(dirlist);
         while (filenames.hasNext()) {
             filename = (String) filenames.next();
             if (filename.endsWith(".json")) {
                 System.out.print(filename);
-                String input = Simple.read(dir + filename, null);
+                String input = IO.read(dir + filename, null);
                 System.out.print(" = ");
                 try {
                     Object o = pattern.eval(input);

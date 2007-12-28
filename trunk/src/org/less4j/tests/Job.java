@@ -3,7 +3,7 @@ package org.less4j.tests;
 import org.less4j.*;
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
-import org.less4j.protocols.Simple;
+import org.less4j.simple.Strings;
 
 /**
  * A job function.
@@ -29,7 +29,7 @@ public class Job implements Service {
     }
     
     public boolean irtd2Identify (Actor $) {
-        $.identity = Simple.password(10);
+        $.identity = Strings.password(10);
         $.rights = "";
         return true;
     }

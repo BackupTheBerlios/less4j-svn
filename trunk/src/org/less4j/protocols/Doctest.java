@@ -33,6 +33,8 @@ import com.sun.javadoc.Tag;
 import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.Type;
 
+import org.less4j.simple.Bytes;
+import org.less4j.simple.Objects;
 import org.mozilla.javascript.*;
 
 /**
@@ -172,7 +174,7 @@ public class Doctest {
     throws Exception {
         String fqn = packageName + "." + localName;
         SHA1 sha1 = new SHA1();
-        sha1.update(Simple.encode(source, "UTF-8"));
+        sha1.update(Bytes.encode(source, "UTF-8"));
         String hash = sha1.hexdigest();
         String prologue = (
             "importPackage("
@@ -186,7 +188,7 @@ public class Doctest {
             );
         (new FileOutputStream(new File(
             base + "/tests/" + hash + ".js"
-            ))).write(Simple.encode(test_sources, "UTF-8"));
+            ))).write(Bytes.encode(test_sources, "UTF-8"));
         XML.Element doctest = new XML.Element("div", new String[]{
             "class", "test",
             }, null, null);
@@ -221,7 +223,7 @@ public class Doctest {
         return name.substring(name.lastIndexOf('.')+1);
     }
     
-    protected static final HashSet NAMESPACE_HTML_4_01 = Simple.set(
+    protected static final HashSet NAMESPACE_HTML_4_01 = Objects.set(
             new Object[]{"@div", "@h3", "@h4", "@p"}
             );
         
@@ -524,11 +526,11 @@ public class Doctest {
         FileOutputStream os = new FileOutputStream(new File(
             base + "/index.js"
             ));
-        os.write(Simple.encode("javadoc.index = ", "UTF-8"));
+        os.write(Bytes.encode("javadoc.index = ", "UTF-8"));
         JSON.pprint(index, os);
-        os.write(Simple.encode(";\r\njavadoc.packages = ", "UTF-8"));
+        os.write(Bytes.encode(";\r\njavadoc.packages = ", "UTF-8"));
         JSON.pprint(packages, os);
-        os.write(Simple.encode(";\r\njavadoc.classes = ", "UTF-8"));
+        os.write(Bytes.encode(";\r\njavadoc.classes = ", "UTF-8"));
         JSON.pprint(classes, os);
         os.flush();
         os.close();
