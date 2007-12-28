@@ -18,8 +18,8 @@ package org.less4j.controllers;
 
 import org.less4j.protocols.JSON;
 import org.less4j.protocols.JSONR;
-import org.less4j.serlvet.Actor;
-import org.less4j.serlvet.Controller;
+import org.less4j.servlet.Actor;
+import org.less4j.servlet.Controller;
 import org.less4j.simple.IO;
 
 import org.mozilla.javascript.*; // More JavaScript Applications!

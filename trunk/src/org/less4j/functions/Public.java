@@ -1,8 +1,8 @@
 package org.less4j.functions;
 
 import org.less4j.protocols.JSON;
-import org.less4j.serlvet.Actor;
-import org.less4j.serlvet.Service;
+import org.less4j.servlet.Actor;
+import org.less4j.servlet.Service;
 import org.less4j.simple.Strings;
 
 /**
