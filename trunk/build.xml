@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="less4j" default="jar">
+  <property file="host.properties"/>
   <property file="packages.properties"/>
-  <target name="jar">
+  <target name="compile">
+    <javac 
+       srcdir="src"
+       destdir="build"
+       debug="off"
+       source="1.4"
+       classpath=
+        "lib/smalljs.jar;
+         lib/xp.jar;
+         lib/servlet-api.jar;"
+    />
+  </target>
+  <target name="jar" depends="compile">
     <jar 
       jarfile="lib/less4j-${version}-bin.jar" 
       basedir="build"
@@ -9,7 +22,7 @@
     <jar 
       jarfile="lib/less4j-protocols-${version}-bin.jar" 
       basedir="build" 
-      includes="org/less4j/protocols/**"
+      includes="org/less4j/protocols/** org/less4j/simple/**"
       />
     <jar 
       jarfile="lib/less4j-simple-${version}-bin.jar" 
@@ -18,16 +31,36 @@
       />
     <copy file="lib/less4j-${version}-bin.jar" tofile="lib/less4j.jar"/>
   </target>
+  <target name="doctestj">
+  	<unzip src="lib/doctestj-browser.zip" dest="doc"/>
+  </target>
   <target name="doc">
     <delete dir="doc/fragments"/>
     <delete dir="doc/tests"/>
     <javadoc 
-      docletpath="lib/less4j.jar;./lib/smalljs.jar;./lib/xp.jar"
-      doclet="org.less4j.protocols.Doctest"
-      packagenames="org.less4j, org.less4j.functions, org.less4j.controllers, org.less4j.protocols, org.less4j.simple" 
+      docletpath=
+        "lib/doctestj.jar;
+         lib/less4j.jar;
+         lib/smalljs.jar;
+         lib/xp.jar;
+         lib/servlet-api.jar;
+         ${host-jdk-path}lib/tools.jar"
+      doclet="org.doctestj.Doclet"
+      packagenames=
+        "org.less4j.functions,
+         org.less4j.controllers,
+         org.less4j.protocols,
+         org.less4j.simple,
+         org.less4j.servlet" 
       source="1.4" 
       sourcepath="src" 
-      classpath="lib/less4j.jar;lib/smalljs.jar;./lib/xp.jar;lib/servlet-api.jar;/jdk1.5.0_11/lib/tools.jar" 
+      classpath=
+        "lib/doctestj.jar;
+         lib/less4j.jar;
+         lib/smalljs.jar;
+         lib/xp.jar;
+         lib/servlet-api.jar;
+         ${host-jdk-path}lib/tools.jar"
       access="public" 
       >
     </javadoc>
